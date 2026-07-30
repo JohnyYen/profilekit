@@ -1,0 +1,30 @@
+name: Render CV
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install RenderCV
+        run: pip install "rendercv[full]"
+
+      - name: Render CV
+        run: rendercv render Johny_A._Pedraza_Romero_CV.yaml
+
+      - name: Upload CV Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Johny_A._Pedraza_Romero_CV
+          path: rendercv_output/
+          compression-level: 6
