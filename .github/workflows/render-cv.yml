@@ -8,6 +8,8 @@ on:
 jobs:
   render:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -28,3 +30,15 @@ jobs:
           name: Johny_A._Pedraza_Romero_CV
           path: rendercv_output/
           compression-level: 6
+
+      - name: Create or Update Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: cv-latest
+          name: Johny A. Pedraza Romero — CV (Latest)
+          body: |
+            Auto-generated from commit `${{ github.sha }}`
+            Rendered on ${{ github.event.head_commit.timestamp || github.run_started_at }}
+          files: rendercv_output/*
+          overwrite: true
+          fail_on_unmatched_files: false
