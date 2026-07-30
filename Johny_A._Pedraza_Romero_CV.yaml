@@ -1,11 +1,11 @@
-yaml-language-server: $schema=https://raw.githubusercontent.com/rendercv/rendercv/refs/tags/v2.6/schema.json
+# yaml-language-server: $schema=https://raw.githubusercontent.com/rendercv/rendercv/refs/tags/v2.8/schema.json
 cv:
   name: Johny A. Pedraza Romero
-  headline: Backend Developer | Architecture in evolution
-  location: 'La Habana, Cuba'
+  headline: Backend Architect in the making | AI-Augmented Development
+  location: "La Habana, Cuba"
   email: jhonnyantonio892@gmail.com
   # photo:
-  phone: '+53 55002026'
+  phone: "+53 55002026"
   # website: https://rendercv.com/
   social_networks:
     - network: LinkedIn
@@ -14,21 +14,19 @@ cv:
       username: JohnyYen
   custom_connections:
   sections:
-    Welcome to RenderCV:
-      - RenderCV reads a CV written in a YAML file, and generates a PDF with professional typography.
-      - See the [documentation](https://docs.rendercv.com) for more details.
     education:
-      - institution: Universidad Tecnológica de la Habana "Jose Antonio Echeverría" CUJAE
+      - institution: Technological University of Havana “José Antonio Echeverría” (CUJAE)
         area: Computer Engineering
         degree: BS
         date:
         start_date: 2023-01
-        end_date: 2026-06
-        location: La Habana, CU
+        end_date: 2026-07
+        location: La Havana, CU
         summary:
         highlights:
-          - 'Thesis: Architecture for a Educative Platform'
-          - 'Advisor: Prof. Raisa Socorro'
+          - "Thesis: Architecture of an Educational Platform Based on Adaptive Video Games with Teacher Control for Programming Learning"
+          - "Advisor: Prof. Raisa Socorro Llanés"
+          - Graduated in July 2026
     experience:
       - company: Medialityc
         position: Backend Developer
@@ -36,23 +34,24 @@ cv:
         start_date: 2024-10
         end_date: 2025-07
         location: La Habana, CU
-        summary:
+        summary: Completed backend development training in .NET and FastAPI, focusing on a generalization-oriented development approach and the design of robust, project-aligned architectures.
         highlights:
-          - Developed backend solutions for multiple clients and projects
-          - Worked with modern web technologies and frameworks
-          - Implemented clean architecture and scalable patterns
+          - Developed the backend for a foodie community platform using .NET, applying a scalable architecture design based on Clean Architecture and a generalization-oriented development approach.
+          - Developed a backend using FastAPI for a photo monetization mobile application, integrated with an OCR model for image interpretation and analysis.
+      
       - company: Avangenio
         position: Frappe Developer
         date:
         start_date: 2025-05
         end_date: present
         location: La Habana, CU
-        summary:
+        summary: Currently responsible for developing new features using Python and JavaScript for custom ERPNext applications.
         highlights:
-          - Designed sparse attention mechanism reducing transformer memory footprint by 4.2x
-          - Co-authored paper accepted at NeurIPS 2022 (spotlight presentation, top 5% of submissions)
+          - Designed and implemented custom functionalities in ERPNext, enhancing system adaptability to business workflows.
+          - Led a team as team leader during Avangenio's internal hackathon, building a custom Frappe-based application that acts as a fully customizable assistant, allowing end users to dynamically create the tools they need.
+          - Leading the integration with Facel, a Cuban electronic invoicing API, as a key milestone for the application.
     projects:
-      - name: '[NestJS Boilerplate](https://github.com/JohnyYen/NestJs-Template)'
+      - name: "[NestJS Boilerplate](https://github.com/JohnyYen/NestJs-Template)"
         date:
         start_date: 2025-08
         end_date: 2025-10
@@ -65,8 +64,8 @@ cv:
           - Centralized app configuration and DTOs for pagination/responses
           - Production-ready setup with Swagger auto-documentation
           - Custom exception handling and decorators
-      
-      - name: '[FastAPI Template](https://github.com/JohnyYen/fastapi-template)'
+
+      - name: "[FastAPI Template](https://github.com/JohnyYen/fastapi-template)"
         date:
         start_date: 2025-07
         end_date: 2025-08
@@ -80,8 +79,8 @@ cv:
           - Testing configuration with pytest
           - Docker and Docker Compose ready for deployment
           - Automatic documentation with Swagger UI and ReDoc
-      
-      - name: '[Ignix Core](https://github.com/JohnyYen/ignix-core)'
+
+      - name: "[Ignix Core](https://github.com/JohnyYen/ignix-core)"
         date:
         start_date: 2026-01
         end_date: 2026-02
@@ -93,6 +92,40 @@ cv:
           - ORM-agnostic repository interface supporting TypeORM, Prisma, and Sequelize
           - Framework-flexible API handlers with adapters for NestJS, Express, Fastify, and Hono
           - Promotes SOLID principles and type safety to reduce bugs and improve maintainability
+
+      - name: "FastAPI Generic Scaffold"
+        date:
+        start_date: 2026-07
+        end_date:
+        location:
+        summary: A fully generic FastAPI scaffold architected with Screaming Architecture and Clean Architecture, featuring an automated scaffolding script that generates complete, production-ready modules — repository, service, and API layers — out of the box. The generic core is extensible through a Builder pattern, allowing custom wrappers at any layer, making it adaptable to virtually any backend domain. Includes a customizable built-in admin panel.
+        highlights:
+          - Architected with Screaming Architecture and Clean Architecture for domain-driven module organization
+          - Automated scaffolding script generates ready-to-use modules with full repository, service, and API layers
+          - Extensible core with Builder pattern for adding custom wrappers at repo, service, or controller level
+          - Built-in customizable admin panel
+          - Designed for adaptability across any backend domain
+
+      - name: "Educational Game-Based Learning Platform (Thesis)"
+        date:
+        start_date: 2026-01
+        end_date: 2026-07
+        location:
+        summary: A game-based educational platform designed to integrate with multiple video game types for programming learning. Features analytics dashboards to track student performance, course management, and teacher controls for customizing learning paths. Built with an adaptive architecture that enables seamless integration of diverse game genres while collecting and analyzing learning analytics in real time.
+        highlights:
+          - Multi-game integration architecture supporting diverse video game genres for programming education
+          - Analytics dashboards for real-time student performance tracking and learning insights
+          - Course management system with teacher-controlled adaptive learning paths
+          - Scalable architecture designed for extensibility to new game types and analytics modules
+    # startup_projects:
+    #   - name:
+    #     date:
+    #     start_date:
+    #     end_date:
+    #     location:
+    #     summary: "🚧 Coming soon — product building in progress"
+    #     highlights:
+    #       -
     # publications:
     #   - title: 'Sparse Mixture-of-Experts at Scale: Efficient Routing for Trillion-Parameter Models'
     #     authors:
@@ -140,15 +173,19 @@ cv:
     #   - bullet: Fulbright Scholarship for Graduate Studies (2018)
     skills:
       - label: Back-end Frameworks
-        details: NestJS, FastAPI, .NET, Express, Hono, Supabase, Strapi
-      - label: Front-end Frameworks
-        details: React, Next.js, Tailwind CSS
+        details: NestJS, FastAPI, .NET, Hono, Strapi
+      - label: ERP Platforms
+        details: Frappe, ERPNext
       - label: Databases
         details: PostgreSQL, MongoDB, Prisma ORM
       - label: Dev & Infrastructure
         details: Docker, Git, GitHub Actions, Vercel, GitHub, GitLab
       - label: Languages
         details: TypeScript, Python, C#, JavaScript
+      - label: Software Design
+        details: Clean Architecture, Domain-Driven Design, SOLID Principles, Design Patterns, C4 Model, MVC
+      - label: AI-Driven Development
+        details: Spec-Driven Development (SDD), AI Gentle Stack
     # patents:
     #   - number: Adaptive Quantization for Neural Network Inference on Edge Devices (US Patent 11,234,567)
     #   - number: Dynamic Sparsity Patterns for Efficient Transformer Attention (US Patent 11,345,678)
@@ -330,7 +367,7 @@ locale:
   #   - November
   #   - December
 settings:
-  current_date: '2026-01-24'
+  current_date: "2026-07-30"
   render_command:
     design:
     locale:
