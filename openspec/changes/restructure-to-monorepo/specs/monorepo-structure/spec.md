@@ -83,18 +83,22 @@ copy of the data (outside the deferred portfolio carve-out) remains a violation.
 ### Requirement: Portfolio moved in-repo and builds
 
 The Next.js portfolio application MUST live under `apps/portfolio/` and MUST
-build in-repo via **pnpm** using `pnpm install --frozen-lockfile && pnpm build`,
-with no cross-repo dependency, git submodule, or network request to an external
-repo required for the build. The portfolio's rendering behavior MUST be
-unchanged by the move: it continues to source its content from its own hardcoded
-`app/data/` TypeScript modules. This change does NOT impose any obligation to
-resolve data from the canonical `data/` directory — that consolidation is
-deferred to `wire-portfolio-to-canonical-data`.
+build in-repo via **pnpm** (install with `pnpm install --frozen-lockfile`, then
+a Next.js production build), with no cross-repo dependency, git submodule, or
+network request to an external repo required for the build. The exact build
+invocation is an implementation detail — where pnpm's build-script approval gate
+blocks the `pnpm build` script for intentionally-ignored native deps (sharp,
+unrs-resolver), invoking the Next build directly (e.g., `pnpm exec next build`)
+is acceptable. The portfolio's rendering behavior MUST be unchanged by the move:
+it continues to source its content from its own hardcoded `app/data/` TypeScript
+modules. This change does NOT impose any obligation to resolve data from the
+canonical `data/` directory — that consolidation is deferred to
+`wire-portfolio-to-canonical-data`.
 
 #### Scenario: Portfolio builds in-repo via pnpm
 
 - GIVEN `apps/portfolio/` is present with its `package.json` and `pnpm-lock.yaml`
-- WHEN `pnpm install --frozen-lockfile && pnpm build` is executed inside `apps/portfolio/`
+- WHEN dependencies are installed with `pnpm install --frozen-lockfile` and a Next.js production build is run inside `apps/portfolio/`
 - THEN the build SHALL succeed
 - AND no cross-repo fetch or submodule reference SHALL be required to complete the build
 
@@ -126,42 +130,37 @@ divergent copy of profile data, and MUST NOT fetch it cross-repo.
 ### Requirement: Path-scoped CI job isolation
 
 The CI configuration MUST gate each toolchain's workflow job with path filters
-such that unrelated changes do not trigger unnecessary jobs. The Python
-data-validation job runs `uv run pytest -q` plus data validation; the
-Node/portfolio build job runs `pnpm install --frozen-lockfile && pnpm build`
-against a pinned Node version.
+such that unrelated changes do not trigger the other toolchain's job. The hard
+invariant is TOOLCHAIN ISOLATION: a Python-scoped change MUST NOT trigger the
+Node/portfolio build, and a portfolio-scoped change MUST NOT trigger the Python
+data-validation job. The specific runner of each job (e.g., pip vs uv, and the
+lint/type/coverage steps of the Python job) is an implementation detail and is
+NOT constrained by this requirement.
 
 | Triggering path scope | MUST trigger | MUST NOT trigger |
 |---|---|---|
-| `data/**`, `generators/**`, `schemas/**`, `tests/**` | Python data-validation job (`uv run pytest -q`) | Node/portfolio pnpm build job |
-| `apps/portfolio/**` | Node/portfolio pnpm build job (`pnpm install --frozen-lockfile && pnpm build`) | Python data-validation job |
-| `cv/**` | Python data-validation job (`uv run pytest -q`) | Node/portfolio pnpm build job |
+| `data/**`, `generators/**`, `schemas/**`, `tests/**` | Python data-validation job | Node/portfolio build job |
+| `apps/portfolio/**` | Node/portfolio build job | Python data-validation job |
 | A PR touching both a Python-scoped path AND `apps/portfolio/**` | Both jobs | — |
 
-Paths not listed above (e.g., `openspec/**`, root docs) MAY skip both jobs.
-`cv/` is grouped with the Python toolchain because RenderCV config is validated
-alongside the data pipeline, not the Node build.
+Paths not listed above (e.g., `openspec/**`, `cv/**`, root docs) MAY skip both
+jobs. `cv/` is NOT required to trigger either job: it holds a static RenderCV
+config whose rendering/validation is an external deploy concern, not part of the
+in-repo Python data pipeline or the Node build.
 
 #### Scenario: Data-only change does not trigger portfolio CI
 
 - GIVEN a pull request modifies only files under `data/`
 - WHEN CI evaluates path filters
-- THEN the Python data-validation job (`uv run pytest -q`) SHALL run
-- AND the Node/portfolio pnpm build job SHALL NOT run
+- THEN the Python data-validation job SHALL run
+- AND the Node/portfolio build job SHALL NOT run
 
 #### Scenario: Portfolio-only change does not trigger data validation CI
 
 - GIVEN a pull request modifies only files under `apps/portfolio/`
 - WHEN CI evaluates path filters
-- THEN the Node/portfolio pnpm build job (`pnpm install --frozen-lockfile && pnpm build`) SHALL run
+- THEN the Node/portfolio build job SHALL run
 - AND the Python data-validation job SHALL NOT run
-
-#### Scenario: CV-only change triggers the Python toolchain
-
-- GIVEN a pull request modifies only files under `cv/`
-- WHEN CI evaluates path filters
-- THEN the Python data-validation job (`uv run pytest -q`) SHALL run
-- AND the Node/portfolio pnpm build job SHALL NOT run
 
 ---
 

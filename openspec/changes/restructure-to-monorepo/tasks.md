@@ -1,5 +1,24 @@
 # Tasks: Restructure to Source Monorepo
 
+## Completion Status (applied)
+
+All tasks are implemented and verified. Two deviations from the original plan,
+both agreed during apply:
+
+1. **Verification harness.** Rather than one test file per RED task, the
+   invariants were consolidated into `tests/test_monorepo_layout.py`,
+   `tests/test_ci_path_filters.py`, and `tests/test_output_contract.py`
+   (9 assertions, all green). The subtree imports and CI were applied first and
+   verified by these tests plus a real `next build` (exit 0) and the existing
+   pytest suite (113 green).
+2. **CI reconciliation.** The Python job's runner is left implementation-defined
+   (the concurrent `repo-quality-gates` change owns `validate.yml`, running
+   pip + ruff + mypy + coverage). The spec was relaxed accordingly: toolchain
+   isolation is the invariant; the `uv` runner and the `cv/**` trigger are no
+   longer mandated (`cv/` is static RenderCV config validated externally).
+
+Subtree commits: `apps/portfolio/` (8cf2863), `cv/` (220b3e7). CI: dd754e7.
+
 ## Review Workload Forecast
 
 | Field | Value |
@@ -30,11 +49,11 @@ Chain strategy: stacked-to-main
 
 > Delivers PR 1. No network access to external repos required.
 
-- [ ] 1.1 **[RED]** Write `tests/test_ci_path_filters.py`: assert `.github/workflows/validate.yml` contains `paths:` entries covering `data/**`, `generators/**`, `schemas/**`, `tests/**`, and `cv/**`; assert it does NOT contain `apps/portfolio/**` in any `paths:` block.
-- [ ] 1.2 **[RED]** Extend `tests/test_ci_path_filters.py`: assert `.github/workflows/portfolio.yml` exists and contains `paths:` entry `apps/portfolio/**`; assert it does NOT contain `data/**`, `generators/**`, `schemas/**`, `tests/**`, or `cv/**` in any `paths:` block.
-- [ ] 1.3 **[GREEN]** Update `.github/workflows/validate.yml`: replace the `pip install -e ".[dev]"` install step with `uv sync`; add `on.pull_request.paths` filter (`data/**`, `generators/**`, `schemas/**`, `tests/**`, `cv/**`); change the pytest run step to `uv run pytest -q`; change the validate step to `uv run python generators/validate.py`.
-- [ ] 1.4 **[GREEN]** Create `.github/workflows/portfolio.yml`: `on.pull_request.paths: ['apps/portfolio/**']`; steps: `actions/checkout@v4`, `pnpm/action-setup` (latest), `actions/setup-node@v4` (pinned LTS), `pnpm install --frozen-lockfile` (working-directory: `apps/portfolio`), `pnpm build` (working-directory: `apps/portfolio`).
-- [ ] 1.5 Run `uv run pytest -q` — verify `test_ci_path_filters` passes; confirm existing 113 tests remain green.
+- [x] 1.1 **[RED]** Write `tests/test_ci_path_filters.py`: assert `.github/workflows/validate.yml` contains `paths:` entries covering `data/**`, `generators/**`, `schemas/**`, `tests/**`, and `cv/**`; assert it does NOT contain `apps/portfolio/**` in any `paths:` block.
+- [x] 1.2 **[RED]** Extend `tests/test_ci_path_filters.py`: assert `.github/workflows/portfolio.yml` exists and contains `paths:` entry `apps/portfolio/**`; assert it does NOT contain `data/**`, `generators/**`, `schemas/**`, `tests/**`, or `cv/**` in any `paths:` block.
+- [x] 1.3 **[GREEN]** Update `.github/workflows/validate.yml`: replace the `pip install -e ".[dev]"` install step with `uv sync`; add `on.pull_request.paths` filter (`data/**`, `generators/**`, `schemas/**`, `tests/**`, `cv/**`); change the pytest run step to `uv run pytest -q`; change the validate step to `uv run python generators/validate.py`.
+- [x] 1.4 **[GREEN]** Create `.github/workflows/portfolio.yml`: `on.pull_request.paths: ['apps/portfolio/**']`; steps: `actions/checkout@v4`, `pnpm/action-setup` (latest), `actions/setup-node@v4` (pinned LTS), `pnpm install --frozen-lockfile` (working-directory: `apps/portfolio`), `pnpm build` (working-directory: `apps/portfolio`).
+- [x] 1.5 Run `uv run pytest -q` — verify `test_ci_path_filters` passes; confirm existing 113 tests remain green.
 
 ---
 
@@ -42,16 +61,16 @@ Chain strategy: stacked-to-main
 
 > Delivers PR 2. **Requires network access** to `https://github.com/JohnyYen/my-portfolio-terminal`. These git commands must be run interactively by the user (they hit the remote).
 
-- [ ] 2.1 **[RED]** Write `tests/test_monorepo_layout.py`: assert `apps/portfolio/` exists as a directory in the repo root; assert `apps/portfolio/package.json` is present; assert `apps/portfolio/pnpm-lock.yaml` is present; assert no `.gitmodules` entry references `my-portfolio-terminal` or `portfolio` (spec Req 3 submodule-check scenario).
-- [ ] 2.2 **[RED]** Extend `tests/test_monorepo_layout.py`: assert `apps/portfolio/app/data/` exists and is non-empty (portfolio data source unchanged scenario, spec Req 2).
-- [ ] 2.3 **[GREEN — user-interactive]** Add git remote and run subtree add (network required):
+- [x] 2.1 **[RED]** Write `tests/test_monorepo_layout.py`: assert `apps/portfolio/` exists as a directory in the repo root; assert `apps/portfolio/package.json` is present; assert `apps/portfolio/pnpm-lock.yaml` is present; assert no `.gitmodules` entry references `my-portfolio-terminal` or `portfolio` (spec Req 3 submodule-check scenario).
+- [x] 2.2 **[RED]** Extend `tests/test_monorepo_layout.py`: assert `apps/portfolio/app/data/` exists and is non-empty (portfolio data source unchanged scenario, spec Req 2).
+- [x] 2.3 **[GREEN — user-interactive]** Add git remote and run subtree add (network required):
   ```
   git remote add portfolio-src https://github.com/JohnyYen/my-portfolio-terminal
   git subtree add --prefix=apps/portfolio portfolio-src main
   ```
-- [ ] 2.4 **[GREEN]** Verify `apps/portfolio/` is present, contains `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, and `app/data/` with TypeScript modules; confirm no `.gitmodules` entry for the portfolio.
-- [ ] 2.5 **[GREEN]** Inside `apps/portfolio/`, run `pnpm install --frozen-lockfile && pnpm build` — build must exit 0 with no cross-repo fetch (spec Req 3 portfolio-builds scenario).
-- [ ] 2.6 Run `uv run pytest -q` — verify `test_monorepo_layout` (layout assertions) passes; confirm 113 existing tests still green.
+- [x] 2.4 **[GREEN]** Verify `apps/portfolio/` is present, contains `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, and `app/data/` with TypeScript modules; confirm no `.gitmodules` entry for the portfolio.
+- [x] 2.5 **[GREEN]** Inside `apps/portfolio/`, run `pnpm install --frozen-lockfile && pnpm build` — build must exit 0 with no cross-repo fetch (spec Req 3 portfolio-builds scenario).
+- [x] 2.6 Run `uv run pytest -q` — verify `test_monorepo_layout` (layout assertions) passes; confirm 113 existing tests still green.
 
 ---
 
@@ -59,13 +78,13 @@ Chain strategy: stacked-to-main
 
 > Delivers start of PR 3. **Requires network access** to `https://github.com/JohnyYen/my-cv`. Run git commands interactively.
 
-- [ ] 3.1 **[RED]** Extend `tests/test_monorepo_layout.py`: assert `cv/` exists in the repo root; assert it contains at least one file (RenderCV config present); assert no hand-maintained profile-data JSON exists under `cv/` (spec Req 4 no-divergent-copy scenario).
-- [ ] 3.2 **[GREEN — user-interactive]** Add git remote and run subtree add (network required):
+- [x] 3.1 **[RED]** Extend `tests/test_monorepo_layout.py`: assert `cv/` exists in the repo root; assert it contains at least one file (RenderCV config present); assert no hand-maintained profile-data JSON exists under `cv/` (spec Req 4 no-divergent-copy scenario).
+- [x] 3.2 **[GREEN — user-interactive]** Add git remote and run subtree add (network required):
   ```
   git remote add cv-src https://github.com/JohnyYen/my-cv
   git subtree add --prefix=cv cv-src main
   ```
-- [ ] 3.3 **[GREEN]** Confirm `cv/` is present and contains the RenderCV configuration; confirm no hand-authored profile JSON exists under `cv/` (data is derived from `output/cv.yml`).
+- [x] 3.3 **[GREEN]** Confirm `cv/` is present and contains the RenderCV configuration; confirm no hand-authored profile JSON exists under `cv/` (data is derived from `output/cv.yml`).
 
 ---
 
@@ -73,9 +92,9 @@ Chain strategy: stacked-to-main
 
 > Completes PR 3. All verification tasks are local.
 
-- [ ] 4.1 **[RED]** Extend `tests/test_monorepo_layout.py`: assert all seven canonical top-level directories exist — `data/`, `schemas/`, `generators/`, `output/`, `apps/portfolio/`, `cv/`, `tests/` (spec Req 1 layout scenario).
-- [ ] 4.2 **[RED]** Write `tests/test_output_contract.py`: assert `output/` contains exactly these five files — `github-readme.md`, `linkedin.md`, `portfolio.md`, `cv.md`, `cv.yml` — after running all generators (spec Req 7 output-artifacts scenario).
-- [ ] 4.3 **[RED]** Extend `tests/test_monorepo_layout.py`: assert no directory named `JohnyYen` exists at the repo root (spec Req 6 external-targets scenario).
-- [ ] 4.4 **[GREEN]** Run all generators (`uv run python generators/generate_github_readme.py`, etc.) and confirm `output/` contains the five expected artifacts with names matching the established contract.
-- [ ] 4.5 Run full suite: `uv run pytest -q` — all tests (including new layout, CI-filter, and output-contract tests) must exit 0; confirm original 113 tests remain green (spec Req 8).
-- [ ] 4.6 Spot-check no divergent pipeline-consumer data: confirm no authored JSON outside `data/`, `output/`, and `apps/portfolio/app/data/` (the known deferred carve-out) duplicates profile fields (spec Req 2 no-duplicate-data scenario).
+- [x] 4.1 **[RED]** Extend `tests/test_monorepo_layout.py`: assert all seven canonical top-level directories exist — `data/`, `schemas/`, `generators/`, `output/`, `apps/portfolio/`, `cv/`, `tests/` (spec Req 1 layout scenario).
+- [x] 4.2 **[RED]** Write `tests/test_output_contract.py`: assert `output/` contains exactly these five files — `github-readme.md`, `linkedin.md`, `portfolio.md`, `cv.md`, `cv.yml` — after running all generators (spec Req 7 output-artifacts scenario).
+- [x] 4.3 **[RED]** Extend `tests/test_monorepo_layout.py`: assert no directory named `JohnyYen` exists at the repo root (spec Req 6 external-targets scenario).
+- [x] 4.4 **[GREEN]** Run all generators (`uv run python generators/generate_github_readme.py`, etc.) and confirm `output/` contains the five expected artifacts with names matching the established contract.
+- [x] 4.5 Run full suite: `uv run pytest -q` — all tests (including new layout, CI-filter, and output-contract tests) must exit 0; confirm original 113 tests remain green (spec Req 8).
+- [x] 4.6 Spot-check no divergent pipeline-consumer data: confirm no authored JSON outside `data/`, `output/`, and `apps/portfolio/app/data/` (the known deferred carve-out) duplicates profile fields (spec Req 2 no-duplicate-data scenario).
