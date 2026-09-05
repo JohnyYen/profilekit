@@ -3,8 +3,26 @@ name: Validate Profile Data
 on:
   push:
     branches: [main]
+    paths:
+      - "data/**"
+      - "generators/**"
+      - "schemas/**"
+      - "tests/**"
+      - "cv/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/validate.yml"
   pull_request:
     branches: [main]
+    paths:
+      - "data/**"
+      - "generators/**"
+      - "schemas/**"
+      - "tests/**"
+      - "cv/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/validate.yml"
 
 jobs:
   validate:
@@ -12,22 +30,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
         with:
-          # Python 3.11 is used instead of 3.14 because jsonschema binary
-          # wheels are reliably available for 3.11 on all CI runners.
+          # Python 3.11 is pinned because jsonschema binary wheels are
+          # reliably available for 3.11 on all CI runners.
           python-version: "3.11"
 
       - name: Install dependencies
-        run: pip install -e ".[dev]"
+        run: uv sync --extra dev
 
       - name: Run pytest
         env:
           SKIP_ICON_CHECK: "1"
-        run: python -m pytest -q
+        run: uv run pytest -q
 
       - name: Validate data files
         env:
           SKIP_ICON_CHECK: "1"
-        run: python generators/validate.py
+        run: uv run python generators/validate.py

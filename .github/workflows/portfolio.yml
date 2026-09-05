@@ -1,0 +1,44 @@
+name: Build Portfolio
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/portfolio/**"
+      - ".github/workflows/portfolio.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "apps/portfolio/**"
+      - ".github/workflows/portfolio.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/portfolio
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: apps/portfolio/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Invoke next directly instead of `pnpm build`: pnpm's pre-run
+      # dependency check aborts on ERR_PNPM_IGNORED_BUILDS for the native
+      # deps (sharp, unrs-resolver) that pnpm-workspace.yaml intentionally
+      # ignores. `pnpm exec` skips that gate and produces an identical build.
+      - name: Build
+        run: pnpm exec next build
