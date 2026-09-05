@@ -4,6 +4,7 @@
 import json
 import sys
 from pathlib import Path
+from typing import Any
 
 import jsonschema
 
@@ -25,7 +26,7 @@ _SCHEMA_MAP = {
 REQUIRED_FILES = [f"{stem}.json" for stem in _SCHEMA_MAP]
 
 
-def _load_json(path: Path) -> object:
+def _load_json(path: Path) -> Any:
     """Load raw JSON from *path*."""
     with open(path, encoding="utf-8") as f:
         return json.load(f)
@@ -152,6 +153,21 @@ def main() -> int:
                 print(f"WARNING (icon): {warning}", file=sys.stderr)
     except ImportError:
         # icons.py not yet present — skip silently
+        pass
+
+    # Link reachability (non-fatal, skippable)
+    try:
+        from generators.links import check_links  # noqa: PLC0415
+
+        projects_path = DATA_DIR / "projects.json"
+        social_path = DATA_DIR / "social.json"
+        projects_data = _load_json(projects_path) if projects_path.exists() else []
+        social_data = _load_json(social_path) if social_path.exists() else {}
+        link_warnings = check_links(projects_data, social_data)
+        for warning in link_warnings:
+            print(f"WARNING (link): {warning}", file=sys.stderr)
+    except ImportError:
+        # links.py not yet present — skip silently
         pass
 
     if all_passed:
