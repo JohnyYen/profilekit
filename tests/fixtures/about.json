@@ -1,0 +1,15 @@
+{
+  "username": "testuser",
+  "tagline": "Test tagline",
+  "description": "Test description.",
+  "githubReadmeSummary": null,
+  "linkedinHeadline": null,
+  "cvHeadline": null,
+  "portfolioHighlights": null,
+  "currentFocus": [
+    {
+      "title": "Architecture",
+      "description": "Building better systems."
+    }
+  ]
+}

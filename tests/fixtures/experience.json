@@ -1,0 +1,11 @@
+[
+  {
+    "company": "Test Corp",
+    "position": "Engineer",
+    "start_date": "2020",
+    "end_date": "2023",
+    "location": "Remote",
+    "summary": "Built things.",
+    "highlights": ["Shipped feature A"]
+  }
+]

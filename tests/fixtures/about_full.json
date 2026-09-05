@@ -1,0 +1,16 @@
+{
+  "username": "testuser",
+  "tagline": "Test tagline",
+  "description": "Test description.",
+  "headline": "Test Headline",
+  "githubReadmeSummary": "Senior Engineer at ACME",
+  "linkedinHeadline": "Backend Engineer | Clean Architecture Practitioner",
+  "cvHeadline": "Software Architect & AI Engineer",
+  "portfolioHighlights": ["NestJS Boilerplate", "FastAPI Template"],
+  "whatIBuildVariants": {
+    "github": "APIs and tools",
+    "linkedin": "Scalable backend systems",
+    "cv": "Production-grade services",
+    "portfolio": "Open-source frameworks"
+  }
+}

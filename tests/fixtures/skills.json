@@ -1,0 +1,8 @@
+{
+  "categories": [
+    {
+      "label": "Backend",
+      "details": ["Python", {"name": "FastAPI", "icon": "fastapi"}]
+    }
+  ]
+}

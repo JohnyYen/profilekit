@@ -1,0 +1,9 @@
+[
+  {
+    "name": "Test Project",
+    "description": "A test project.",
+    "tech": "Python",
+    "url": "https://github.com/testuser/test-project",
+    "highlights": ["Highlight A"]
+  }
+]
