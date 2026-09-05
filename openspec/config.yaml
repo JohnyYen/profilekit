@@ -49,6 +49,6 @@ rules:
     test_command: "uv run pytest -q"
     # No compiled build step for the Python pipeline; generators emit output/ directly.
     build_command: ""
-    coverage_threshold: 0
+    coverage_threshold: 80
   archive:
     - Warn before merging destructive deltas.
