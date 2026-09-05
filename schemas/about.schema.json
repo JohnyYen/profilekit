@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "About",
+  "type": "object",
+  "required": ["username", "tagline", "description"],
+  "properties": {
+    "username": { "type": "string" },
+    "headline": { "type": "string" },
+    "tagline": { "type": "string" },
+    "description": { "type": "string" },
+    "location": { "type": "string" },
+    "email": { "type": "string", "format": "email" },
+    "phone": { "type": "string" },
+    "languages": { "type": "array", "items": { "type": "string" } },
+    "currentFocus": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["title", "description"],
+        "properties": {
+          "title": { "type": "string" },
+          "description": { "type": "string" }
+        }
+      }
+    },
+    "whatIBuild": { "type": "array", "items": { "type": "string" } },
+    "learningJourney": { "type": "string" },
+    "githubReadmeSummary": { "type": "string" },
+    "linkedinHeadline": { "type": "string" },
+    "cvHeadline": { "type": "string" },
+    "portfolioHighlights": { "type": "array", "items": { "type": "string" } },
+    "whatIBuildVariants": { "type": "object" },
+    "githubQuote": { "type": "string" }
+  },
+  "additionalProperties": true
+}

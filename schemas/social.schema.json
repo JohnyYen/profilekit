@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Social",
+  "type": "object",
+  "required": ["github", "linkedin", "email"],
+  "properties": {
+    "github": { "type": "string", "format": "uri" },
+    "linkedin": { "type": "string", "format": "uri" },
+    "email": { "type": "string", "format": "email" },
+    "cvUrl": { "type": "string", "format": "uri" },
+    "website": { "type": "string", "format": "uri" }
+  },
+  "additionalProperties": true
+}

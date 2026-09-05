@@ -1,0 +1,27 @@
+[
+  {
+    "company": "Medialityc",
+    "position": "Backend Developer",
+    "start_date": "2024-10",
+    "end_date": "2025-07",
+    "location": "La Habana, CU",
+    "summary": "Completed backend development training in .NET and FastAPI, focusing on a generalization-oriented development approach and the design of robust, project-aligned architectures.",
+    "highlights": [
+      "Developed the backend for a foodie community platform using .NET, applying a scalable architecture design based on Clean Architecture and a generalization-oriented development approach.",
+      "Developed a backend using FastAPI for a photo monetization mobile application, integrated with an OCR model for image interpretation and analysis."
+    ]
+  },
+  {
+    "company": "Avangenio",
+    "position": "Frappe Developer",
+    "start_date": "2025-05",
+    "end_date": "present",
+    "location": "La Habana, CU",
+    "summary": "Currently responsible for developing new features using Python and JavaScript for custom ERPNext applications.",
+    "highlights": [
+      "Designed and implemented custom functionalities in ERPNext, enhancing system adaptability to business workflows.",
+      "Led a team as team leader during Avangenio's internal hackathon, building a custom Frappe-based application that acts as a fully customizable assistant, allowing end users to dynamically create the tools they need.",
+      "Leading the integration with Facel, a Cuban electronic invoicing API, as a key milestone for the application."
+    ]
+  }
+]

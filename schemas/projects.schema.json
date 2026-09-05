@@ -1,0 +1,18 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Projects",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["name", "description", "tech", "url"],
+    "properties": {
+      "name": { "type": "string" },
+      "description": { "type": "string" },
+      "tech": { "type": "string" },
+      "url": { "type": "string" },
+      "start_date": { "type": "string" },
+      "end_date": { "type": "string" },
+      "highlights": { "type": "array", "items": { "type": "string" } }
+    }
+  }
+}
