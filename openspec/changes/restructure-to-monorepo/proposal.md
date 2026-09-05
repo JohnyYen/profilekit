@@ -7,20 +7,26 @@
 
 Profile content is one dataset (`data/*.json`) but its sources are split across 3–4 repos: this
 repo, the Next.js portfolio, and the RenderCV pipeline (`my-cv`). Any single content change forces
-non-atomic edits and manual cross-repo data sync (the portfolio imports `about.json`/`projects.json`
-cross-repo). For a single maintainer, monorepo overhead is low and the friction is the real cost.
-Consolidate SOURCES into one repo under the principle **one source, many destinations**.
+non-atomic edits and manual cross-repo content sync. The portfolio does NOT import this repo's data;
+it carries its OWN divergent, HARDCODED copy of the profile content in `app/data/` as TypeScript
+modules. The real friction is that the same content is duplicated and drifts across repos, not that
+it is imported. For a single maintainer, monorepo overhead is low and the duplication is the real
+cost. Consolidate SOURCES into one repo under the principle **one source, many destinations**.
 
 ## Scope
 
 ### In Scope
 - Adopt target layout: `data/`, `generators/`, `output/`, `schemas/`, `tests/`, `cv/`, `apps/portfolio/`.
-- Bring the Next.js portfolio in-repo under `apps/portfolio/`.
-- Switch portfolio from cross-repo import to local `../../data/*.json`.
+- Bring the Next.js portfolio in-repo under `apps/portfolio/` **as-is** (its hardcoded `app/data/`
+  TypeScript modules move untouched; it keeps building from its existing internal data). Package
+  manager is **pnpm**.
 - Bring RenderCV config in-repo under `cv/`.
-- Path-scoped CI so Python and Node toolchains run independently.
+- Path-scoped CI so Python (`uv`) and Node (`pnpm`) toolchains run independently.
 
 ### Out of Scope (Non-Goals)
+- **Consolidating the portfolio's hardcoded `app/data/` onto canonical `data/`** — deferred to the
+  follow-up change `wire-portfolio-to-canonical-data` (it requires a profile-data-schema ↔
+  portfolio-shape mapping). This change moves the portfolio as-is and does NOT touch its data source.
 - Deploy/distribution automation — deferred to a later change `profile-output-distribution`.
 - Absorbing `JohnyYen/JohnyYen` — GitHub mandates the profile README repo be named after the
   username; it stays a separate deploy TARGET receiving `output/github-readme.md`.
@@ -34,25 +40,28 @@ Consolidate SOURCES into one repo under the principle **one source, many destina
 None. Structural reorganization; no new behavioral capability.
 
 ### Modified Capabilities
-None at the spec level. `portfolio-generation` behavior is unchanged; only the portfolio's data
-IMPORT PATH changes (cross-repo → local). If the spec references cross-repo import as a requirement,
-sdd-spec should confirm and, if so, emit a delta narrowing it to local import.
+None at the spec level. `portfolio-generation` behavior is unchanged, and the portfolio's data
+SOURCE is untouched by this change — its hardcoded `app/data/` moves in-repo verbatim and remains
+its build-time data source. No import path is repointed here; consolidating that copy onto canonical
+`data/` is deferred to `wire-portfolio-to-canonical-data`.
 
 ## Approach
 
-Sources are absorbed; platform-forced targets stay thin deploy destinations. Move portfolio and CV
-config in-repo, repoint the portfolio import to local `data/`, and split CI into path-scoped jobs
-(`data/**` + `generators/**` → Python validate; `apps/portfolio/**` → Node build). Prefer `git
-subtree`/`filter-repo` to preserve portfolio history when moving it in.
+Sources are absorbed; platform-forced targets stay thin deploy destinations. Move the portfolio and
+CV config in-repo AS-IS (the portfolio keeps its hardcoded `app/data/` and keeps building), and split
+CI into path-scoped jobs (`data/**` + `generators/**` + `schemas/**` + `tests/**` + `cv/**` → Python
+validate; `apps/portfolio/**` → Node build via `pnpm install --frozen-lockfile && pnpm build`). Use
+`git subtree add` from each source's `main` branch to preserve portfolio and CV history when moving
+them in.
 
 ## Affected Areas
 
 | Area | Impact | Description |
 |------|--------|-------------|
-| `apps/portfolio/` | New | Next.js app moved in-repo |
+| `apps/portfolio/` | New | Next.js 16 app moved in-repo as-is (pnpm) |
 | `cv/` | New | RenderCV config moved in-repo |
-| portfolio data import | Modified | cross-repo → local `../../data/*.json` |
-| `.github/workflows/` | Modified | path-scoped Python + Node jobs |
+| portfolio data source (`app/data/`) | Unchanged | moves in-repo verbatim; still the portfolio's build-time data. Consolidation onto `data/` deferred to `wire-portfolio-to-canonical-data` |
+| `.github/workflows/` | Modified | path-scoped Python (`uv`) + Node (`pnpm`) jobs |
 | `JohnyYen/JohnyYen`, hosting, PDF release | Unchanged | remain external deploy targets |
 
 ## Risks

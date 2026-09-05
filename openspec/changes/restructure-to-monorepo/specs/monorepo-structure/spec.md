@@ -5,7 +5,13 @@
 Defines the verifiable structural and behavioral invariants of the consolidated
 profile-data monorepo after the `restructure-to-monorepo` change is applied.
 The core principle is **one source, many destinations**: profile data lives once
-in `data/`; all consumers reference it from that canonical location.
+in `data/`; the PIPELINE consumers (generators and the CV config) reference it
+from that canonical location.
+
+This spec covers the STRUCTURAL move only. The Next.js portfolio ships its own
+hardcoded copy of the profile content under `app/data/` (TypeScript modules);
+consolidating that copy onto the canonical `data/` is explicitly DEFERRED to the
+follow-up change `wire-portfolio-to-canonical-data` and is NOT resolved here.
 
 ## Requirements
 
@@ -24,7 +30,9 @@ documented paths after the restructure is applied:
 | `cv/` | RenderCV config |
 | `tests/` | Automated test suite |
 
-No required directory MUST be absent or renamed after the change is applied.
+No required directory SHALL be absent or renamed after the change is applied.
+Additional top-level directories (e.g., `assets/`, `openspec/`) MAY exist and
+are not constrained by this requirement.
 
 #### Scenario: Layout verified post-restructure
 
@@ -34,40 +42,61 @@ No required directory MUST be absent or renamed after the change is applied.
 
 ---
 
-### Requirement: Single source of truth for profile data
+### Requirement: Single source of truth for profile data (pipeline consumers)
 
-`data/*.json` MUST be the sole authoritative store of profile content. No
-application or generator inside the repository SHALL maintain a divergent copy
-of the profile data.
+`data/*.json` MUST be the sole authoritative store of profile content for the
+PIPELINE consumers — the Python generators and the RenderCV config under `cv/`.
+No generator, and no CV configuration, SHALL maintain a divergent copy of the
+profile data.
 
-#### Scenario: Portfolio app reads from in-repo data/
+**Known, deferred divergence (carve-out):** the Next.js portfolio under
+`apps/portfolio/` carries its own hardcoded copy of the profile content in
+`app/data/` (TypeScript modules). This copy is a KNOWN, temporary divergence
+that this change does NOT resolve; consolidating it onto canonical `data/` is
+deferred to `wire-portfolio-to-canonical-data`. For the purposes of THIS
+requirement, the portfolio's `app/data/` is explicitly excluded from the
+"no divergent copy" obligation.
 
-- GIVEN `apps/portfolio/` is the in-repo Next.js application
-- WHEN the portfolio application resolves a profile data import
-- THEN the import SHALL resolve to a file under `data/` within this repository
-- AND no copy of the data SHALL exist under `apps/portfolio/` itself
+Generated artifacts are exempt: files under `output/`, build outputs (e.g.,
+`apps/portfolio/.next/`, `node_modules/`), and any git-ignored copy of `data/`
+synced into an app at build time are DERIVED from `data/` and are not considered
+divergent source copies for the purposes of this requirement. The exemption
+applies only to derived, git-ignored artifacts — a committed or hand-maintained
+copy of the data (outside the deferred portfolio carve-out) remains a violation.
 
-#### Scenario: No duplicate data files
+#### Scenario: Portfolio data source is unchanged by the move
+
+- GIVEN `apps/portfolio/` is the in-repo Next.js application moved as-is
+- WHEN the portfolio application resolves profile data
+- THEN it SHALL continue to resolve data from its own hardcoded `app/data/` TypeScript modules exactly as it did before the move
+- AND this change SHALL NOT repoint, rewrite, or delete `app/data/` (consolidation onto `data/` is deferred to `wire-portfolio-to-canonical-data`)
+
+#### Scenario: No duplicate data files among pipeline consumers
 
 - GIVEN the restructure has been applied
-- WHEN `data/*.json` content is compared to any other JSON files in the repo
-- THEN no file outside `data/` SHALL contain a duplicate or divergent copy of profile data
+- WHEN `data/*.json` content is compared to any other authored (non-generated) JSON files consumed by the generators or the `cv/` config
+- THEN no such file outside `data/`, excluding generated artifacts under `output/` and build outputs, SHALL contain a duplicate or divergent copy of profile data
+- AND the portfolio's `app/data/` is exempt from this check (deferred divergence)
 
 ---
 
-### Requirement: In-repo portfolio import via local path
+### Requirement: Portfolio moved in-repo and builds
 
-The Next.js portfolio application under `apps/portfolio/` MUST import profile
-data via a relative local path (e.g., `../../data/<file>.json`). Cross-repo
-fetches, git submodules, and network requests to external repos for profile
-data MUST NOT be used.
+The Next.js portfolio application MUST live under `apps/portfolio/` and MUST
+build in-repo via **pnpm** using `pnpm install --frozen-lockfile && pnpm build`,
+with no cross-repo dependency, git submodule, or network request to an external
+repo required for the build. The portfolio's rendering behavior MUST be
+unchanged by the move: it continues to source its content from its own hardcoded
+`app/data/` TypeScript modules. This change does NOT impose any obligation to
+resolve data from the canonical `data/` directory — that consolidation is
+deferred to `wire-portfolio-to-canonical-data`.
 
-#### Scenario: Portfolio builds using local path import
+#### Scenario: Portfolio builds in-repo via pnpm
 
-- GIVEN `apps/portfolio/` is present and `data/` contains valid JSON files
-- WHEN the portfolio build process (e.g., `next build`) is executed inside `apps/portfolio/`
+- GIVEN `apps/portfolio/` is present with its `package.json` and `pnpm-lock.yaml`
+- WHEN `pnpm install --frozen-lockfile && pnpm build` is executed inside `apps/portfolio/`
 - THEN the build SHALL succeed
-- AND no cross-repo fetch or submodule reference SHALL be required to resolve profile data
+- AND no cross-repo fetch or submodule reference SHALL be required to complete the build
 
 #### Scenario: Submodule check
 
@@ -77,29 +106,62 @@ data MUST NOT be used.
 
 ---
 
+### Requirement: In-repo CV config resolves data locally
+
+The RenderCV configuration under `cv/` MUST derive its profile content from the
+in-repo `data/` pipeline (directly or via a generated artifact under `output/`,
+such as `output/cv.yml`). The CV config MUST NOT embed a hand-maintained,
+divergent copy of profile data, and MUST NOT fetch it cross-repo.
+
+#### Scenario: CV config sources data from the pipeline
+
+- GIVEN `cv/` contains the RenderCV configuration and `data/` holds the profile data
+- WHEN the CV artifact is produced
+- THEN its profile content SHALL trace back to `data/` (directly or through `output/`)
+- AND no divergent copy of profile data SHALL be hand-maintained under `cv/`
+- AND no cross-repo fetch SHALL be required to resolve profile data for the CV
+
+---
+
 ### Requirement: Path-scoped CI job isolation
 
 The CI configuration MUST gate each toolchain's workflow job with path filters
-such that unrelated changes do not trigger unnecessary jobs.
+such that unrelated changes do not trigger unnecessary jobs. The Python
+data-validation job runs `uv run pytest -q` plus data validation; the
+Node/portfolio build job runs `pnpm install --frozen-lockfile && pnpm build`
+against a pinned Node version.
 
 | Triggering path scope | MUST trigger | MUST NOT trigger |
 |---|---|---|
-| `data/**`, `generators/**`, `schemas/**` | Python data-validation job | Node/portfolio build job |
-| `apps/portfolio/**` | Node/portfolio build job | Python data-validation job |
+| `data/**`, `generators/**`, `schemas/**`, `tests/**` | Python data-validation job (`uv run pytest -q`) | Node/portfolio pnpm build job |
+| `apps/portfolio/**` | Node/portfolio pnpm build job (`pnpm install --frozen-lockfile && pnpm build`) | Python data-validation job |
+| `cv/**` | Python data-validation job (`uv run pytest -q`) | Node/portfolio pnpm build job |
+| A PR touching both a Python-scoped path AND `apps/portfolio/**` | Both jobs | — |
+
+Paths not listed above (e.g., `openspec/**`, root docs) MAY skip both jobs.
+`cv/` is grouped with the Python toolchain because RenderCV config is validated
+alongside the data pipeline, not the Node build.
 
 #### Scenario: Data-only change does not trigger portfolio CI
 
 - GIVEN a pull request modifies only files under `data/`
 - WHEN CI evaluates path filters
-- THEN the Python data-validation job SHALL run
-- AND the Node/portfolio build job SHALL NOT run
+- THEN the Python data-validation job (`uv run pytest -q`) SHALL run
+- AND the Node/portfolio pnpm build job SHALL NOT run
 
 #### Scenario: Portfolio-only change does not trigger data validation CI
 
 - GIVEN a pull request modifies only files under `apps/portfolio/`
 - WHEN CI evaluates path filters
-- THEN the Node/portfolio build job SHALL run
+- THEN the Node/portfolio pnpm build job (`pnpm install --frozen-lockfile && pnpm build`) SHALL run
 - AND the Python data-validation job SHALL NOT run
+
+#### Scenario: CV-only change triggers the Python toolchain
+
+- GIVEN a pull request modifies only files under `cv/`
+- WHEN CI evaluates path filters
+- THEN the Python data-validation job (`uv run pytest -q`) SHALL run
+- AND the Node/portfolio pnpm build job SHALL NOT run
 
 ---
 

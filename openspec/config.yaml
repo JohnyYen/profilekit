@@ -42,11 +42,12 @@ rules:
       - Keep all new data fields optional and backward-compatible.
       - Preserve existing generator output when new fields are absent.
     tdd: true
-    # No test runner configured yet; set once a pytest suite exists.
-    test_command: ""
+    # pytest suite lives in tests/ (testpaths in pyproject.toml); run via uv.
+    test_command: "uv run pytest -q"
   verify:
-    # No test runner configured yet; set once a pytest suite exists.
-    test_command: ""
+    # pytest suite lives in tests/ (testpaths in pyproject.toml); run via uv.
+    test_command: "uv run pytest -q"
+    # No compiled build step for the Python pipeline; generators emit output/ directly.
     build_command: ""
     coverage_threshold: 0
   archive:
