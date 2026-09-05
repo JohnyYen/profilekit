@@ -57,9 +57,9 @@ jobs:
         run: uv run pytest -q
 
       - name: Validate data files
-        run: uv run python generators/validate.py
+        run: uv run python -m generators.cli validate
 
       - name: Output freshness (generated output must match committed output)
         run: |
-          uv run python -m generators.generate_all
+          uv run python -m generators.cli generate
           git diff --exit-code -- output/
