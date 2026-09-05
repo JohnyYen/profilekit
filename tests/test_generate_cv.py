@@ -1,10 +1,10 @@
 """Tests for generate_cv — cover cvHeadline wiring, render_cv_markdown, and dual output."""
 
 from pathlib import Path
-import pytest
+
+import generators.generate_cv as gen
 
 from tests.conftest import make_about
-import generators.generate_cv as gen
 
 FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"
 
@@ -25,9 +25,7 @@ def test_cv_headline_absent_falls_back():
     # cvHeadline is NOT in the dict
     result = gen.compute_cv_headline(about)
     expected = gen.escape_yaml_string("H")
-    assert result == expected, (
-        f"Expected escape_yaml_string('H') = {expected!r} but got {result!r}"
-    )
+    assert result == expected, f"Expected escape_yaml_string('H') = {expected!r} but got {result!r}"
 
 
 def test_cv_headline_null_falls_back_to_tagline():
@@ -35,19 +33,34 @@ def test_cv_headline_null_falls_back_to_tagline():
     about = make_about({"cvHeadline": None})
     result = gen.compute_cv_headline(about)
     expected = gen.escape_yaml_string(about["tagline"])
-    assert result == expected, (
-        f"Expected tagline fallback {expected!r} but got {result!r}"
-    )
+    assert result == expected, f"Expected tagline fallback {expected!r} but got {result!r}"
 
 
 # Phase 5 — render_cv_markdown tests
 
+
 def _sample_experience() -> list:
-    return [{"company": "Test Corp", "position": "Engineer", "start_date": "2020", "end_date": "2023", "highlights": ["Built APIs"]}]
+    return [
+        {
+            "company": "Test Corp",
+            "position": "Engineer",
+            "start_date": "2020",
+            "end_date": "2023",
+            "highlights": ["Built APIs"],
+        }
+    ]
 
 
 def _sample_education() -> list:
-    return [{"institution": "Test Univ", "degree": "B.S.", "area": "CS", "start_date": "2016", "end_date": "2020"}]
+    return [
+        {
+            "institution": "Test Univ",
+            "degree": "B.S.",
+            "area": "CS",
+            "start_date": "2016",
+            "end_date": "2020",
+        }
+    ]
 
 
 def _sample_skills() -> dict:
@@ -129,13 +142,12 @@ def test_render_cv_markdown_skills_byte_stable_after_migration():
     """CV markdown skills section produces identical text for string and object entries."""
     string_skills = {"categories": [{"label": "Backend", "details": ["Python", "FastAPI"]}]}
     object_skills = {
-        "categories": [
-            {"label": "Backend", "details": [{"name": "Python"}, {"name": "FastAPI"}]}
-        ]
+        "categories": [{"label": "Backend", "details": [{"name": "Python"}, {"name": "FastAPI"}]}]
     }
     about = make_about()
     result_str = gen.render_cv_markdown(about, [], [], [], string_skills, {})
     result_obj = gen.render_cv_markdown(about, [], [], [], object_skills, {})
+
     # Extract just the skills section for comparison
     def extract_skills_section(text: str) -> str:
         lines = text.splitlines()

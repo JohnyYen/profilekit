@@ -3,6 +3,7 @@
 import json
 import sys
 from pathlib import Path
+from typing import Any
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 ROOT_DIR = SCRIPT_DIR.parent
@@ -12,6 +13,7 @@ OUTPUT_DIR = ROOT_DIR / "output"
 # ---------------------------------------------------------------------------
 # Typed error for known data faults (missing file/field, malformed JSON)
 # ---------------------------------------------------------------------------
+
 
 class DataError(Exception):
     """Raised for known data faults with file and optional field context.
@@ -51,7 +53,9 @@ def load_json_strict(
         with open(path, encoding="utf-8") as f:
             data = json.load(f)
     except json.JSONDecodeError as exc:
-        raise DataError(filename, message=f"JSON parse error at line {exc.lineno}: {exc.msg}") from exc
+        raise DataError(
+            filename, message=f"JSON parse error at line {exc.lineno}: {exc.msg}"
+        ) from exc
 
     if required_fields and isinstance(data, dict):
         for field in required_fields:
@@ -94,13 +98,13 @@ def what_i_build(about: dict, platform: str) -> list[str]:
     return list(about.get("whatIBuild") or [])
 
 
-def load_json(filename: str, data_dir: Path) -> dict | list:
+def load_json(filename: str, data_dir: Path) -> Any:
     """Load a JSON file from data_dir; exits with code 1 if the file is missing."""
     path = data_dir / filename
     if not path.exists():
         print(f"ERROR: Missing data file: {filename}", file=sys.stderr)
         sys.exit(1)
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         return json.load(f)
 
 
@@ -123,7 +127,7 @@ def skill_name(entry: str | dict) -> str:
     return entry["name"]
 
 
-def skill_icon(entry: str | dict) -> tuple[str | None, str | None]:
+def skill_icon(entry: str | dict) -> tuple[str | None, str | None] | None:
     """Return the icon references for a skill entry as (slug, iconUrl).
 
     - Plain string entry: returns None (no icon information available).

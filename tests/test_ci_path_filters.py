@@ -34,6 +34,4 @@ def test_portfolio_workflow_scopes_portfolio_only():
     text = _read("portfolio.yml")
     assert PORTFOLIO_SCOPE in text, "portfolio.yml must path-filter on apps/portfolio/**"
     for scope in PYTHON_SCOPES:
-        assert scope not in text, (
-            f"portfolio.yml must NOT trigger on {scope} (toolchain isolation)"
-        )
+        assert scope not in text, f"portfolio.yml must NOT trigger on {scope} (toolchain isolation)"

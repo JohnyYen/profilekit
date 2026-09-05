@@ -3,8 +3,6 @@
 All tests must fail before render.py exists.
 """
 
-import pytest
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -36,6 +34,7 @@ EDUCATION_ENTRY = {
 # (a) format_date_range
 # ---------------------------------------------------------------------------
 
+
 def test_format_date_range_with_end():
     """format_date_range returns 'start – end' when end is provided."""
     from generators.render import format_date_range
@@ -63,6 +62,7 @@ def test_format_date_range_custom_default():
 # ---------------------------------------------------------------------------
 # (b) format_experience_entry_yaml
 # ---------------------------------------------------------------------------
+
 
 def test_format_experience_entry_yaml_contains_company():
     """format_experience_entry_yaml output contains the company name."""
@@ -92,6 +92,7 @@ def test_format_experience_entry_yaml_contains_highlight():
 # (c) format_education_entry_yaml
 # ---------------------------------------------------------------------------
 
+
 def test_format_education_entry_yaml_contains_institution():
     """format_education_entry_yaml output contains the institution name."""
     from generators.render import format_education_entry_yaml
@@ -111,6 +112,7 @@ def test_format_education_entry_yaml_contains_degree():
 # ---------------------------------------------------------------------------
 # (d) format_experience_entry_md — markdown variant (linkedin/github)
 # ---------------------------------------------------------------------------
+
 
 def test_format_experience_entry_md_contains_company_and_position():
     """format_experience_entry_md produces a markdown block with company and position."""

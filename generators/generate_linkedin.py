@@ -5,7 +5,13 @@ import sys
 from pathlib import Path
 
 from generators.render import format_date_range
-from generators.utils import load_json, load_json_strict, run, what_i_build, write_output, skill_name
+from generators.utils import (
+    load_json,
+    run,
+    skill_name,
+    what_i_build,
+    write_output,
+)
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 ROOT_DIR = SCRIPT_DIR.parent
@@ -69,7 +75,9 @@ def render_linkedin_experience(experience: list) -> str:
     """Render the Experience section for LinkedIn."""
     lines = ["## Experience", ""]
     for entry in experience:
-        date_str = format_date_range(entry.get("start_date", ""), entry.get("end_date", ""), default_end="present")
+        date_str = format_date_range(
+            entry.get("start_date", ""), entry.get("end_date", ""), default_end="present"
+        )
         lines.append(f"**{entry['position']}** at {entry['company']}")
         lines.append(f"{date_str} | {entry.get('location', '')}")
         lines.append("")
@@ -118,13 +126,15 @@ def main():
     education_section = render_linkedin_education(education)
     skills_section = render_linkedin_skills(skills)
 
-    output = "\n".join([
-        headline_section,
-        about_section,
-        experience_section,
-        education_section,
-        skills_section,
-    ])
+    output = "\n".join(
+        [
+            headline_section,
+            about_section,
+            experience_section,
+            education_section,
+            skills_section,
+        ]
+    )
 
     output_path = write_output(output, OUTPUT_DIR, "linkedin.md")
     print(f"Generated linkedin.md at {output_path}")

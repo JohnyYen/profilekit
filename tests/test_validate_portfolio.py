@@ -1,10 +1,8 @@
 """Tests for validate_portfolio_highlights — non-fatal validation against projects.json."""
 
-import sys
-import pytest
+import generators.validate as validate
 
 from tests.conftest import make_about, make_projects
-import generators.validate as validate
 
 
 def test_all_highlights_valid(capsys):

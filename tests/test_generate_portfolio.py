@@ -1,15 +1,16 @@
 """Tests for generate_portfolio — compute_portfolio_projects and render_portfolio."""
 
 from pathlib import Path
-import pytest
+
+from generators.generate_portfolio import compute_portfolio_projects, render_portfolio
 
 from tests.conftest import make_about, make_projects
-from generators.generate_portfolio import compute_portfolio_projects, render_portfolio
 
 FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"
 
 
 # ── compute_portfolio_projects ────────────────────────────────────────────────
+
 
 def test_compute_portfolio_projects_null_highlights_returns_all():
     """highlights=None → all projects returned in source order."""
@@ -61,6 +62,7 @@ def test_compute_portfolio_projects_is_pure():
 
 
 # ── render_portfolio ──────────────────────────────────────────────────────────
+
 
 def _full_project() -> dict:
     return {

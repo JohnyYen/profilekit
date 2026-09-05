@@ -1,11 +1,10 @@
 """Tests for generators.utils.what_i_build — platform variant fallback logic."""
 
-import pytest
-
 
 # ---------------------------------------------------------------------------
 # (a) variant present for platform → returns variant value wrapped in list
 # ---------------------------------------------------------------------------
+
 
 def test_what_i_build_returns_platform_variant():
     """When whatIBuildVariants[platform] is present, return it."""
@@ -23,6 +22,7 @@ def test_what_i_build_returns_platform_variant():
 # (b) variant key absent for platform → returns whatIBuild list
 # ---------------------------------------------------------------------------
 
+
 def test_what_i_build_falls_back_when_platform_key_absent():
     """When the platform key is absent from whatIBuildVariants, return whatIBuild."""
     from generators.utils import what_i_build
@@ -39,6 +39,7 @@ def test_what_i_build_falls_back_when_platform_key_absent():
 # (c) whatIBuildVariants absent → returns whatIBuild
 # ---------------------------------------------------------------------------
 
+
 def test_what_i_build_falls_back_when_variants_absent():
     """When whatIBuildVariants is entirely absent, return whatIBuild."""
     from generators.utils import what_i_build
@@ -51,6 +52,7 @@ def test_what_i_build_falls_back_when_variants_absent():
 # ---------------------------------------------------------------------------
 # (d) variant is null → returns whatIBuild
 # ---------------------------------------------------------------------------
+
 
 def test_what_i_build_falls_back_when_variant_is_null():
     """When whatIBuildVariants[platform] is null, fall back to whatIBuild."""
@@ -67,6 +69,7 @@ def test_what_i_build_falls_back_when_variant_is_null():
 # ---------------------------------------------------------------------------
 # (e) both absent → returns []
 # ---------------------------------------------------------------------------
+
 
 def test_what_i_build_returns_empty_list_when_both_absent():
     """When neither whatIBuildVariants nor whatIBuild is present, return []."""

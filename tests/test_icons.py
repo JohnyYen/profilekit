@@ -3,37 +3,27 @@
 All tests must fail before icons.py exists.
 """
 
-import os
 import urllib.error
 import urllib.request
 from unittest.mock import MagicMock, patch
-
-import pytest
-
 
 # ---------------------------------------------------------------------------
 # Minimal skills fixture
 # ---------------------------------------------------------------------------
 
+
 def _skills_with_slug(slug: str) -> dict:
-    return {
-        "categories": [
-            {"label": "Backend", "details": [{"name": "MyLib", "icon": slug}]}
-        ]
-    }
+    return {"categories": [{"label": "Backend", "details": [{"name": "MyLib", "icon": slug}]}]}
 
 
 def _skills_with_icon_url(url: str) -> dict:
-    return {
-        "categories": [
-            {"label": "Backend", "details": [{"name": "MyLib", "iconUrl": url}]}
-        ]
-    }
+    return {"categories": [{"label": "Backend", "details": [{"name": "MyLib", "iconUrl": url}]}]}
 
 
 # ---------------------------------------------------------------------------
 # (a) offline=True → returns [] and makes no network calls
 # ---------------------------------------------------------------------------
+
 
 def test_check_icons_offline_returns_empty():
     """check_icons(skills, offline=True) returns [] without any network I/O."""
@@ -51,6 +41,7 @@ def test_check_icons_offline_returns_empty():
 # ---------------------------------------------------------------------------
 # (b) mocked urlopen returning status 200 → no warnings
 # ---------------------------------------------------------------------------
+
 
 def test_check_icons_200_ok_no_warnings(monkeypatch):
     """A 200 response from urlopen produces no warnings."""
@@ -75,6 +66,7 @@ def test_check_icons_200_ok_no_warnings(monkeypatch):
 # ---------------------------------------------------------------------------
 # (c) non-200 response → list contains warning string with slug/URL
 # ---------------------------------------------------------------------------
+
 
 def test_check_icons_non_200_produces_warning(monkeypatch):
     """A non-200 HTTP response produces a warning mentioning the slug."""
@@ -101,6 +93,7 @@ def test_check_icons_non_200_produces_warning(monkeypatch):
 # (d) urllib.error.URLError (timeout) → warning produced, no exception raised
 # ---------------------------------------------------------------------------
 
+
 def test_check_icons_url_error_produces_warning_no_exception(monkeypatch):
     """A URLError (e.g. timeout) produces a warning and does NOT raise."""
     from generators.icons import check_icons
@@ -120,6 +113,7 @@ def test_check_icons_url_error_produces_warning_no_exception(monkeypatch):
 # ---------------------------------------------------------------------------
 # (e) SKIP_ICON_CHECK=1 env var → returns [] without network
 # ---------------------------------------------------------------------------
+
 
 def test_check_icons_skip_env_var(monkeypatch):
     """SKIP_ICON_CHECK=1 env var causes check_icons to skip entirely."""

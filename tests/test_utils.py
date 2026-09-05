@@ -1,9 +1,6 @@
 """Tests for generators/utils.py — load_json, write_output, and skill normalization utilities."""
 
-from pathlib import Path
-import pytest
-
-from generators.utils import write_output, skill_name, skill_icon
+from generators.utils import skill_icon, skill_name, write_output
 
 
 def test_write_output_creates_dir_and_file(tmp_path):
@@ -49,7 +46,9 @@ def test_skill_icon_object_with_icon():
 
 def test_skill_icon_object_with_iconUrl():
     """skill_icon on an object with 'iconUrl' returns (None, url)."""
-    assert skill_icon({"name": "Strapi", "iconUrl": "https://devicons.railway.com/i/strapi.svg"}) == (
+    assert skill_icon(
+        {"name": "Strapi", "iconUrl": "https://devicons.railway.com/i/strapi.svg"}
+    ) == (
         None,
         "https://devicons.railway.com/i/strapi.svg",
     )

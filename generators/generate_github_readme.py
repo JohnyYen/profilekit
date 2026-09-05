@@ -2,11 +2,17 @@
 """Generate a rich, iconized GitHub profile README from canonical profile data."""
 
 import sys
-import warnings
 from pathlib import Path
 
 from generators.render import format_date_range
-from generators.utils import load_json, load_json_strict, run, what_i_build, write_output, skill_icon, skill_name
+from generators.utils import (
+    load_json,
+    run,
+    skill_icon,
+    skill_name,
+    what_i_build,
+    write_output,
+)
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 ROOT_DIR = SCRIPT_DIR.parent
@@ -27,11 +33,7 @@ def render_header(about: dict) -> str:
     `headline` then `tagline`.
     """
     name = about.get("username", "")
-    subtitle = (
-        about.get("githubReadmeSummary")
-        or about.get("headline")
-        or about.get("tagline", "")
-    )
+    subtitle = about.get("githubReadmeSummary") or about.get("headline") or about.get("tagline", "")
     lines = [
         f'<h1 align="center">Hi 👋, I\'m {name}</h1>',
         f'<h2 align="center"><b>{subtitle}</b></h2>',
@@ -73,7 +75,7 @@ def render_about_html(about: dict, assets_dir: Path | None = None) -> str:
     description = about.get("description", "")
     lines = [
         '<div align="center">',
-        f'  <img src="assets/pixel-mario.gif" alt="pixel mario" />',
+        '  <img src="assets/pixel-mario.gif" alt="pixel mario" />',
         "</div>",
         "",
         description,
@@ -98,7 +100,7 @@ def render_icon_rows(skills: dict) -> str:
     """Render per-category icon rows as centered HTML div blocks.
 
     For each skill category:
-    - Entries with an `icon` slug emit: <img src="https://skillicons.dev/icons?i=<slug>" height="60" alt="<name> logo" />
+    - Entries with an `icon` slug emit a skillicons.dev <img> (height 60).
     - Entries with an `iconUrl` emit:   <img src="<iconUrl>" height="60" alt="<name> logo" />
     - `iconUrl` takes priority over `icon` when both are present.
     - Plain-string entries (no icon data) are silently omitted from rows.
@@ -124,9 +126,7 @@ def render_icon_rows(skills: dict) -> str:
                 # Object but no icon fields — skip
                 continue
             name = skill_name(entry)
-            icon_imgs.append(
-                f'<img src="{src}" height="60" alt="{name} logo" />'
-            )
+            icon_imgs.append(f'<img src="{src}" height="60" alt="{name} logo" />')
 
         if not icon_imgs:
             # No icons in this category — skip the entire div
@@ -135,10 +135,7 @@ def render_icon_rows(skills: dict) -> str:
         label = cat.get("label", "")
         row_content = f"\n  {IMG_SPACER}\n  ".join(icon_imgs)
         output_parts.append(
-            f'<h3 align="center">{label}</h3>\n'
-            f'<div align="center">\n'
-            f"  {row_content}\n"
-            f"</div>\n"
+            f'<h3 align="center">{label}</h3>\n<div align="center">\n  {row_content}\n</div>\n'
         )
 
     return "\n".join(output_parts)
@@ -150,7 +147,9 @@ def render_experience_text(experience: list) -> str:
         return ""
     lines = ["### Experience", ""]
     for entry in experience:
-        date_str = format_date_range(entry.get("start_date", ""), entry.get("end_date", ""), default_end="present")
+        date_str = format_date_range(
+            entry.get("start_date", ""), entry.get("end_date", ""), default_end="present"
+        )
         lines.append(f"**{entry['position']}** at **{entry['company']}**")
         lines.append(date_str)
         if entry.get("summary"):
@@ -177,7 +176,9 @@ def render_footer(about: dict) -> str:
         lines.append("")
     lines.append("---")
     lines.append("")
-    lines.append("*Feel free to reach out for collaboration, architecture discussions, or just to say hi!*")
+    lines.append(
+        "*Feel free to reach out for collaboration, architecture discussions, or just to say hi!*"
+    )
     lines.append("")
     return "\n".join(lines)
 

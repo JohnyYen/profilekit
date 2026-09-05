@@ -3,12 +3,10 @@
 import json
 from pathlib import Path
 
-import pytest
-
-from tests.conftest import FIXTURES_DIR
-
 # Import the module under test
 import generators.validate as validate
+
+from tests.conftest import FIXTURES_DIR
 
 SCHEMAS_DIR = Path(__file__).resolve().parent.parent / "schemas"
 
@@ -82,9 +80,7 @@ def _write_skills_fixture(tmp_path: Path, data: dict) -> Path:
 def test_skills_object_entry_valid(monkeypatch, tmp_path):
     """A skills.json with an object entry {name, icon} must pass schema validation."""
     skills_data = {
-        "categories": [
-            {"label": "Backend", "details": [{"name": "NestJS", "icon": "nestjs"}]}
-        ]
+        "categories": [{"label": "Backend", "details": [{"name": "NestJS", "icon": "nestjs"}]}]
     }
     data_dir = _write_skills_fixture(tmp_path, skills_data)
 
@@ -98,11 +94,7 @@ def test_skills_object_entry_valid(monkeypatch, tmp_path):
 
 def test_skills_string_entry_still_valid(monkeypatch, tmp_path):
     """A skills.json with all-string details must still pass schema validation (regression guard)."""
-    skills_data = {
-        "categories": [
-            {"label": "Backend", "details": ["Python", "FastAPI"]}
-        ]
-    }
+    skills_data = {"categories": [{"label": "Backend", "details": ["Python", "FastAPI"]}]}
     data_dir = _write_skills_fixture(tmp_path, skills_data)
 
     monkeypatch.setattr(validate, "DATA_DIR", data_dir)
@@ -120,11 +112,7 @@ def test_skills_object_missing_name_invalid(monkeypatch, tmp_path):
     jsonschema.Draft7Validator enforces this natively — an object without
     ``name`` satisfies neither oneOf branch and therefore MUST fail validation.
     """
-    skills_data = {
-        "categories": [
-            {"label": "Backend", "details": [{"icon": "nestjs"}]}
-        ]
-    }
+    skills_data = {"categories": [{"label": "Backend", "details": [{"icon": "nestjs"}]}]}
     data_dir = _write_skills_fixture(tmp_path, skills_data)
 
     monkeypatch.setattr(validate, "DATA_DIR", data_dir)

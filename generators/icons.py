@@ -59,7 +59,9 @@ def _check_url(label: str, url: str, timeout: int) -> str | None:
     return None
 
 
-def check_icons(skills: dict, *, offline: bool = False, timeout: int = _DEFAULT_TIMEOUT) -> list[str]:
+def check_icons(
+    skills: dict, *, offline: bool = False, timeout: int = _DEFAULT_TIMEOUT
+) -> list[str]:
     """Check all icon URLs in *skills* for reachability.
 
     Args:

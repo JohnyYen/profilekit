@@ -13,11 +13,34 @@ them.
 # Internal helper shared by YAML formatters
 # ---------------------------------------------------------------------------
 
+
 def _escape_yaml_string(value: str) -> str:
     """Escape a string for safe YAML embedding (mirrors generate_cv.escape_yaml_string)."""
     if "\n" in value:
         return f"|-\n{value}"
-    if any(c in value for c in [":", "#", "{", "}", "[", "]", "&", "*", "?", "|", "-", "<", ">", "=", "!", "%", "@", "`"]):
+    if any(
+        c in value
+        for c in [
+            ":",
+            "#",
+            "{",
+            "}",
+            "[",
+            "]",
+            "&",
+            "*",
+            "?",
+            "|",
+            "-",
+            "<",
+            ">",
+            "=",
+            "!",
+            "%",
+            "@",
+            "`",
+        ]
+    ):
         return f'"{value}"'
     return value
 
@@ -25,6 +48,7 @@ def _escape_yaml_string(value: str) -> str:
 # ---------------------------------------------------------------------------
 # Date formatting
 # ---------------------------------------------------------------------------
+
 
 def format_date_range(start: str, end: str, *, default_end: str = "Present") -> str:
     """Return a formatted date range string.
@@ -45,6 +69,7 @@ def format_date_range(start: str, end: str, *, default_end: str = "Present") -> 
 # YAML entry formatters (used by generate_cv.py)
 # ---------------------------------------------------------------------------
 
+
 def format_experience_entry_yaml(entry: dict) -> str:
     """Render a single experience entry as an indented YAML block.
 
@@ -55,12 +80,12 @@ def format_experience_entry_yaml(entry: dict) -> str:
     lines = [
         f"      - company: {_escape_yaml_string(entry['company'])}",
         f"        position: {_escape_yaml_string(entry['position'])}",
-        f"        date:",
+        "        date:",
         f"        start_date: {entry.get('start_date', '')}",
         f"        end_date: {entry.get('end_date', '')}",
         f"        location: {_escape_yaml_string(entry.get('location', ''))}",
         f"        summary: {_escape_yaml_string(entry.get('summary', ''))}",
-        f"        highlights:",
+        "        highlights:",
     ]
     for h in entry.get("highlights", []):
         lines.append(f'          - "{h}"')
@@ -76,12 +101,12 @@ def format_education_entry_yaml(entry: dict) -> str:
         f"      - institution: {_escape_yaml_string(entry['institution'])}",
         f"        area: {_escape_yaml_string(entry['area'])}",
         f"        degree: {_escape_yaml_string(entry['degree'])}",
-        f"        date:",
+        "        date:",
         f"        start_date: {entry.get('start_date', '')}",
         f"        end_date: {entry.get('end_date', '')}",
         f"        location: {_escape_yaml_string(entry.get('location', ''))}",
         f"        summary: {_escape_yaml_string(entry.get('summary', ''))}",
-        f"        highlights:",
+        "        highlights:",
     ]
     for h in entry.get("highlights", []):
         lines.append(f'          - "{h}"')
@@ -91,6 +116,7 @@ def format_education_entry_yaml(entry: dict) -> str:
 # ---------------------------------------------------------------------------
 # Markdown entry formatters (used by generate_linkedin.py, generate_github_readme.py)
 # ---------------------------------------------------------------------------
+
 
 def format_experience_entry_md(entry: dict) -> str:
     """Render a single experience entry as a markdown block.

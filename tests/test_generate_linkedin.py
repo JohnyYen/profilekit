@@ -1,11 +1,10 @@
 """Tests for generate_linkedin — cover linkedinHeadline wiring, 220-char cap, and full profile rendering."""
 
 from pathlib import Path
-import sys
-import pytest
+
+import generators.generate_linkedin as gen
 
 from tests.conftest import make_about
-import generators.generate_linkedin as gen
 
 FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"
 
@@ -23,13 +22,11 @@ def test_linkedin_headline_exceeds_220(capsys):
     about = make_about({"linkedinHeadline": long_headline})
     result = gen.compute_headline(about)
 
-    assert len(result) <= 220, (
-        f"Expected result length <= 220 but got {len(result)}"
-    )
+    assert len(result) <= 220, f"Expected result length <= 220 but got {len(result)}"
     captured = capsys.readouterr()
-    assert "220" in captured.err or "warning" in captured.err.lower() or "warn" in captured.err.lower(), (
-        f"Expected a warning about the 220-char limit in stderr but got: {captured.err!r}"
-    )
+    assert (
+        "220" in captured.err or "warning" in captured.err.lower() or "warn" in captured.err.lower()
+    ), f"Expected a warning about the 220-char limit in stderr but got: {captured.err!r}"
 
 
 def test_linkedin_headline_absent_falls_back():
@@ -42,6 +39,7 @@ def test_linkedin_headline_absent_falls_back():
 
 # Phase 3 — Pure render function tests
 
+
 def test_render_linkedin_about_has_about_section():
     """render_linkedin_about returns a string with '## About' and the about.description."""
     about = make_about({"description": "I am a backend engineer."})
@@ -52,10 +50,12 @@ def test_render_linkedin_about_has_about_section():
 
 def test_render_linkedin_about_includes_current_focus():
     """render_linkedin_about includes a Current Focus subsection when present."""
-    about = make_about({
-        "description": "Test.",
-        "currentFocus": [{"title": "Architecture", "description": "DDD patterns"}],
-    })
+    about = make_about(
+        {
+            "description": "Test.",
+            "currentFocus": [{"title": "Architecture", "description": "DDD patterns"}],
+        }
+    )
     result = gen.render_linkedin_about(about)
     assert "Current Focus" in result
     assert "Architecture" in result
@@ -63,7 +63,9 @@ def test_render_linkedin_about_includes_current_focus():
 
 def test_render_linkedin_experience_has_heading():
     """render_linkedin_experience returns a string with '## Experience'."""
-    experience = [{"company": "ACME Corp", "position": "Engineer", "start_date": "2020", "end_date": "2023"}]
+    experience = [
+        {"company": "ACME Corp", "position": "Engineer", "start_date": "2020", "end_date": "2023"}
+    ]
     result = gen.render_linkedin_experience(experience)
     assert "## Experience" in result
     assert "ACME Corp" in result
@@ -82,7 +84,15 @@ def test_render_linkedin_experience_multiple_entries():
 
 def test_render_linkedin_education_has_heading():
     """render_linkedin_education returns a string with '## Education' and an institution name."""
-    education = [{"institution": "MIT", "degree": "B.S.", "area": "CS", "start_date": "2015", "end_date": "2019"}]
+    education = [
+        {
+            "institution": "MIT",
+            "degree": "B.S.",
+            "area": "CS",
+            "start_date": "2015",
+            "end_date": "2019",
+        }
+    ]
     result = gen.render_linkedin_education(education)
     assert "## Education" in result
     assert "MIT" in result
@@ -91,8 +101,20 @@ def test_render_linkedin_education_has_heading():
 def test_render_linkedin_education_multiple_entries():
     """render_linkedin_education includes all institutions."""
     education = [
-        {"institution": "Harvard", "degree": "M.S.", "area": "ML", "start_date": "2019", "end_date": "2021"},
-        {"institution": "MIT", "degree": "B.S.", "area": "CS", "start_date": "2015", "end_date": "2019"},
+        {
+            "institution": "Harvard",
+            "degree": "M.S.",
+            "area": "ML",
+            "start_date": "2019",
+            "end_date": "2021",
+        },
+        {
+            "institution": "MIT",
+            "degree": "B.S.",
+            "area": "CS",
+            "start_date": "2015",
+            "end_date": "2019",
+        },
     ]
     result = gen.render_linkedin_education(education)
     assert "Harvard" in result
@@ -109,10 +131,12 @@ def test_render_linkedin_skills_has_heading():
 
 def test_render_linkedin_skills_includes_details():
     """render_linkedin_skills includes skill details for each category."""
-    skills = {"categories": [
-        {"label": "Backend", "details": ["Python", "FastAPI"]},
-        {"label": "Frontend", "details": ["React"]},
-    ]}
+    skills = {
+        "categories": [
+            {"label": "Backend", "details": ["Python", "FastAPI"]},
+            {"label": "Frontend", "details": ["React"]},
+        ]
+    }
     result = gen.render_linkedin_skills(skills)
     assert "Python" in result
     assert "React" in result
@@ -127,13 +151,22 @@ def test_linkedin_full_assembly(monkeypatch, tmp_path):
     gen.main()
 
     content = (output_dir / "linkedin.md").read_text(encoding="utf-8")
-    sections = ["## Headline", "## About", "## Current Focus", "## Experience", "## Education", "## Skills"]
+    sections = [
+        "## Headline",
+        "## About",
+        "## Current Focus",
+        "## Experience",
+        "## Education",
+        "## Skills",
+    ]
     indices = []
     for section in sections:
         assert section in content, f"Section '{section}' missing from linkedin.md"
         indices.append(content.index(section))
     # Verify sections appear in declaration order
-    assert indices == sorted(indices), "Sections must appear in order: Headline, About, Current Focus, Experience, Education, Skills"
+    assert indices == sorted(indices), (
+        "Sections must appear in order: Headline, About, Current Focus, Experience, Education, Skills"
+    )
 
 
 def test_linkedin_headline_fallback_when_linkedinHeadline_absent():
@@ -153,9 +186,7 @@ def test_linkedin_headline_fallback_when_linkedinHeadline_absent():
 def test_render_linkedin_skills_object_entries():
     """render_linkedin_skills handles object-style entries without raising and includes the names."""
     skills = {
-        "categories": [
-            {"label": "Backend", "details": [{"name": "Python"}, {"name": "FastAPI"}]}
-        ]
+        "categories": [{"label": "Backend", "details": [{"name": "Python"}, {"name": "FastAPI"}]}]
     }
     result = gen.render_linkedin_skills(skills)
     assert "Python" in result
@@ -166,8 +197,6 @@ def test_render_linkedin_skills_byte_stable_after_migration():
     """Object entries with same names produce identical text output as plain string entries."""
     string_skills = {"categories": [{"label": "Backend", "details": ["Python", "FastAPI"]}]}
     object_skills = {
-        "categories": [
-            {"label": "Backend", "details": [{"name": "Python"}, {"name": "FastAPI"}]}
-        ]
+        "categories": [{"label": "Backend", "details": [{"name": "Python"}, {"name": "FastAPI"}]}]
     }
     assert gen.render_linkedin_skills(string_skills) == gen.render_linkedin_skills(object_skills)

@@ -17,10 +17,10 @@ _ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(_ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(_ROOT_DIR))
 
+import generators.generate_cv as cv
 import generators.generate_github_readme as github_readme
 import generators.generate_linkedin as linkedin
 import generators.generate_portfolio as portfolio
-import generators.generate_cv as cv
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 ROOT_DIR = SCRIPT_DIR.parent

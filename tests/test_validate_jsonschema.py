@@ -8,8 +8,6 @@ nested items).
 import json
 from pathlib import Path
 
-import pytest
-
 import generators.validate as validate
 
 SCHEMAS_DIR = Path(__file__).resolve().parent.parent / "schemas"
@@ -26,6 +24,7 @@ def _write_data_dir(tmp_path: Path, filename: str, data: object) -> Path:
 # ---------------------------------------------------------------------------
 # (a) Type violation → FAIL with field mentioned in error
 # ---------------------------------------------------------------------------
+
 
 def test_type_violation_fails(monkeypatch, tmp_path):
     """A string value where an array is required must be rejected (type enforcement)."""
@@ -52,6 +51,7 @@ def test_type_violation_fails(monkeypatch, tmp_path):
 # (b) Missing required field → FAIL
 # ---------------------------------------------------------------------------
 
+
 def test_missing_required_field_fails(monkeypatch, tmp_path):
     """A skills file missing the required 'categories' key must be rejected."""
     bad_skills = {}  # 'categories' is required
@@ -69,6 +69,7 @@ def test_missing_required_field_fails(monkeypatch, tmp_path):
 # (c) oneOf violation (object missing 'name') → FAIL
 # ---------------------------------------------------------------------------
 
+
 def test_oneof_violation_fails(monkeypatch, tmp_path):
     """A skill object missing 'name' satisfies neither oneOf branch → FAIL."""
     skills_data = {
@@ -82,15 +83,14 @@ def test_oneof_violation_fails(monkeypatch, tmp_path):
 
     passed, errors = validate.validate_file("skills.json")
 
-    assert passed is False, (
-        "Expected oneOf violation (object missing 'name') to be rejected"
-    )
+    assert passed is False, "Expected oneOf violation (object missing 'name') to be rejected"
     assert len(errors) > 0
 
 
 # ---------------------------------------------------------------------------
 # (d) Valid data → PASS
 # ---------------------------------------------------------------------------
+
 
 def test_valid_skills_passes(monkeypatch, tmp_path):
     """A fully valid skills file must pass jsonschema validation."""

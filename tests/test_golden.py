@@ -12,8 +12,6 @@ commit the updated golden.
 import os
 from pathlib import Path
 
-import pytest
-
 GOLDEN_DIR = Path(__file__).resolve().parent / "golden"
 ROOT_DIR = Path(__file__).resolve().parent.parent
 
@@ -43,6 +41,7 @@ def _assert_or_regen(generated_path: Path, golden_path: Path) -> None:
 # github-readme.md
 # ---------------------------------------------------------------------------
 
+
 def test_golden_github_readme(tmp_path, monkeypatch):
     """github-readme.md must be byte-identical to tests/golden/github-readme.md."""
     import generators.generate_github_readme as gen
@@ -59,6 +58,7 @@ def test_golden_github_readme(tmp_path, monkeypatch):
 # linkedin.md
 # ---------------------------------------------------------------------------
 
+
 def test_golden_linkedin(tmp_path, monkeypatch):
     """linkedin.md must be byte-identical to tests/golden/linkedin.md."""
     import generators.generate_linkedin as gen
@@ -72,6 +72,7 @@ def test_golden_linkedin(tmp_path, monkeypatch):
 # ---------------------------------------------------------------------------
 # cv.md
 # ---------------------------------------------------------------------------
+
 
 def test_golden_cv_md(tmp_path, monkeypatch):
     """cv.md must be byte-identical to tests/golden/cv.md."""
@@ -87,6 +88,7 @@ def test_golden_cv_md(tmp_path, monkeypatch):
 # cv.yml
 # ---------------------------------------------------------------------------
 
+
 def test_golden_cv_yml(tmp_path, monkeypatch):
     """cv.yml must be byte-identical to tests/golden/cv.yml."""
     import generators.generate_cv as gen
@@ -100,6 +102,7 @@ def test_golden_cv_yml(tmp_path, monkeypatch):
 # ---------------------------------------------------------------------------
 # portfolio.md
 # ---------------------------------------------------------------------------
+
 
 def test_golden_portfolio(tmp_path, monkeypatch):
     """portfolio.md must be byte-identical to tests/golden/portfolio.md."""

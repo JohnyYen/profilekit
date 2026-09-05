@@ -1,6 +1,7 @@
 """Shared pytest fixtures for the profile-data test suite."""
 
 from pathlib import Path
+
 import pytest
 
 FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"

@@ -3,8 +3,14 @@
 
 from pathlib import Path
 
-from generators.render import format_experience_entry_yaml, format_education_entry_yaml
-from generators.utils import load_json, load_json_strict, run, what_i_build, write_output, skill_name
+from generators.render import format_education_entry_yaml, format_experience_entry_yaml
+from generators.utils import (
+    load_json,
+    run,
+    skill_name,
+    what_i_build,
+    write_output,
+)
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 ROOT_DIR = SCRIPT_DIR.parent
@@ -16,7 +22,29 @@ def escape_yaml_string(value: str) -> str:
     """Escape a string for safe YAML embedding."""
     if "\n" in value:
         return f"|-\n{value}"
-    if any(c in value for c in [":", "#", "{", "}", "[", "]", "&", "*", "?", "|", "-", "<", ">", "=", "!", "%", "@", "`"]):
+    if any(
+        c in value
+        for c in [
+            ":",
+            "#",
+            "{",
+            "}",
+            "[",
+            "]",
+            "&",
+            "*",
+            "?",
+            "|",
+            "-",
+            "<",
+            ">",
+            "=",
+            "!",
+            "%",
+            "@",
+            "`",
+        ]
+    ):
         return f'"{value}"'
     return value
 
@@ -33,7 +61,7 @@ def compute_cv_headline(about: dict) -> str:
 def format_highlights(highlights: list[str]) -> str:
     lines = []
     for h in highlights:
-        lines.append(f"          - \"{h}\"")
+        lines.append(f'          - "{h}"')
     return "\n".join(lines)
 
 
@@ -46,13 +74,13 @@ format_education_entry = format_education_entry_yaml
 
 def format_project_entry(entry: dict) -> str:
     lines = [
-        f"      - name: \"{entry['name']}\"",
-        f"        date:",
+        f'      - name: "{entry["name"]}"',
+        "        date:",
         f"        start_date: {entry.get('start_date', '')}",
         f"        end_date: {entry.get('end_date', '')}",
-        f"        location:",
+        "        location:",
         f"        summary: {escape_yaml_string(entry.get('description', ''))}",
-        f"        highlights:",
+        "        highlights:",
     ]
     for h in entry.get("highlights", []):
         lines.append(f'          - "{h}"')
@@ -111,7 +139,10 @@ def render_cv_markdown(
     lines.append("")
     for entry in education:
         lines.append(f"### {entry['institution']}")
-        lines.append(f"**{entry['degree']} in {entry['area']}** | {entry.get('start_date', '')} – {entry.get('end_date', '')}")
+        lines.append(
+            f"**{entry['degree']} in {entry['area']}** | "
+            f"{entry.get('start_date', '')} – {entry.get('end_date', '')}"
+        )
         lines.append("")
         for h in entry.get("highlights", []):
             lines.append(f"- {h}")
@@ -140,7 +171,9 @@ def main():
     if social.get("github"):
         social_networks_lines.append(f"    - network: GitHub\n      username: {social['github']}")
     if social.get("linkedin"):
-        social_networks_lines.append(f"    - network: LinkedIn\n      username: {social['linkedin']}")
+        social_networks_lines.append(
+            f"    - network: LinkedIn\n      username: {social['linkedin']}"
+        )
 
     # Build the YAML
     yaml_lines = [
@@ -156,11 +189,13 @@ def main():
     for line in social_networks_lines:
         yaml_lines.append(line)
 
-    yaml_lines.extend([
-        "  custom_connections:",
-        "  sections:",
-        "    education:",
-    ])
+    yaml_lines.extend(
+        [
+            "  custom_connections:",
+            "  sections:",
+            "    education:",
+        ]
+    )
     for entry in education:
         yaml_lines.append(format_education_entry(entry))
 
@@ -176,30 +211,32 @@ def main():
     for cat in skills.get("categories", []):
         yaml_lines.append(format_skill_entry(cat))
 
-    yaml_lines.extend([
-        "design:",
-        "  theme: classic",
-        "  links:",
-        "    show_external_link_icon: true",
-        "locale:",
-        "  language: english",
-        "settings:",
-        "  current_date: \"2026-07-30\"",
-        "  render_command:",
-        "    design:",
-        "    locale:",
-        "    typst_path: rendercv_output/NAME_IN_SNAKE_CASE_CV.typ",
-        "    pdf_path: rendercv_output/NAME_IN_SNAKE_CASE_CV.pdf",
-        "    markdown_path: rendercv_output/NAME_IN_SNAKE_CASE_CV.md",
-        "    html_path: rendercv_output/NAME_IN_SNAKE_CASE_CV.html",
-        "    png_path: rendercv_output/NAME_IN_SNAKE_CASE_CV.png",
-        "    dont_generate_markdown: false",
-        "    dont_generate_html: false",
-        "    dont_generate_typst: false",
-        "    dont_generate_pdf: false",
-        "    dont_generate_png: false",
-        "  bold_keywords: []",
-    ])
+    yaml_lines.extend(
+        [
+            "design:",
+            "  theme: classic",
+            "  links:",
+            "    show_external_link_icon: true",
+            "locale:",
+            "  language: english",
+            "settings:",
+            '  current_date: "2026-07-30"',
+            "  render_command:",
+            "    design:",
+            "    locale:",
+            "    typst_path: rendercv_output/NAME_IN_SNAKE_CASE_CV.typ",
+            "    pdf_path: rendercv_output/NAME_IN_SNAKE_CASE_CV.pdf",
+            "    markdown_path: rendercv_output/NAME_IN_SNAKE_CASE_CV.md",
+            "    html_path: rendercv_output/NAME_IN_SNAKE_CASE_CV.html",
+            "    png_path: rendercv_output/NAME_IN_SNAKE_CASE_CV.png",
+            "    dont_generate_markdown: false",
+            "    dont_generate_html: false",
+            "    dont_generate_typst: false",
+            "    dont_generate_pdf: false",
+            "    dont_generate_png: false",
+            "  bold_keywords: []",
+        ]
+    )
 
     yaml_content = "\n".join(yaml_lines) + "\n"
     write_output(yaml_content, OUTPUT_DIR, "cv.yml")

@@ -4,7 +4,7 @@
 import sys
 from pathlib import Path
 
-from generators.utils import load_json, load_json_strict, run, what_i_build, write_output
+from generators.utils import load_json, run, what_i_build, write_output
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 ROOT_DIR = SCRIPT_DIR.parent
@@ -30,7 +30,8 @@ def compute_portfolio_projects(projects: list, highlights: list | None) -> list:
             result.append(project_by_name[name])
         else:
             print(
-                f"WARNING: portfolioHighlights entry '{name}' does not match any project name. Skipping.",
+                f"WARNING: portfolioHighlights entry '{name}' does not match "
+                "any project name. Skipping.",
                 file=sys.stderr,
             )
     return result

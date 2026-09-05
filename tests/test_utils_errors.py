@@ -9,10 +9,10 @@ from pathlib import Path
 
 import pytest
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _write_json(path: Path, data: object) -> None:
     path.write_text(json.dumps(data), encoding="utf-8")
@@ -21,6 +21,7 @@ def _write_json(path: Path, data: object) -> None:
 # ---------------------------------------------------------------------------
 # (a) Missing file → DataError raised with file path; no sys.exit
 # ---------------------------------------------------------------------------
+
 
 def test_load_json_strict_missing_file_raises_data_error(tmp_path):
     """Missing data file raises DataError with the file path in message."""
@@ -39,6 +40,7 @@ def test_load_json_strict_missing_file_raises_data_error(tmp_path):
 # (b) Malformed JSON → DataError with file + parse location
 # ---------------------------------------------------------------------------
 
+
 def test_load_json_strict_malformed_json_raises_data_error(tmp_path):
     """Malformed JSON raises DataError mentioning the file."""
     from generators.utils import DataError, load_json_strict
@@ -56,6 +58,7 @@ def test_load_json_strict_malformed_json_raises_data_error(tmp_path):
 # ---------------------------------------------------------------------------
 # (c) Missing required field → DataError with file + field
 # ---------------------------------------------------------------------------
+
 
 def test_load_json_strict_missing_required_field_raises_data_error(tmp_path):
     """load_json_strict raises DataError when a required field is absent."""
@@ -76,6 +79,7 @@ def test_load_json_strict_missing_required_field_raises_data_error(tmp_path):
 # ---------------------------------------------------------------------------
 # (d) run(main_fn) with DataError → exits 1 (no traceback)
 # ---------------------------------------------------------------------------
+
 
 def test_run_calls_sys_exit_1_on_data_error(monkeypatch):
     """run() catches DataError and calls sys.exit(1)."""
@@ -102,6 +106,7 @@ def test_run_calls_sys_exit_1_on_data_error(monkeypatch):
 # ---------------------------------------------------------------------------
 # (e) run(main_fn) with unexpected exception → re-raises (not swallowed)
 # ---------------------------------------------------------------------------
+
 
 def test_run_reraises_unexpected_exception():
     """run() does NOT catch unexpected exceptions — they propagate normally."""

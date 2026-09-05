@@ -1,10 +1,10 @@
 """Tests for generate_github_readme — centered HTML header, icon rows, and asset wiring."""
 
 from pathlib import Path
-import pytest
+
+import generators.generate_github_readme as gen
 
 from tests.conftest import make_about
-import generators.generate_github_readme as gen
 
 FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"
 
@@ -12,6 +12,7 @@ FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"
 # ---------------------------------------------------------------------------
 # Regression guard: root README must never be written
 # ---------------------------------------------------------------------------
+
 
 def test_root_readme_not_written(tmp_path, monkeypatch):
     """main() must write output/github-readme.md and NOT write README.md to root."""
@@ -29,9 +30,7 @@ def test_root_readme_not_written(tmp_path, monkeypatch):
     assert (output_dir / "github-readme.md").exists(), (
         "output/github-readme.md must be created by main()"
     )
-    assert not (tmp_path / "README.md").exists(), (
-        "root README.md must NOT be written by main()"
-    )
+    assert not (tmp_path / "README.md").exists(), "root README.md must NOT be written by main()"
 
 
 # ---------------------------------------------------------------------------
@@ -40,6 +39,7 @@ def test_root_readme_not_written(tmp_path, monkeypatch):
 #              test_summary_null_falls_back_to_tagline
 #   These are replaced by:
 # ---------------------------------------------------------------------------
+
 
 def test_render_header_contains_username():
     """render_header must include the username in the h1 tag."""
@@ -60,6 +60,7 @@ def test_render_header_falls_back_to_tagline():
 # ---------------------------------------------------------------------------
 # Tasks 4.1 – 4.13: new render functions
 # ---------------------------------------------------------------------------
+
 
 def test_render_header_h1_h2():
     """render_header returns a string with both <h1 align="center"> and <h2 align="center">."""
@@ -87,7 +88,11 @@ def test_render_about_html_raises_or_warns_missing_asset(tmp_path, capsys):
     try:
         result = gen.render_about_html(about, empty_assets_dir)
         captured = capsys.readouterr()
-        assert "WARNING" in captured.err or "missing" in captured.err.lower() or "pixel-mario" in captured.err, (
+        assert (
+            "WARNING" in captured.err
+            or "missing" in captured.err.lower()
+            or "pixel-mario" in captured.err
+        ), (
             f"Expected a warning about missing pixel-mario.gif in stderr but got: {captured.err!r}\n"
             f"Output was: {result!r}"
         )
@@ -97,12 +102,14 @@ def test_render_about_html_raises_or_warns_missing_asset(tmp_path, capsys):
 
 def test_render_focus_bullets():
     """render_focus includes each currentFocus item's title."""
-    about = make_about({
-        "currentFocus": [
-            {"title": "Architecture", "description": "DDD and Clean Arch"},
-            {"title": "AI Engineering", "description": "LLM patterns"},
-        ]
-    })
+    about = make_about(
+        {
+            "currentFocus": [
+                {"title": "Architecture", "description": "DDD and Clean Arch"},
+                {"title": "AI Engineering", "description": "LLM patterns"},
+            ]
+        }
+    )
     result = gen.render_focus(about)
     assert "Architecture" in result
     assert "AI Engineering" in result
@@ -111,9 +118,7 @@ def test_render_focus_bullets():
 def test_render_icon_rows_icon_field():
     """A category with {name, icon} produces a skillicons.dev <img> src."""
     skills = {
-        "categories": [
-            {"label": "Backend", "details": [{"name": "NestJS", "icon": "nestjs"}]}
-        ]
+        "categories": [{"label": "Backend", "details": [{"name": "NestJS", "icon": "nestjs"}]}]
     }
     result = gen.render_icon_rows(skills)
     assert 'src="https://skillicons.dev/icons?i=nestjs"' in result
@@ -190,8 +195,9 @@ def test_render_icon_rows_img_height_60_no_width():
     }
     result = gen.render_icon_rows(skills)
     import re
+
     # All img tags in the result (excluding the spacer which has width="15")
-    icon_imgs = re.findall(r'<img[^>]+skillicons[^>]+>', result)
+    icon_imgs = re.findall(r"<img[^>]+skillicons[^>]+>", result)
     assert len(icon_imgs) >= 1, "Expected at least one skillicons img tag"
     for img in icon_imgs:
         assert 'height="60"' in img, f"Expected height='60' in: {img}"
@@ -237,6 +243,7 @@ def test_render_footer_includes_githubQuote():
 # ---------------------------------------------------------------------------
 # Category header labels above icon rows
 # ---------------------------------------------------------------------------
+
 
 def test_render_icon_rows_h3_label_before_div():
     """render_icon_rows emits <h3 align="center">{label}</h3> immediately before each icon div."""
