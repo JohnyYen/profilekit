@@ -1,0 +1,21 @@
+{
+  "username": "Johny A. Pedraza Romero",
+  "tagline": "Backend Engineer in Evolution",
+  "description": "Currently focused on building robust APIs and exploring software architecture patterns for scalable systems.",
+  "currentFocus": [
+    {
+      "title": "Software Architecture",
+      "description": "Designing maintainable systems, understanding DDD, Clean Architecture, and system design principles."
+    },
+    {
+      "title": "AI Engineering",
+      "description": "Learning ML integration, building AI-powered features, and understanding LLM patterns."
+    }
+  ],
+  "whatIBuild": [
+    "APIs with FastAPI & NestJS",
+    "Developer templates & boilerplates",
+    "Clean Architecture patterns"
+  ],
+  "learningJourney": "Currently diving deep into system design and exploring how AI/ML can enhance developer productivity. Open to architecture discussions and collaboration!"
+}

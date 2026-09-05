@@ -1,0 +1,16 @@
+{
+  "backend": ["Python (FastAPI)", "Node.js (NestJS)"],
+  "database": ["PostgreSQL", "Prisma", "SQLAlchemy"],
+  "devops": ["Docker", "GitHub Actions"],
+  "tools": ["TypeScript", "Git", "Vim"],
+  "learning": [
+    {
+      "category": "Software Architecture",
+      "topics": ["DDD", "Clean Architecture"]
+    },
+    {
+      "category": "AI/ML Integration",
+      "topics": ["LLMs", "embeddings", "RAG"]
+    }
+  ]
+}

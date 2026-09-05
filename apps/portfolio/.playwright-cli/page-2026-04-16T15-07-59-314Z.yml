@@ -1,0 +1,16 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e5]:
+        - button "Close" [ref=e6]
+        - button "Minimize" [ref=e7]
+        - button "Maximize" [ref=e8]
+      - generic [ref=e9]:
+        - generic [ref=e10]: ⌘
+        - generic [ref=e11]: "visitor@portfolio: ~"
+    - log "Terminal output" [ref=e23]:
+      - generic [ref=e24]: Initializing terminal...
+      - generic [ref=e26]: L
+  - button "Open Next.js Dev Tools" [ref=e19] [cursor=pointer]:
+    - img [ref=e20]
+  - alert [ref=e28]

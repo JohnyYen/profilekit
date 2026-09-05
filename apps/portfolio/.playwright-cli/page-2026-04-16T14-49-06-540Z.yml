@@ -1,0 +1,27 @@
+- generic [ref=e1]:
+  - alert [ref=e6]
+  - generic [ref=e8]:
+    - generic [ref=e9]:
+      - generic [ref=e10]:
+        - button "Close" [ref=e11]
+        - button "Minimize" [ref=e12]
+        - button "Maximize" [ref=e13]
+      - generic [ref=e14]:
+        - generic [ref=e15]: ⌘
+        - generic [ref=e16]: "visitor@portfolio: ~"
+    - generic [ref=e18]:
+      - log "Terminal output" [ref=e19]:
+        - generic [ref=e20]: Initializing terminal...
+        - generic [ref=e21]: Loading starship config...
+        - generic [ref=e22]: Ready
+        - generic [ref=e24]: Type "help" for avai
+      - generic [ref=e28]:
+        - img [ref=e29]
+        - generic [ref=e36]: visitor
+        - generic [ref=e37]: "@"
+        - generic [ref=e38]: portfolio
+        - generic [ref=e39]: ":"
+        - generic [ref=e40]: ~
+        - generic [ref=e41]: $
+        - textbox "Terminal input" [active] [ref=e43]:
+          - /placeholder: ""

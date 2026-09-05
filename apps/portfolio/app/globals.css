@@ -1,0 +1,439 @@
+@import "tailwindcss";
+
+:root {
+  /* Terminal theme */
+  --terminal-bg: #1e1e1e;
+  --terminal-bg-secondary: #252526;
+  --terminal-bg-elevated: #2d2d2d;
+  --terminal-border: #3c3c3c;
+  
+  /* Starship-inspired accent colors */
+  --starship-green: #26e08d;
+  --starship-cyan: #36d1ea;
+  --starship-yellow: #f5a524;
+  --starship-red: #ed5a5a;
+  --starship-purple: #b392f0;
+  
+  /* Text hierarchy */
+  --text-primary: #e4e4e4;
+  --text-secondary: #888888;
+  --text-muted: #555555;
+  
+  /* Typography */
+  --font-mono: 'JetBrains Mono', 'SF Mono', 'Cascadia Code', 'Fira Code', Consolas, monospace;
+  
+  /* Spacing */
+  --line-height: 1.6;
+}
+
+@theme inline {
+  --color-background: var(--terminal-bg);
+  --color-foreground: var(--text-primary);
+  --font-mono: var(--font-mono);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 14px;
+}
+
+body {
+  background: var(--terminal-bg);
+  background-image: radial-gradient(
+    ellipse 80% 60% at 50% 40%,
+    rgba(54, 209, 234, 0.04) 0%,
+    rgba(182, 146, 240, 0.02) 50%,
+    transparent 100%
+  );
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-feature-settings: "liga" 1, "calt" 1;
+  -webkit-font-smoothing: antialiased;
+  line-height: var(--line-height);
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* Cursor blink */
+@keyframes cursor-blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+.cursor-blink {
+  animation: cursor-blink 1s step-end infinite;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--terminal-bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--terminal-border);
+  border-radius: 5px;
+  border: 2px solid var(--terminal-bg-secondary);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555555;
+}
+
+/* Selection */
+::selection {
+  background: rgba(54, 209, 234, 0.3);
+  color: var(--text-primary);
+}
+
+/* Output styles */
+.output-stdout {
+  color: var(--text-primary);
+}
+
+.output-stderr {
+  color: var(--starship-red);
+}
+
+.output-info {
+  color: var(--starship-cyan);
+}
+
+.output-success {
+  color: var(--starship-green);
+}
+
+.output-warning {
+  color: var(--starship-yellow);
+}
+
+.output-stdin {
+  color: var(--text-secondary);
+}
+
+/* Terminal window chrome */
+.terminal-window {
+  background: var(--terminal-bg);
+  background-image: radial-gradient(
+    ellipse 70% 50% at 50% 30%,
+    rgba(54, 209, 234, 0.03) 0%,
+    transparent 100%
+  );
+  border: 1px solid var(--terminal-border);
+  border-radius: 10px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Terminal header */
+.terminal-header {
+  background: linear-gradient(180deg, #2d2d2d 0%, #252526 100%);
+  border-bottom: 1px solid var(--terminal-border);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  -webkit-app-region: drag;
+}
+
+/* Traffic lights */
+.traffic-light {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  transition: opacity 0.15s ease;
+}
+
+.traffic-light.close {
+  background: #ff5f57;
+}
+
+.traffic-light.minimize {
+  background: #febc2e;
+}
+
+.traffic-light.maximize {
+  background: #28c840;
+}
+
+/* Terminal title */
+.terminal-title {
+  color: var(--text-secondary);
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Input container */
+.terminal-input-container {
+  padding: 4px 16px;
+}
+
+/* Animations */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out forwards;
+}
+
+/* Terminal spinner — pulsing braille dots */
+@keyframes terminal-dots {
+  0%, 20% { opacity: 0.2; }
+  50% { opacity: 1; }
+  80%, 100% { opacity: 0.2; }
+}
+
+.terminal-dot {
+  animation: terminal-dots 1.4s ease-in-out infinite;
+}
+.terminal-dot:nth-child(2) { animation-delay: 0.2s; }
+.terminal-dot:nth-child(3) { animation-delay: 0.4s; }
+
+/* Error/404 fade-in */
+@keyframes glitch-in {
+  0% { opacity: 0; transform: translateX(-2px); }
+  60% { opacity: 1; transform: translateX(1px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+.terminal-glitch-in {
+  animation: glitch-in 0.3s ease-out forwards;
+}
+
+/* TUI section transition */
+.tui-section-fade-in {
+  animation: fade-in-up 0.15s ease-out forwards;
+}
+
+/* TUI card — terminal-style depth */
+.tui-card {
+  background: var(--terminal-bg-secondary);
+  border: 1px solid var(--terminal-border);
+  border-radius: 0.375rem;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.tui-card:hover {
+  border-color: var(--terminal-border);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+/* TUI card with accent left border */
+.tui-card-accent {
+  border-left: 2px solid var(--starship-cyan);
+}
+
+/* Welcome banner */
+.welcome-banner {
+  margin-bottom: 12px;
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.welcome-banner-ascii {
+  color: var(--starship-cyan);
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 0;
+  margin-bottom: 8px;
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.welcome-banner-pills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.welcome-banner-pill {
+  background: none;
+  border: 1px solid var(--starship-green);
+  color: var(--starship-green);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  padding: 2px 10px;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.welcome-banner-pill:hover {
+  background-color: var(--starship-green);
+  color: var(--terminal-bg);
+}
+
+.welcome-banner-pill:focus-visible {
+  outline: 2px solid var(--starship-cyan);
+  outline-offset: 2px;
+}
+
+/* Toast notification */
+.toast-notification {
+  position: fixed;
+  bottom: 16px;
+  left: 16px;
+  z-index: 100;
+  animation: toast-in 0.2s ease-out forwards;
+}
+
+.toast-border {
+  color: var(--starship-green);
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* TUI card selected state (content pane highlight + search result highlight) */
+.tui-card-selected,
+.tui-card.tui-card-selected {
+  border-color: var(--starship-cyan);
+  background: rgba(54, 209, 234, 0.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 0 0 1px var(--starship-cyan);
+}
+
+/* Focus visibility — visible ring only for keyboard users (REQ-A1/X2) */
+.tui-focus:focus-visible {
+  outline: 2px solid var(--starship-cyan);
+  outline-offset: 2px;
+}
+.tui-focus:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Transient "Switching to TUI mode..." banner (REQ-E3/D14) */
+.tui-banner {
+  color: var(--starship-cyan);
+  border: 1px solid var(--terminal-border);
+  background: var(--terminal-bg-secondary);
+  padding: 4px 8px;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  animation: tui-banner-fade 900ms ease-out forwards;
+}
+@keyframes tui-banner-fade {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+/* Mobile tab bar — mono chips, 44px+ touch targets (REQ-D1/D2) */
+.tui-tab {
+  flex: 0 0 auto;
+  min-height: 44px;
+  min-width: 64px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--terminal-border);
+  border-radius: 0;
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+}
+.tui-tab.active,
+.tui-tab[aria-selected='true'] {
+  color: var(--starship-cyan);
+  background: rgba(54, 209, 234, 0.08);
+  border-color: var(--starship-cyan);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+.tui-tab:focus-visible {
+  outline: 2px solid var(--starship-cyan);
+  outline-offset: 2px;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .tui-banner {
+    animation: none;
+  }
+  .tui-section-fade-in {
+    animation: none;
+  }
+  .terminal-dot {
+    animation: none;
+  }
+}
+
+@media (max-width: 640px) {
+  html {
+    font-size: 13px;
+  }
+  
+  .terminal-window {
+    border-radius: 0;
+    height: 100vh;
+  }
+  
+  /* Increase touch targets for mobile */
+  .traffic-light {
+    width: 16px;
+    height: 16px;
+  }
+  
+  .terminal-header {
+    padding: 16px 20px;
+  }
+  
+  .terminal-input-container {
+    padding: 8px 20px;
+  }
+  
+  /* Make output more readable on small screens */
+  .Output {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  
+  /* Improve input usability */
+  input[aria-label="Terminal input"] {
+    font-size: 16px;
+    min-height: 44px; /* Minimum touch target height */
+  }
+}
