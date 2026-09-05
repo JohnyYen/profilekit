@@ -1,0 +1,38 @@
+change: add-platform-specific-data-variety
+created: 2026-09-04
+artifact_store: openspec
+archived: 2026-09-04
+
+# Phase dependency graph (DAG):
+#   proposal -> [specs || design] -> tasks -> apply -> verify -> archive
+# All phases complete. Change archived.
+
+phases:
+  proposal:
+    status: complete
+    depends_on: []
+    artifact: proposal.md
+  specs:
+    status: complete
+    depends_on: [proposal]
+    artifact: specs/profile-data/spec.md
+  design:
+    status: complete
+    depends_on: [proposal]
+    artifact: design.md
+  tasks:
+    status: complete
+    depends_on: [specs, design]
+    artifact: tasks.md
+  apply:
+    status: complete
+    depends_on: [tasks]
+    artifact: apply-progress.md
+  verify:
+    status: complete
+    depends_on: [apply]
+    artifact: verify-report.md
+  archive:
+    status: complete
+    depends_on: [verify]
+    artifact: archive/2026-09-04-add-platform-specific-data-variety/

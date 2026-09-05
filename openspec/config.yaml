@@ -1,0 +1,53 @@
+schema: spec-driven
+
+context: |
+  Tech stack: Python-based personal profile/CV/portfolio generator. Structured
+  data lives in `data/*.json` and is validated against `schemas/*.schema.json`
+  (JSON Schema draft-07). Generator scripts in `generators/`
+  (generate_github_readme.py, generate_linkedin.py, generate_cv.py) consume the
+  data and emit platform-specific output; `generators/validate.py` validates the
+  data against the schemas.
+  Architecture: Data-driven pipeline — single source of truth in `data/`,
+  schema-enforced contracts in `schemas/`, and pure transform generators in
+  `generators/`. Outputs feed a GitHub profile README, LinkedIn copy, a RenderCV
+  CV, and a separate Next.js portfolio (consumes `data/*.json` externally).
+  Testing: Strict TDD is ACTIVE for this project. RED-GREEN-REFACTOR is required
+  for every behavioral change. No formal test runner is configured yet (no
+  pyproject.toml, pytest.ini, setup.cfg, Makefile, or tests/ directory detected);
+  pytest is the intended runner once a suite exists.
+  Style: Additive, backward-compatible changes preferred. New data fields are
+  optional and never added to schema `required`. Generators use
+  use-if-present-else-fallback semantics so existing data keeps rendering
+  unchanged.
+
+rules:
+  proposal:
+    - State the WHY and high-level WHAT; keep implementation detail in design.
+    - Include a scope/artifacts table and explicit non-goals.
+    - Include rollback plan for risky changes.
+  specs:
+    - Use Given/When/Then for scenarios.
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY).
+    - Each requirement MUST have at least one scenario.
+  design:
+    - Document architecture decisions with rationale.
+    - Include sequence diagrams for complex flows.
+  tasks:
+    - Group by phase, use hierarchical numbering.
+    - Keep tasks completable in one session.
+    - Under strict TDD, write the failing test task before the implementation task.
+  apply:
+    guidelines:
+      - Follow existing code patterns in generators/ and data/.
+      - Keep all new data fields optional and backward-compatible.
+      - Preserve existing generator output when new fields are absent.
+    tdd: true
+    # No test runner configured yet; set once a pytest suite exists.
+    test_command: ""
+  verify:
+    # No test runner configured yet; set once a pytest suite exists.
+    test_command: ""
+    build_command: ""
+    coverage_threshold: 0
+  archive:
+    - Warn before merging destructive deltas.
