@@ -1,0 +1,34 @@
+# Pre-commit hooks for profile-data.
+# Install once with:  uv run pre-commit install
+# Run on all files:   uv run pre-commit run --all-files
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.6
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy (generators)
+        entry: uv run mypy generators/
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      - id: validate-data
+        name: validate profile data
+        # Network checks skipped locally for fast, offline-safe commits.
+        entry: env SKIP_ICON_CHECK=1 SKIP_LINK_CHECK=1 uv run python generators/validate.py
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      - id: pytest
+        name: pytest
+        entry: env SKIP_ICON_CHECK=1 SKIP_LINK_CHECK=1 uv run pytest -q
+        language: system
+        pass_filenames: false
+        always_run: true
