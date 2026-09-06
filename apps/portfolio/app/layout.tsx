@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import aboutData from "./data/about.json";
+import socialData from "./data/social.json";
 
 const jetbrainsMono = JetBrains_Mono({
   variable: "--font-jetbrains-mono",
@@ -11,8 +13,9 @@ const jetbrainsMono = JetBrains_Mono({
 
 const siteUrl = "https://johnyyen.dev";
 const siteName = "Terminal Portfolio";
-const description = "Interactive terminal-style portfolio of Johny A. Pedraza Romero — Backend Engineer. Explore projects, skills, and contact info through a custom terminal interface.";
-const title = "Terminal Portfolio | Johny A. Pedraza Romero";
+
+const title = `Terminal Portfolio | ${aboutData.username}`;
+const description = aboutData.description;
 
 export const metadata: Metadata = {
   title: {
@@ -25,8 +28,8 @@ export const metadata: Metadata = {
     "terminal", "Next.js", "TypeScript", "FastAPI", "NestJS",
     "Johny Pedraza", "Jhonny Antonio",
   ],
-  authors: [{ name: "Johny A. Pedraza Romero" }],
-  creator: "Johny A. Pedraza Romero",
+  authors: [{ name: aboutData.username }],
+  creator: aboutData.username,
   metadataBase: new URL(siteUrl),
   openGraph: {
     type: "website",
@@ -90,14 +93,14 @@ export default function RootLayout({
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "Person",
-              name: "Johny A. Pedraza Romero",
+              name: aboutData.username,
               alternateName: "Johny Yen",
-              url: "https://johnyyen.dev",
+              url: siteUrl,
               jobTitle: "Backend Engineer",
               knowsAbout: ["Software Architecture", "Backend Development", "API Design", "TypeScript", "Python", "NestJS", "FastAPI"],
               sameAs: [
-                "https://github.com/JohnyYen",
-                "https://linkedin.com/in/johnyyen",
+                socialData.github,
+                socialData.linkedin,
               ],
             }),
           }}

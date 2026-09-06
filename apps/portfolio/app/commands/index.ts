@@ -206,10 +206,12 @@ const commands: Command[] = [
     name: 'fetch',
     description: 'Show quick system info (fastfetch-style)',
     handler: () => {
-      const backend = skillsData.backend.join(', ');
-      const database = skillsData.database.join(', ');
-      const devops = skillsData.devops.join(', ');
-      const learning = skillsData.learning.map(l => l.category).join(', ');
+      // Build display lines from canonical categories shape.
+      const skillName = (d: string | { name: string }) =>
+        typeof d === 'string' ? d : d.name;
+      const categoryLines = skillsData.categories.map(
+        cat => `  │  ${cat.label.padEnd(18)} ${cat.details.map(skillName).join(', ')}`
+      );
 
       return {
         output: [
@@ -226,12 +228,7 @@ const commands: Command[] = [
           '  │  Shell:   Custom Terminal',
           '  │',
           '  ├─ Tech Stack',
-          `  │  Backend:  ${backend}`,
-          `  │  Database: ${database}`,
-          `  │  DevOps:   ${devops}`,
-          '  │',
-          '  ├─ Currently Learning',
-          ...skillsData.learning.map(l => `  │  • ${l.category}`),
+          ...categoryLines,
           '  │',
           '  └─ Location',
           '     🌎 Available remotely',
@@ -409,21 +406,18 @@ const commands: Command[] = [
     name: 'skills',
     description: 'View my technical skills',
     handler: () => {
-      const learningLines = skillsData.learning.map(l => 
-        `   • ${l.category} (${l.topics.join(', ')})`
-      ).join('\n');
+      // Render each canonical category as a labelled line.
+      const skillName = (d: string | { name: string }) =>
+        typeof d === 'string' ? d : d.name;
+      const categoryLines = skillsData.categories.map(
+        cat => `${cat.label.padEnd(22)} ${cat.details.map(skillName).join(' │ ')}`
+      );
 
       return {
         output: [
           '═ SKILLS ──────────────────────────────────────────',
           '',
-          `Backend:    ${skillsData.backend.join(' │ ')}`,
-          `Database:   ${skillsData.database.join(' │ ')}`,
-          `DevOps:     ${skillsData.devops.join(' │ ')}`,
-          `Tools:      ${skillsData.tools.join(' │ ')}`,
-          '',
-          '📚 Currently Learning:',
-          learningLines,
+          ...categoryLines,
           '',
           '→ Check "fetch" for a quick overview!',
           '→ Check "projects" for my work!',

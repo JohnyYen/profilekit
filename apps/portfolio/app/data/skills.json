@@ -1,16 +1,127 @@
 {
-  "backend": ["Python (FastAPI)", "Node.js (NestJS)"],
-  "database": ["PostgreSQL", "Prisma", "SQLAlchemy"],
-  "devops": ["Docker", "GitHub Actions"],
-  "tools": ["TypeScript", "Git", "Vim"],
-  "learning": [
+  "categories": [
     {
-      "category": "Software Architecture",
-      "topics": ["DDD", "Clean Architecture"]
+      "label": "Back-end Frameworks",
+      "details": [
+        {
+          "name": "NestJS",
+          "icon": "nestjs"
+        },
+        {
+          "name": "FastAPI",
+          "icon": "fastapi"
+        },
+        {
+          "name": ".NET",
+          "icon": "dotnet"
+        },
+        {
+          "name": "Hono",
+          "iconUrl": "https://devicons.railway.com/i/hono.svg"
+        },
+        {
+          "name": "Strapi",
+          "iconUrl": "https://devicons.railway.com/i/strapi.svg"
+        }
+      ]
     },
     {
-      "category": "AI/ML Integration",
-      "topics": ["LLMs", "embeddings", "RAG"]
+      "label": "ERP Platforms",
+      "details": [
+        {
+          "name": "Frappe",
+          "iconUrl": "https://devicons.railway.com/i/frappe.svg"
+        },
+        {
+          "name": "ERPNext",
+          "iconUrl": "https://devicons.railway.com/i/erpnext.svg"
+        }
+      ]
+    },
+    {
+      "label": "Databases",
+      "details": [
+        {
+          "name": "PostgreSQL",
+          "icon": "postgres"
+        },
+        {
+          "name": "MongoDB",
+          "icon": "mongodb"
+        },
+        {
+          "name": "Prisma ORM",
+          "icon": "prisma"
+        }
+      ]
+    },
+    {
+      "label": "Dev & Infrastructure",
+      "details": [
+        {
+          "name": "Docker",
+          "icon": "docker"
+        },
+        {
+          "name": "Git",
+          "icon": "git"
+        },
+        {
+          "name": "GitHub Actions",
+          "icon": "githubactions"
+        },
+        {
+          "name": "Vercel",
+          "icon": "vercel"
+        },
+        {
+          "name": "GitHub",
+          "icon": "github"
+        },
+        {
+          "name": "GitLab",
+          "icon": "gitlab"
+        }
+      ]
+    },
+    {
+      "label": "Languages",
+      "details": [
+        {
+          "name": "TypeScript",
+          "icon": "ts"
+        },
+        {
+          "name": "Python",
+          "icon": "python"
+        },
+        {
+          "name": "C#",
+          "icon": "cs"
+        },
+        {
+          "name": "JavaScript",
+          "icon": "js"
+        }
+      ]
+    },
+    {
+      "label": "Software Design",
+      "details": [
+        "Clean Architecture",
+        "Domain-Driven Design",
+        "SOLID Principles",
+        "Design Patterns",
+        "C4 Model",
+        "MVC"
+      ]
+    },
+    {
+      "label": "AI-Driven Development",
+      "details": [
+        "Spec-Driven Development (SDD)",
+        "AI Gentle Stack"
+      ]
     }
   ]
 }

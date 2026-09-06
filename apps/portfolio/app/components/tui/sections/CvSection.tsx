@@ -2,6 +2,11 @@
 
 import React, { useState } from 'react';
 import { downloadCv } from '../../../lib/download';
+import aboutData from '../../../data/about.json';
+
+// Non-canonical: update manually on new CV release.
+const CV_SIZE = "69 KB";
+const CV_DATE = "2026-07-30";
 
 interface CvSectionProps {
   cvUrl?: string;
@@ -37,9 +42,9 @@ export default function CvSection({ cvUrl }: CvSectionProps) {
         <div className="flex items-center gap-3 mb-3">
           <span style={{ fontSize: '24px' }}>📄</span>
           <div>
-            <p style={{ color: 'var(--text-primary)' }}>Johny A. Pedraza Romero CV</p>
+            <p style={{ color: 'var(--text-primary)' }}>{aboutData.username} CV</p>
             <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-              PDF — 69 KB · Last release: 2026-07-30
+              PDF — {CV_SIZE} · Last release: {CV_DATE}
             </p>
           </div>
         </div>

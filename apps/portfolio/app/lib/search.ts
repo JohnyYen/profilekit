@@ -21,15 +21,13 @@ export interface SearchGroup {
   items: SearchResult[];
 }
 
+type SkillDetail = string | { name: string; icon?: string; iconUrl?: string };
+
 export interface SearchCorpus {
   /** Undefined while projects are loading — the group is omitted (REQ-C4). */
   projects?: Project[];
   skills: {
-    backend: string[];
-    database: string[];
-    devops: string[];
-    tools: string[];
-    learning: { category: string; topics: string[] }[];
+    categories: { label: string; details: SkillDetail[] }[];
   };
   about: {
     username: string;
@@ -83,17 +81,14 @@ export function searchAll(corpus: SearchCorpus, rawQuery: string): SearchOutcome
     );
   }
 
-  // Skills — individual tech entries plus learning categories/topics.
-  const skillEntries: { text: string; category: string }[] = [
-    ...corpus.skills.backend.map(text => ({ text, category: 'Backend' })),
-    ...corpus.skills.database.map(text => ({ text, category: 'Database' })),
-    ...corpus.skills.devops.map(text => ({ text, category: 'DevOps' })),
-    ...corpus.skills.tools.map(text => ({ text, category: 'Tools' })),
-    ...corpus.skills.learning.flatMap(learning => [
-      { text: learning.category, category: 'Learning' },
-      ...learning.topics.map(text => ({ text, category: learning.category })),
-    ]),
-  ];
+  // Skills — flatten canonical categories into searchable text entries.
+  const skillEntries: { text: string; category: string }[] =
+    corpus.skills.categories.flatMap(cat =>
+      cat.details.map(detail => ({
+        text: typeof detail === 'string' ? detail : detail.name,
+        category: cat.label,
+      }))
+    );
   push(
     'skills',
     'Skills',
