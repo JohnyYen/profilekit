@@ -38,3 +38,16 @@ def test_generate_all_module_exits_zero():
         f"Module invocation exited {result.returncode}.\n"
         f"stdout: {result.stdout}\nstderr: {result.stderr}"
     )
+
+
+def test_generate_all_writes_portfolio_app_data():
+    """generate_all.main() must write the four apps/portfolio/app/data/*.json files."""
+    import generators.generate_all as generate_all
+
+    generate_all.main()
+
+    app_data_dir = ROOT_DIR / "apps" / "portfolio" / "app" / "data"
+    expected = {"about.json", "social.json", "skills.json", "projects.json"}
+    for filename in expected:
+        path = app_data_dir / filename
+        assert path.exists(), f"Expected {path} to exist after generate_all.main()"

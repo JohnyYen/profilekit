@@ -1,0 +1,14 @@
+[
+  {
+    "name": "NestJS Boilerplate",
+    "description": "Complete boilerplate for NestJS projects with Prisma ORM",
+    "tech": "TypeScript",
+    "url": "https://github.com/JohnyYen/NestJs-Template"
+  },
+  {
+    "name": "FastAPI Generic Scaffold",
+    "description": "A fully generic FastAPI scaffold",
+    "tech": "",
+    "url": ""
+  }
+]

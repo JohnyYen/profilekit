@@ -21,10 +21,12 @@ import generators.generate_cv as cv
 import generators.generate_github_readme as github_readme
 import generators.generate_linkedin as linkedin
 import generators.generate_portfolio as portfolio
+import generators.generate_portfolio_data as portfolio_data
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 ROOT_DIR = SCRIPT_DIR.parent
 OUTPUT_DIR = ROOT_DIR / "output"
+APP_DATA_DIR = ROOT_DIR / "apps" / "portfolio" / "app" / "data"
 
 
 def main():
@@ -32,6 +34,7 @@ def main():
     linkedin.main()
     portfolio.main()
     cv.main()
+    portfolio_data.main()
 
     output_files = [
         OUTPUT_DIR / "github-readme.md",
@@ -42,6 +45,16 @@ def main():
     ]
     print("\nGenerated output files:")
     for f in output_files:
+        print(f"  {f}")
+
+    app_data_files = [
+        APP_DATA_DIR / "about.json",
+        APP_DATA_DIR / "social.json",
+        APP_DATA_DIR / "skills.json",
+        APP_DATA_DIR / "projects.json",
+    ]
+    print("\nGenerated portfolio app data files:")
+    for f in app_data_files:
         print(f"  {f}")
 
 
