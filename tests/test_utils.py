@@ -1,6 +1,6 @@
-"""Tests for generators/utils.py — load_json, write_output, and skill normalization utilities."""
+"""Tests for profilekit/utils.py — load_json, write_output, and skill normalization utilities."""
 
-from generators.utils import skill_icon, skill_name, write_output
+from profilekit.utils import skill_icon, skill_name, write_output
 
 
 def test_write_output_creates_dir_and_file(tmp_path):

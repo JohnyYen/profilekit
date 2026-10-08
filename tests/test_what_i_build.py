@@ -1,4 +1,4 @@
-"""Tests for generators.utils.what_i_build — platform variant fallback logic."""
+"""Tests for profilekit.utils.what_i_build — platform variant fallback logic."""
 
 
 # ---------------------------------------------------------------------------
@@ -8,7 +8,7 @@
 
 def test_what_i_build_returns_platform_variant():
     """When whatIBuildVariants[platform] is present, return it."""
-    from generators.utils import what_i_build
+    from profilekit.utils import what_i_build
 
     about = {
         "whatIBuildVariants": {"github": "Type-safe backend templates."},
@@ -25,7 +25,7 @@ def test_what_i_build_returns_platform_variant():
 
 def test_what_i_build_falls_back_when_platform_key_absent():
     """When the platform key is absent from whatIBuildVariants, return whatIBuild."""
-    from generators.utils import what_i_build
+    from profilekit.utils import what_i_build
 
     about = {
         "whatIBuildVariants": {"linkedin": "Some LinkedIn text."},
@@ -42,7 +42,7 @@ def test_what_i_build_falls_back_when_platform_key_absent():
 
 def test_what_i_build_falls_back_when_variants_absent():
     """When whatIBuildVariants is entirely absent, return whatIBuild."""
-    from generators.utils import what_i_build
+    from profilekit.utils import what_i_build
 
     about = {"whatIBuild": ["APIs", "Templates"]}
     result = what_i_build(about, "github")
@@ -56,7 +56,7 @@ def test_what_i_build_falls_back_when_variants_absent():
 
 def test_what_i_build_falls_back_when_variant_is_null():
     """When whatIBuildVariants[platform] is null, fall back to whatIBuild."""
-    from generators.utils import what_i_build
+    from profilekit.utils import what_i_build
 
     about = {
         "whatIBuildVariants": {"github": None},
@@ -73,7 +73,7 @@ def test_what_i_build_falls_back_when_variant_is_null():
 
 def test_what_i_build_returns_empty_list_when_both_absent():
     """When neither whatIBuildVariants nor whatIBuild is present, return []."""
-    from generators.utils import what_i_build
+    from profilekit.utils import what_i_build
 
     about = {"username": "testuser"}
     result = what_i_build(about, "github")

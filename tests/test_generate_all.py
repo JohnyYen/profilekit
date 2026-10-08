@@ -1,7 +1,7 @@
 """Subprocess-level tests for generate_all.py dual invocation modes.
 
-Both ``python generators/generate_all.py`` (script mode) and
-``python -m generators.generate_all`` (module mode) must exit 0 when
+Both ``python src/profilekit/generate_all.py`` (script mode) and
+``python -m profilekit.generate_all`` (module mode) must exit 0 when
 invoked from the repository root.
 """
 
@@ -23,8 +23,8 @@ def _run(args: list[str]) -> subprocess.CompletedProcess:
 
 
 def test_generate_all_script_exits_zero():
-    """``python generators/generate_all.py`` must exit 0 (no shell=True)."""
-    result = _run([sys.executable, "generators/generate_all.py"])
+    """``python src/profilekit/generate_all.py`` must exit 0 (no shell=True)."""
+    result = _run([sys.executable, "src/profilekit/generate_all.py"])
     assert result.returncode == 0, (
         f"Script invocation exited {result.returncode}.\n"
         f"stdout: {result.stdout}\nstderr: {result.stderr}"
@@ -32,8 +32,8 @@ def test_generate_all_script_exits_zero():
 
 
 def test_generate_all_module_exits_zero():
-    """``python -m generators.generate_all`` must exit 0 (no shell=True)."""
-    result = _run([sys.executable, "-m", "generators.generate_all"])
+    """``python -m profilekit.generate_all`` must exit 0 (no shell=True)."""
+    result = _run([sys.executable, "-m", "profilekit.generate_all"])
     assert result.returncode == 0, (
         f"Module invocation exited {result.returncode}.\n"
         f"stdout: {result.stdout}\nstderr: {result.stderr}"
@@ -42,7 +42,7 @@ def test_generate_all_module_exits_zero():
 
 def test_generate_all_writes_portfolio_app_data():
     """generate_all.main() must write the four apps/portfolio/app/data/*.json files."""
-    import generators.generate_all as generate_all
+    import profilekit.generate_all as generate_all
 
     generate_all.main()
 

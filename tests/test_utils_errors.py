@@ -1,4 +1,4 @@
-"""Tests for DataError, load_json_strict, and run() in generators/utils.py.
+"""Tests for DataError, load_json_strict, and run() in profilekit/utils.py.
 
 All tests in this module are RED before the corresponding additions to utils.py.
 """
@@ -25,7 +25,7 @@ def _write_json(path: Path, data: object) -> None:
 
 def test_load_json_strict_missing_file_raises_data_error(tmp_path):
     """Missing data file raises DataError with the file path in message."""
-    from generators.utils import DataError, load_json_strict
+    from profilekit.utils import DataError, load_json_strict
 
     data_dir = tmp_path / "data"
     data_dir.mkdir()
@@ -43,7 +43,7 @@ def test_load_json_strict_missing_file_raises_data_error(tmp_path):
 
 def test_load_json_strict_malformed_json_raises_data_error(tmp_path):
     """Malformed JSON raises DataError mentioning the file."""
-    from generators.utils import DataError, load_json_strict
+    from profilekit.utils import DataError, load_json_strict
 
     data_dir = tmp_path / "data"
     data_dir.mkdir()
@@ -62,7 +62,7 @@ def test_load_json_strict_malformed_json_raises_data_error(tmp_path):
 
 def test_load_json_strict_missing_required_field_raises_data_error(tmp_path):
     """load_json_strict raises DataError when a required field is absent."""
-    from generators.utils import DataError, load_json_strict
+    from profilekit.utils import DataError, load_json_strict
 
     data_dir = tmp_path / "data"
     data_dir.mkdir()
@@ -83,7 +83,7 @@ def test_load_json_strict_missing_required_field_raises_data_error(tmp_path):
 
 def test_run_calls_sys_exit_1_on_data_error(monkeypatch):
     """run() catches DataError and calls sys.exit(1)."""
-    from generators.utils import DataError, run
+    from profilekit.utils import DataError, run
 
     exit_calls = []
 
@@ -110,7 +110,7 @@ def test_run_calls_sys_exit_1_on_data_error(monkeypatch):
 
 def test_run_reraises_unexpected_exception():
     """run() does NOT catch unexpected exceptions — they propagate normally."""
-    from generators.utils import run
+    from profilekit.utils import run
 
     def bad_main():
         raise ValueError("unexpected bug")

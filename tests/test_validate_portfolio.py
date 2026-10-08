@@ -1,6 +1,6 @@
 """Tests for validate_portfolio_highlights — non-fatal validation against projects.json."""
 
-import generators.validate as validate
+import profilekit.validate as validate
 
 from tests.conftest import make_about, make_projects
 

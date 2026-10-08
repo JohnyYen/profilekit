@@ -1,4 +1,4 @@
-"""Tests for generators/icons.py — check_icons reachability helper.
+"""Tests for profilekit/icons.py — check_icons reachability helper.
 
 All tests must fail before icons.py exists.
 """
@@ -27,7 +27,7 @@ def _skills_with_icon_url(url: str) -> dict:
 
 def test_check_icons_offline_returns_empty():
     """check_icons(skills, offline=True) returns [] without any network I/O."""
-    from generators.icons import check_icons
+    from profilekit.icons import check_icons
 
     skills = _skills_with_slug("nestjs")
 
@@ -45,7 +45,7 @@ def test_check_icons_offline_returns_empty():
 
 def test_check_icons_200_ok_no_warnings(monkeypatch):
     """A 200 response from urlopen produces no warnings."""
-    from generators.icons import check_icons
+    from profilekit.icons import check_icons
 
     # Ensure SKIP_ICON_CHECK does not interfere with this test
     monkeypatch.delenv("SKIP_ICON_CHECK", raising=False)
@@ -70,7 +70,7 @@ def test_check_icons_200_ok_no_warnings(monkeypatch):
 
 def test_check_icons_non_200_produces_warning(monkeypatch):
     """A non-200 HTTP response produces a warning mentioning the slug."""
-    from generators.icons import check_icons
+    from profilekit.icons import check_icons
 
     # Ensure SKIP_ICON_CHECK does not interfere with this test
     monkeypatch.delenv("SKIP_ICON_CHECK", raising=False)
@@ -96,7 +96,7 @@ def test_check_icons_non_200_produces_warning(monkeypatch):
 
 def test_check_icons_url_error_produces_warning_no_exception(monkeypatch):
     """A URLError (e.g. timeout) produces a warning and does NOT raise."""
-    from generators.icons import check_icons
+    from profilekit.icons import check_icons
 
     # Ensure SKIP_ICON_CHECK does not interfere with this test
     monkeypatch.delenv("SKIP_ICON_CHECK", raising=False)
@@ -117,7 +117,7 @@ def test_check_icons_url_error_produces_warning_no_exception(monkeypatch):
 
 def test_check_icons_skip_env_var(monkeypatch):
     """SKIP_ICON_CHECK=1 env var causes check_icons to skip entirely."""
-    from generators.icons import check_icons
+    from profilekit.icons import check_icons
 
     monkeypatch.setenv("SKIP_ICON_CHECK", "1")
     skills = _skills_with_slug("nestjs")

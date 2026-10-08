@@ -4,8 +4,8 @@
 import sys
 from pathlib import Path
 
-from generators.render import format_date_range
-from generators.utils import (
+from profilekit.render import format_date_range
+from profilekit.utils import (
     load_json,
     run,
     skill_icon,
@@ -15,7 +15,7 @@ from generators.utils import (
 )
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-ROOT_DIR = SCRIPT_DIR.parent
+ROOT_DIR = SCRIPT_DIR.parent.parent
 DATA_DIR = ROOT_DIR / "data"
 OUTPUT_DIR = ROOT_DIR / "output"
 ASSETS_DIR = ROOT_DIR / "assets"

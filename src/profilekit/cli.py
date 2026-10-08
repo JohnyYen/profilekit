@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Unified command-line interface for the profile-data generators.
+"""Unified command-line interface for the profilekit generators.
 
 Thin orchestration layer over the existing generator ``main()`` functions — it
 adds no generation logic, so it can never drift from direct module invocation.
-Runnable as a module (``python -m generators.cli``) or, once installed, as the
+Runnable as a module (``python -m profilekit.cli``) or, once installed, as the
 ``profile`` console script.
 """
 
@@ -13,23 +13,21 @@ import sys
 from collections.abc import Callable
 from pathlib import Path
 
-# Bootstrap sys.path so ``python generators/cli.py`` (script mode) can import the
-# ``generators`` package.  Under ``python -m generators.cli`` this is a no-op.
-_ROOT_DIR = Path(__file__).resolve().parent.parent
-if str(_ROOT_DIR) not in sys.path:
-    sys.path.insert(0, str(_ROOT_DIR))
+import profilekit.generate_cv as cv
+import profilekit.generate_github_readme as github_readme
+import profilekit.generate_linkedin as linkedin
+import profilekit.generate_portfolio as portfolio
+from profilekit import validate
 
-import generators.generate_cv as cv  # noqa: E402
-import generators.generate_github_readme as github_readme  # noqa: E402
-import generators.generate_linkedin as linkedin  # noqa: E402
-import generators.generate_portfolio as portfolio  # noqa: E402
-from generators import validate  # noqa: E402
-
-ROOT_DIR = _ROOT_DIR
+# src-layout: this file lives at <repo_root>/src/profilekit/cli.py, so three
+# parents reach the repository root. No sys.path bootstrap is needed — once
+# installed (editable or not), ``profilekit`` resolves from site-packages
+# regardless of invocation mode or current working directory.
+ROOT_DIR = Path(__file__).resolve().parent.parent.parent
 OUTPUT_DIR = ROOT_DIR / "output"
 
 # Single source of truth for generation targets and their run order.  Insertion
-# order matches ``generators.generate_all`` and is preserved by ``dict``.
+# order matches ``profilekit.generate_all`` and is preserved by ``dict``.
 GENERATORS: dict[str, Callable[[], object]] = {
     "github-readme": github_readme.main,
     "linkedin": linkedin.main,
@@ -72,7 +70,7 @@ def cmd_generate(target: str) -> int:
 
 
 def cmd_validate() -> int:
-    """Delegate to ``generators.validate.main()`` and return its exit code."""
+    """Delegate to ``profilekit.validate.main()`` and return its exit code."""
     return validate.main()
 
 
@@ -109,7 +107,7 @@ def build_parser() -> argparse.ArgumentParser:
     """Construct the argparse parser with one subparser per subcommand."""
     parser = argparse.ArgumentParser(
         prog="profile",
-        description="Manage the profile-data generators.",
+        description="Manage the profilekit generators.",
     )
     parser.set_defaults(func=None)
     sub = parser.add_subparsers(dest="command", metavar="<command>")

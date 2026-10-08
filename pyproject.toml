@@ -3,47 +3,73 @@ requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "profile-data"
+name = "profilekit"
 version = "0.1.0"
+description = "Turn structured profile data (JSON) into generated artifacts (GitHub README, LinkedIn copy, CV, portfolio data) and optionally publish them to real destinations."
+readme = "README.md"
+license = "MIT"
+authors = [
+    { name = "Johny A. Pedraza Romero", email = "johny.antonio.pedraza.romero@gmail.com" },
+]
+keywords = ["profile", "cv", "readme-generator", "static-site", "developer-tools"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Software Development :: Build Tools",
+    "Topic :: Utilities",
+    "Typing :: Typed",
+]
 requires-python = ">=3.11"
 dependencies = ["jsonschema>=4"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "ruff>=0.4", "mypy>=1.10", "pytest-cov>=5", "pre-commit>=3"]
 
-[project.scripts]
-profile = "generators.cli:main"
+[project.urls]
+Homepage = "https://github.com/JohnyYen/profile-data"
+Repository = "https://github.com/JohnyYen/profile-data"
+Issues = "https://github.com/JohnyYen/profile-data/issues"
+Changelog = "https://github.com/JohnyYen/profile-data/blob/main/CHANGELOG.md"
 
-# The generators package is included so the `profile` console script resolves
-# after `pip install -e .`.  The pipeline still runs fine via pythonpath
-# (`python -m generators.cli`) without installation.
-[tool.setuptools]
-packages = ["generators"]
+[project.scripts]
+profile = "profilekit.cli:main"
+profilekit = "profilekit.cli:main"
+
+# src-layout: the import package lives under src/profilekit, decoupled from
+# the distribution name. `pip install .` / `pip install -e .` makes the
+# `profile` console script resolve with no pythonpath hacks required.
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+profilekit = ["py.typed", "schemas/*.schema.json"]
 
 [tool.ruff]
 target-version = "py311"
 line-length = 100
-src = ["generators", "tests"]
-# Only the Python generators + tests are linted here. The in-repo Next.js app
+src = ["src", "tests"]
+# Only the Python package + tests are linted here. The in-repo Next.js app
 # (apps/) and RenderCV config (cv/) have their own toolchains.
-extend-exclude = ["apps", "cv", "openspec", "output", "data", "schemas", "assets"]
+extend-exclude = ["apps", "cv", "openspec", "output", "data", "assets"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
 
 [tool.ruff.lint.per-file-ignores]
 # generate_all.py intentionally bootstraps sys.path before importing the
-# generators package, so its imports are not at the top of the file.
-"generators/generate_all.py" = ["E402"]
+# profilekit package, so its imports are not at the top of the file.
+"src/profilekit/generate_all.py" = ["E402"]
 # Test docstrings are descriptive and allowed to exceed the line length.
 "tests/*" = ["E501"]
 
 [tool.mypy]
 python_version = "3.11"
 ignore_missing_imports = true
-files = ["generators/"]
+files = ["src/"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["."]
-addopts = "--cov=generators --cov-report=term-missing --cov-fail-under=80"
+addopts = "--cov=profilekit --cov-report=term-missing --cov-fail-under=80"

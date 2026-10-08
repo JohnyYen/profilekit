@@ -9,22 +9,25 @@ to that repository.  Automation of that step is out of scope for this change.
 import sys
 from pathlib import Path
 
-# Bootstrap sys.path so that ``python generators/generate_all.py`` (script
-# mode) can import the ``generators`` package.  When run as a module via
-# ``python -m generators.generate_all``, Python already adds the project root
-# to sys.path, so this guard is a no-op in that case.
-_ROOT_DIR = Path(__file__).resolve().parent.parent
-if str(_ROOT_DIR) not in sys.path:
-    sys.path.insert(0, str(_ROOT_DIR))
+# Bootstrap sys.path so that ``python src/profilekit/generate_all.py`` (script
+# mode) can import the ``profilekit`` package. src-layout nests the package
+# one level deeper than before (src/profilekit vs. generators), so this
+# still reaches ``src/`` — the directory that must be on sys.path for the
+# package to resolve. When run as a module via ``python -m
+# profilekit.generate_all``, Python already adds the right directory to
+# sys.path, so this guard is a no-op in that case.
+_SRC_DIR = Path(__file__).resolve().parent.parent
+if str(_SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(_SRC_DIR))
 
-import generators.generate_cv as cv
-import generators.generate_github_readme as github_readme
-import generators.generate_linkedin as linkedin
-import generators.generate_portfolio as portfolio
-import generators.generate_portfolio_data as portfolio_data
+import profilekit.generate_cv as cv
+import profilekit.generate_github_readme as github_readme
+import profilekit.generate_linkedin as linkedin
+import profilekit.generate_portfolio as portfolio
+import profilekit.generate_portfolio_data as portfolio_data
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-ROOT_DIR = SCRIPT_DIR.parent
+ROOT_DIR = SCRIPT_DIR.parent.parent
 OUTPUT_DIR = ROOT_DIR / "output"
 APP_DATA_DIR = ROOT_DIR / "apps" / "portfolio" / "app" / "data"
 

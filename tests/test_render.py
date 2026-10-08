@@ -1,4 +1,4 @@
-"""Tests for generators/render.py — shared pure formatting helpers.
+"""Tests for profilekit/render.py — shared pure formatting helpers.
 
 All tests must fail before render.py exists.
 """
@@ -37,7 +37,7 @@ EDUCATION_ENTRY = {
 
 def test_format_date_range_with_end():
     """format_date_range returns 'start – end' when end is provided."""
-    from generators.render import format_date_range
+    from profilekit.render import format_date_range
 
     result = format_date_range("2020", "2023")
     assert result == "2020 – 2023"
@@ -45,7 +45,7 @@ def test_format_date_range_with_end():
 
 def test_format_date_range_defaults_end_to_present():
     """format_date_range returns 'start – Present' when end is empty."""
-    from generators.render import format_date_range
+    from profilekit.render import format_date_range
 
     result = format_date_range("2020", "")
     assert result == "2020 – Present"
@@ -53,7 +53,7 @@ def test_format_date_range_defaults_end_to_present():
 
 def test_format_date_range_custom_default():
     """format_date_range accepts a custom default_end value."""
-    from generators.render import format_date_range
+    from profilekit.render import format_date_range
 
     result = format_date_range("2020", "", default_end="present")
     assert result == "2020 – present"
@@ -66,7 +66,7 @@ def test_format_date_range_custom_default():
 
 def test_format_experience_entry_yaml_contains_company():
     """format_experience_entry_yaml output contains the company name."""
-    from generators.render import format_experience_entry_yaml
+    from profilekit.render import format_experience_entry_yaml
 
     result = format_experience_entry_yaml(EXPERIENCE_ENTRY)
     assert "Test Corp" in result
@@ -74,7 +74,7 @@ def test_format_experience_entry_yaml_contains_company():
 
 def test_format_experience_entry_yaml_contains_position():
     """format_experience_entry_yaml output contains the position."""
-    from generators.render import format_experience_entry_yaml
+    from profilekit.render import format_experience_entry_yaml
 
     result = format_experience_entry_yaml(EXPERIENCE_ENTRY)
     assert "Engineer" in result
@@ -82,7 +82,7 @@ def test_format_experience_entry_yaml_contains_position():
 
 def test_format_experience_entry_yaml_contains_highlight():
     """format_experience_entry_yaml output includes highlights."""
-    from generators.render import format_experience_entry_yaml
+    from profilekit.render import format_experience_entry_yaml
 
     result = format_experience_entry_yaml(EXPERIENCE_ENTRY)
     assert "Shipped feature A" in result
@@ -95,7 +95,7 @@ def test_format_experience_entry_yaml_contains_highlight():
 
 def test_format_education_entry_yaml_contains_institution():
     """format_education_entry_yaml output contains the institution name."""
-    from generators.render import format_education_entry_yaml
+    from profilekit.render import format_education_entry_yaml
 
     result = format_education_entry_yaml(EDUCATION_ENTRY)
     assert "Tech University" in result
@@ -103,7 +103,7 @@ def test_format_education_entry_yaml_contains_institution():
 
 def test_format_education_entry_yaml_contains_degree():
     """format_education_entry_yaml output contains the degree."""
-    from generators.render import format_education_entry_yaml
+    from profilekit.render import format_education_entry_yaml
 
     result = format_education_entry_yaml(EDUCATION_ENTRY)
     assert "BSc" in result
@@ -116,7 +116,7 @@ def test_format_education_entry_yaml_contains_degree():
 
 def test_format_experience_entry_md_contains_company_and_position():
     """format_experience_entry_md produces a markdown block with company and position."""
-    from generators.render import format_experience_entry_md
+    from profilekit.render import format_experience_entry_md
 
     result = format_experience_entry_md(EXPERIENCE_ENTRY)
     assert "Test Corp" in result
@@ -125,7 +125,7 @@ def test_format_experience_entry_md_contains_company_and_position():
 
 def test_format_experience_entry_md_contains_date_range():
     """format_experience_entry_md includes the formatted date range."""
-    from generators.render import format_experience_entry_md
+    from profilekit.render import format_experience_entry_md
 
     result = format_experience_entry_md(EXPERIENCE_ENTRY)
     assert "2020" in result
@@ -134,7 +134,7 @@ def test_format_experience_entry_md_contains_date_range():
 
 def test_format_education_entry_md_contains_institution():
     """format_education_entry_md produces a markdown block with the institution."""
-    from generators.render import format_education_entry_md
+    from profilekit.render import format_education_entry_md
 
     result = format_education_entry_md(EDUCATION_ENTRY)
     assert "Tech University" in result

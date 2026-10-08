@@ -1,11 +1,11 @@
-"""Tests for the unified generator CLI (generators.cli).
+"""Tests for the unified generator CLI (profilekit.cli).
 
 All tests are side-effect free: the generator registry, validate.main, and the
 git-diff helper are monkeypatched so no output files are written and git is
 never invoked.
 """
 
-import generators.cli as cli
+import profilekit.cli as cli
 import pytest
 
 TARGET_ORDER = ["github-readme", "linkedin", "portfolio", "cv"]
@@ -89,7 +89,7 @@ def test_generate_failure_propagates(monkeypatch, capsys):
 
 @pytest.mark.parametrize("code", [0, 1])
 def test_validate_propagates_exit_code(monkeypatch, code):
-    """`validate` returns whatever generators.validate.main() returns."""
+    """`validate` returns whatever profilekit.validate.main() returns."""
     monkeypatch.setattr(cli.validate, "main", lambda: code)
     assert cli.main(["validate"]) == code
 

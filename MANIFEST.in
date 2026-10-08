@@ -1,0 +1,2 @@
+include src/profilekit/py.typed
+recursive-include src/profilekit/schemas *.schema.json

@@ -1,14 +1,17 @@
 """Schema validation tests — confirm about.schema.json is non-breaking."""
 
+import importlib.resources
 import json
 from pathlib import Path
 
 # Import the module under test
-import generators.validate as validate
+import profilekit.validate as validate
 
 from tests.conftest import FIXTURES_DIR
 
-SCHEMAS_DIR = Path(__file__).resolve().parent.parent / "schemas"
+# Schemas are packaged data (src/profilekit/schemas/), not a repo-relative
+# path — resolve the same way the production code does.
+SCHEMAS_DIR = importlib.resources.files("profilekit.schemas")
 
 
 def _write_about_fixture(tmp_path: Path, data: dict) -> Path:

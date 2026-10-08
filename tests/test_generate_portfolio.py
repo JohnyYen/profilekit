@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from generators.generate_portfolio import compute_portfolio_projects, render_portfolio
+from profilekit.generate_portfolio import compute_portfolio_projects, render_portfolio
 
 from tests.conftest import make_about, make_projects
 

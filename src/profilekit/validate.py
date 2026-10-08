@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Validate all data/*.json files against schemas/*.schema.json using jsonschema."""
 
+import importlib.resources
 import json
 import sys
 from pathlib import Path
@@ -9,9 +10,14 @@ from typing import Any
 import jsonschema
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-ROOT_DIR = SCRIPT_DIR.parent
+ROOT_DIR = SCRIPT_DIR.parent.parent
 DATA_DIR = ROOT_DIR / "data"
-SCHEMAS_DIR = ROOT_DIR / "schemas"
+
+# Schemas are packaged data (see pyproject.toml [tool.setuptools.package-data]
+# and MANIFEST.in), not a repository-relative path — this resolves correctly
+# both from a git checkout (editable install) and from a `pip install`ed
+# copy outside any checkout.
+SCHEMAS_DIR = importlib.resources.files("profilekit.schemas")
 
 # Map of data file stem → schema file name (all under DATA_DIR / SCHEMAS_DIR)
 _SCHEMA_MAP = {
@@ -143,7 +149,7 @@ def main() -> int:
 
     # Icon reachability (non-fatal, skippable)
     try:
-        from generators.icons import check_icons  # noqa: PLC0415
+        from profilekit.icons import check_icons  # noqa: PLC0415
 
         skills_path = DATA_DIR / "skills.json"
         if skills_path.exists():
@@ -157,7 +163,7 @@ def main() -> int:
 
     # Link reachability (non-fatal, skippable)
     try:
-        from generators.links import check_links  # noqa: PLC0415
+        from profilekit.links import check_links  # noqa: PLC0415
 
         projects_path = DATA_DIR / "projects.json"
         social_path = DATA_DIR / "social.json"

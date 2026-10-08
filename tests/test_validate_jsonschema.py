@@ -5,12 +5,15 @@ hand-rolled validator does not enforce oneOf or required fields inside
 nested items).
 """
 
+import importlib.resources
 import json
 from pathlib import Path
 
-import generators.validate as validate
+import profilekit.validate as validate
 
-SCHEMAS_DIR = Path(__file__).resolve().parent.parent / "schemas"
+# Schemas are packaged data (src/profilekit/schemas/), not a repo-relative
+# path — resolve the same way the production code does.
+SCHEMAS_DIR = importlib.resources.files("profilekit.schemas")
 
 
 def _write_data_dir(tmp_path: Path, filename: str, data: object) -> Path:

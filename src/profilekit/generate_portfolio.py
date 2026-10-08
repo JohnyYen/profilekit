@@ -4,10 +4,10 @@
 import sys
 from pathlib import Path
 
-from generators.utils import load_json, run, what_i_build, write_output
+from profilekit.utils import load_json, run, what_i_build, write_output
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-ROOT_DIR = SCRIPT_DIR.parent
+ROOT_DIR = SCRIPT_DIR.parent.parent
 DATA_DIR = ROOT_DIR / "data"
 OUTPUT_DIR = ROOT_DIR / "output"
 

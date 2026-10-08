@@ -44,7 +44,7 @@ def _assert_or_regen(generated_path: Path, golden_path: Path) -> None:
 
 def test_golden_github_readme(tmp_path, monkeypatch):
     """github-readme.md must be byte-identical to tests/golden/github-readme.md."""
-    import generators.generate_github_readme as gen
+    import profilekit.generate_github_readme as gen
 
     # Also redirect DATA_DIR and ASSETS_DIR so generator reads real data
     monkeypatch.setattr(gen, "DATA_DIR", ROOT_DIR / "data")
@@ -61,7 +61,7 @@ def test_golden_github_readme(tmp_path, monkeypatch):
 
 def test_golden_linkedin(tmp_path, monkeypatch):
     """linkedin.md must be byte-identical to tests/golden/linkedin.md."""
-    import generators.generate_linkedin as gen
+    import profilekit.generate_linkedin as gen
 
     monkeypatch.setattr(gen, "DATA_DIR", ROOT_DIR / "data")
     _run_generator(gen, tmp_path, monkeypatch)
@@ -76,7 +76,7 @@ def test_golden_linkedin(tmp_path, monkeypatch):
 
 def test_golden_cv_md(tmp_path, monkeypatch):
     """cv.md must be byte-identical to tests/golden/cv.md."""
-    import generators.generate_cv as gen
+    import profilekit.generate_cv as gen
 
     monkeypatch.setattr(gen, "DATA_DIR", ROOT_DIR / "data")
     _run_generator(gen, tmp_path, monkeypatch)
@@ -91,7 +91,7 @@ def test_golden_cv_md(tmp_path, monkeypatch):
 
 def test_golden_cv_yml(tmp_path, monkeypatch):
     """cv.yml must be byte-identical to tests/golden/cv.yml."""
-    import generators.generate_cv as gen
+    import profilekit.generate_cv as gen
 
     monkeypatch.setattr(gen, "DATA_DIR", ROOT_DIR / "data")
     _run_generator(gen, tmp_path, monkeypatch)
@@ -106,7 +106,7 @@ def test_golden_cv_yml(tmp_path, monkeypatch):
 
 def test_golden_portfolio(tmp_path, monkeypatch):
     """portfolio.md must be byte-identical to tests/golden/portfolio.md."""
-    import generators.generate_portfolio as gen
+    import profilekit.generate_portfolio as gen
 
     monkeypatch.setattr(gen, "DATA_DIR", ROOT_DIR / "data")
     _run_generator(gen, tmp_path, monkeypatch)

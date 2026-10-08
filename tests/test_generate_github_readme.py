@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-import generators.generate_github_readme as gen
+import profilekit.generate_github_readme as gen
 
 from tests.conftest import make_about
 

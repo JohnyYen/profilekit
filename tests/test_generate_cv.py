@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-import generators.generate_cv as gen
+import profilekit.generate_cv as gen
 
 from tests.conftest import make_about
 

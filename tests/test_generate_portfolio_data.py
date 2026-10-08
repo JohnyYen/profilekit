@@ -1,4 +1,4 @@
-"""TDD tests for generators/generate_portfolio_data.py.
+"""TDD tests for profilekit's generate_portfolio_data module.
 
 RED phase: these tests are written before the implementation module exists.
 They cover builder correctness, output path isolation, and main() integration.
@@ -65,7 +65,7 @@ def projects_golden():
 
 def test_build_about_returns_six_key_subset(about_input):
     """build_about() output must have exactly the 6 expected keys; no extras."""
-    from generators.generate_portfolio_data import build_about
+    from profilekit.generate_portfolio_data import build_about
 
     result = build_about(about_input)
     expected_keys = {"username", "tagline", "description", "currentFocus", "whatIBuild", "learningJourney"}
@@ -78,7 +78,7 @@ def test_build_about_returns_six_key_subset(about_input):
 
 def test_build_about_values_match_golden(about_input, about_golden):
     """build_about(about_input) must match about_golden.json byte-for-byte."""
-    from generators.generate_portfolio_data import build_about
+    from profilekit.generate_portfolio_data import build_about
 
     result = build_about(about_input)
     assert result == about_golden, (
@@ -90,7 +90,7 @@ def test_build_about_values_match_golden(about_input, about_golden):
 
 def test_build_social_passthrough(social_input, social_golden):
     """build_social() must return input unchanged (full passthrough)."""
-    from generators.generate_portfolio_data import build_social
+    from profilekit.generate_portfolio_data import build_social
 
     result = build_social(social_input)
     assert result == social_golden
@@ -100,7 +100,7 @@ def test_build_social_passthrough(social_input, social_golden):
 
 def test_build_skills_passthrough_preserves_categories(skills_input, skills_golden):
     """build_skills() must preserve all N categories in order, all M details per category."""
-    from generators.generate_portfolio_data import build_skills
+    from profilekit.generate_portfolio_data import build_skills
 
     result = build_skills(skills_input)
     assert result == skills_golden
@@ -119,7 +119,7 @@ def test_build_skills_passthrough_preserves_categories(skills_input, skills_gold
 
 def test_build_projects_maps_to_four_fields(projects_input):
     """Each output entry must have exactly {name, description, tech, url}."""
-    from generators.generate_portfolio_data import build_projects
+    from profilekit.generate_portfolio_data import build_projects
 
     result = build_projects(projects_input)
     assert isinstance(result, list)
@@ -137,7 +137,7 @@ def test_build_projects_maps_to_four_fields(projects_input):
 
 def test_build_projects_defaults_missing_tech_and_url_to_empty_string():
     """An input entry without 'tech' or 'url' must produce tech="" and url=""."""
-    from generators.generate_portfolio_data import build_projects
+    from profilekit.generate_portfolio_data import build_projects
 
     input_data = [{"name": "NoTechNoUrl", "description": "desc"}]
     result = build_projects(input_data)
@@ -149,7 +149,7 @@ def test_build_projects_defaults_missing_tech_and_url_to_empty_string():
 
 def test_build_projects_preserves_source_order(projects_input):
     """Output order must match input order."""
-    from generators.generate_portfolio_data import build_projects
+    from profilekit.generate_portfolio_data import build_projects
 
     result = build_projects(projects_input)
     for i, (inp, out) in enumerate(zip(projects_input, result)):
@@ -162,7 +162,7 @@ def test_build_projects_preserves_source_order(projects_input):
 
 def test_main_writes_four_files_to_portfolio_data_dir(tmp_path, monkeypatch):
     """main() monkeypatched to write to tmp_path; asserts 4 JSON files with correct content."""
-    import generators.generate_portfolio_data as gpd
+    import profilekit.generate_portfolio_data as gpd
 
     monkeypatch.setattr(gpd, "PORTFOLIO_DATA_DIR", tmp_path)
 
@@ -183,7 +183,7 @@ def test_main_writes_four_files_to_portfolio_data_dir(tmp_path, monkeypatch):
 def test_main_exits_nonzero_on_missing_canonical_file(tmp_path, monkeypatch, capsys):
     """Removing a source file causes main() to exit with code 1 and write to stderr."""
     import shutil
-    import generators.generate_portfolio_data as gpd
+    import profilekit.generate_portfolio_data as gpd
 
     # Copy canonical data to a temp data dir and remove one file
     fake_data_dir = tmp_path / "data"
@@ -205,7 +205,7 @@ def test_main_exits_nonzero_on_missing_canonical_file(tmp_path, monkeypatch, cap
 
 def test_generator_writes_only_to_portfolio_data_dir(tmp_path, monkeypatch):
     """main() must not write any file outside PORTFOLIO_DATA_DIR during execution."""
-    import generators.generate_portfolio_data as gpd
+    import profilekit.generate_portfolio_data as gpd
 
     app_data_dir = tmp_path / "app_data"
     monkeypatch.setattr(gpd, "PORTFOLIO_DATA_DIR", app_data_dir)

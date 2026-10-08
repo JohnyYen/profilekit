@@ -5,8 +5,7 @@ on:
     branches: [main]
     paths:
       - "data/**"
-      - "generators/**"
-      - "schemas/**"
+      - "src/**"
       - "tests/**"
       - "output/**"
       - "pyproject.toml"
@@ -16,8 +15,7 @@ on:
     branches: [main]
     paths:
       - "data/**"
-      - "generators/**"
-      - "schemas/**"
+      - "src/**"
       - "tests/**"
       - "output/**"
       - "pyproject.toml"
@@ -51,15 +49,15 @@ jobs:
         run: uv run ruff format --check .
 
       - name: Type check (mypy)
-        run: uv run mypy generators/
+        run: uv run mypy
 
       - name: Tests + coverage
         run: uv run pytest -q
 
       - name: Validate data files
-        run: uv run python -m generators.cli validate
+        run: uv run python -m profilekit.cli validate
 
       - name: Output freshness (generated output must match committed output)
         run: |
-          uv run python -m generators.cli generate
+          uv run python -m profilekit.cli generate
           git diff --exit-code -- output/

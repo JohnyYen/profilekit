@@ -12,8 +12,8 @@ repos:
   - repo: local
     hooks:
       - id: mypy
-        name: mypy (generators)
-        entry: uv run mypy generators/
+        name: mypy (profilekit)
+        entry: uv run mypy
         language: system
         pass_filenames: false
         always_run: true
@@ -21,7 +21,7 @@ repos:
       - id: validate-data
         name: validate profile data
         # Network checks skipped locally for fast, offline-safe commits.
-        entry: env SKIP_ICON_CHECK=1 SKIP_LINK_CHECK=1 uv run python generators/validate.py
+        entry: env SKIP_ICON_CHECK=1 SKIP_LINK_CHECK=1 uv run python src/profilekit/validate.py
         language: system
         pass_filenames: false
         always_run: true

@@ -11,8 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 CANONICAL_DIRS = [
     "data",
-    "schemas",
-    "generators",
+    "src/profilekit",
     "output",
     "apps/portfolio",
     "cv",

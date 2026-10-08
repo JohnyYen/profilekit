@@ -3,8 +3,8 @@
 
 from pathlib import Path
 
-from generators.render import format_education_entry_yaml, format_experience_entry_yaml
-from generators.utils import (
+from profilekit.render import format_education_entry_yaml, format_experience_entry_yaml
+from profilekit.utils import (
     load_json,
     run,
     skill_name,
@@ -13,7 +13,7 @@ from generators.utils import (
 )
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-ROOT_DIR = SCRIPT_DIR.parent
+ROOT_DIR = SCRIPT_DIR.parent.parent
 DATA_DIR = ROOT_DIR / "data"
 OUTPUT_DIR = ROOT_DIR / "output"
 

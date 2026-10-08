@@ -1,4 +1,4 @@
-"""Tests for generators/links.py — check_links reachability helper.
+"""Tests for profilekit/links.py — check_links reachability helper.
 
 All tests must fail before links.py exists (RED).
 """
@@ -25,7 +25,7 @@ def _ok_response() -> MagicMock:
 
 # (a) offline=True → [] with no network I/O
 def test_check_links_offline_returns_empty():
-    from generators.links import check_links
+    from profilekit.links import check_links
 
     with patch("urllib.request.urlopen") as mock_open:
         warnings = check_links(_projects("https://example.com"), _social(), offline=True)
@@ -36,7 +36,7 @@ def test_check_links_offline_returns_empty():
 
 # (b) SKIP_LINK_CHECK=1 env var → [] with no network I/O
 def test_check_links_skip_env_var(monkeypatch):
-    from generators.links import check_links
+    from profilekit.links import check_links
 
     monkeypatch.setenv("SKIP_LINK_CHECK", "1")
 
@@ -49,7 +49,7 @@ def test_check_links_skip_env_var(monkeypatch):
 
 # (c) empty project URL → warning mentioning the project name, no network call
 def test_check_links_empty_project_url_warns(monkeypatch):
-    from generators.links import check_links
+    from profilekit.links import check_links
 
     monkeypatch.delenv("SKIP_LINK_CHECK", raising=False)
 
@@ -62,7 +62,7 @@ def test_check_links_empty_project_url_warns(monkeypatch):
 
 # (d) reachable (200) project + social URLs → no warnings
 def test_check_links_200_ok_no_warnings(monkeypatch):
-    from generators.links import check_links
+    from profilekit.links import check_links
 
     monkeypatch.delenv("SKIP_LINK_CHECK", raising=False)
 
@@ -77,7 +77,7 @@ def test_check_links_200_ok_no_warnings(monkeypatch):
 
 # (e) non-200 response → warning produced
 def test_check_links_non_200_warns(monkeypatch):
-    from generators.links import check_links
+    from profilekit.links import check_links
 
     monkeypatch.delenv("SKIP_LINK_CHECK", raising=False)
 
@@ -95,7 +95,7 @@ def test_check_links_non_200_warns(monkeypatch):
 
 # (f) URLError → warning, no exception raised
 def test_check_links_url_error_no_exception(monkeypatch):
-    from generators.links import check_links
+    from profilekit.links import check_links
 
     monkeypatch.delenv("SKIP_LINK_CHECK", raising=False)
 
@@ -107,7 +107,7 @@ def test_check_links_url_error_no_exception(monkeypatch):
 
 # (g) non-http social values (e.g. email) are ignored, not checked
 def test_check_links_ignores_non_http_social(monkeypatch):
-    from generators.links import check_links
+    from profilekit.links import check_links
 
     monkeypatch.delenv("SKIP_LINK_CHECK", raising=False)
 

@@ -11,7 +11,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOWS = ROOT / ".github" / "workflows"
 
-PYTHON_SCOPES = ["data/**", "generators/**", "schemas/**", "tests/**"]
+PYTHON_SCOPES = ["data/**", "src/**", "tests/**"]
 PORTFOLIO_SCOPE = "apps/portfolio/**"
 
 

@@ -9,10 +9,10 @@ its output path is the Next.js app data directory, not the output/ directory.
 import json
 from pathlib import Path
 
-from generators.utils import load_json, run, write_output
+from profilekit.utils import load_json, run, write_output
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-ROOT_DIR = SCRIPT_DIR.parent
+ROOT_DIR = SCRIPT_DIR.parent.parent
 DATA_DIR = ROOT_DIR / "data"
 
 # Single fixed output path — no dynamic input. This constant is the threat-boundary
