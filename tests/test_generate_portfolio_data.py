@@ -5,7 +5,6 @@ They cover builder correctness, output path isolation, and main() integration.
 """
 
 import json
-import sys
 from pathlib import Path
 
 import pytest
@@ -20,6 +19,7 @@ def _load_fixture(name: str):
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def about_input():
@@ -63,18 +63,27 @@ def projects_golden():
 
 # ── Task 1.3.1 — build_about returns 6-key subset ─────────────────────────────
 
+
 def test_build_about_returns_six_key_subset(about_input):
     """build_about() output must have exactly the 6 expected keys; no extras."""
     from profilekit.generate_portfolio_data import build_about
 
     result = build_about(about_input)
-    expected_keys = {"username", "tagline", "description", "currentFocus", "whatIBuild", "learningJourney"}
+    expected_keys = {
+        "username",
+        "tagline",
+        "description",
+        "currentFocus",
+        "whatIBuild",
+        "learningJourney",
+    }
     assert set(result.keys()) == expected_keys, (
         f"Expected keys {expected_keys!r}, got {set(result.keys())!r}"
     )
 
 
 # ── Task 1.3.2 — build_about values match golden ──────────────────────────────
+
 
 def test_build_about_values_match_golden(about_input, about_golden):
     """build_about(about_input) must match about_golden.json byte-for-byte."""
@@ -88,6 +97,7 @@ def test_build_about_values_match_golden(about_input, about_golden):
 
 # ── Task 1.3.3 — build_social passthrough ─────────────────────────────────────
 
+
 def test_build_social_passthrough(social_input, social_golden):
     """build_social() must return input unchanged (full passthrough)."""
     from profilekit.generate_portfolio_data import build_social
@@ -97,6 +107,7 @@ def test_build_social_passthrough(social_input, social_golden):
 
 
 # ── Task 1.3.4 — build_skills preserves categories ────────────────────────────
+
 
 def test_build_skills_passthrough_preserves_categories(skills_input, skills_golden):
     """build_skills() must preserve all N categories in order, all M details per category."""
@@ -108,7 +119,7 @@ def test_build_skills_passthrough_preserves_categories(skills_input, skills_gold
     categories_in = skills_input["categories"]
     categories_out = result["categories"]
     assert len(categories_out) == len(categories_in), "Category count must be preserved."
-    for i, (cat_in, cat_out) in enumerate(zip(categories_in, categories_out)):
+    for i, (cat_in, cat_out) in enumerate(zip(categories_in, categories_out, strict=True)):
         assert cat_out["label"] == cat_in["label"], f"Category {i} label mismatch."
         assert len(cat_out["details"]) == len(cat_in["details"]), (
             f"Category {i} detail count mismatch."
@@ -116,6 +127,7 @@ def test_build_skills_passthrough_preserves_categories(skills_input, skills_gold
 
 
 # ── Task 1.3.5 — build_projects maps to four fields ──────────────────────────
+
 
 def test_build_projects_maps_to_four_fields(projects_input):
     """Each output entry must have exactly {name, description, tech, url}."""
@@ -135,6 +147,7 @@ def test_build_projects_maps_to_four_fields(projects_input):
 
 # ── Task 1.3.6 — build_projects defaults missing tech/url to "" ───────────────
 
+
 def test_build_projects_defaults_missing_tech_and_url_to_empty_string():
     """An input entry without 'tech' or 'url' must produce tech="" and url=""."""
     from profilekit.generate_portfolio_data import build_projects
@@ -147,18 +160,20 @@ def test_build_projects_defaults_missing_tech_and_url_to_empty_string():
 
 # ── Task 1.3.7 — build_projects preserves source order ───────────────────────
 
+
 def test_build_projects_preserves_source_order(projects_input):
     """Output order must match input order."""
     from profilekit.generate_portfolio_data import build_projects
 
     result = build_projects(projects_input)
-    for i, (inp, out) in enumerate(zip(projects_input, result)):
+    for i, (inp, out) in enumerate(zip(projects_input, result, strict=True)):
         assert out["name"] == inp["name"], (
             f"Order mismatch at index {i}: expected {inp['name']!r}, got {out['name']!r}"
         )
 
 
 # ── Task 1.3.8 — main() writes four files to PORTFOLIO_DATA_DIR ───────────────
+
 
 def test_main_writes_four_files_to_portfolio_data_dir(tmp_path, monkeypatch):
     """main() monkeypatched to write to tmp_path; asserts 4 JSON files with correct content."""
@@ -175,14 +190,23 @@ def test_main_writes_four_files_to_portfolio_data_dir(tmp_path, monkeypatch):
     # Spot-check about.json content
     about = json.loads((tmp_path / "about.json").read_text(encoding="utf-8"))
     assert "username" in about
-    assert set(about.keys()) == {"username", "tagline", "description", "currentFocus", "whatIBuild", "learningJourney"}
+    assert set(about.keys()) == {
+        "username",
+        "tagline",
+        "description",
+        "currentFocus",
+        "whatIBuild",
+        "learningJourney",
+    }
 
 
 # ── Task 1.3.9 — main() exits nonzero on missing canonical file ───────────────
 
+
 def test_main_exits_nonzero_on_missing_canonical_file(tmp_path, monkeypatch, capsys):
     """Removing a source file causes main() to exit with code 1 and write to stderr."""
     import shutil
+
     import profilekit.generate_portfolio_data as gpd
 
     # Copy canonical data to a temp data dir and remove one file
@@ -202,6 +226,7 @@ def test_main_exits_nonzero_on_missing_canonical_file(tmp_path, monkeypatch, cap
 
 
 # ── Task 1.3.10 — threat boundary: no writes outside PORTFOLIO_DATA_DIR ───────
+
 
 def test_generator_writes_only_to_portfolio_data_dir(tmp_path, monkeypatch):
     """main() must not write any file outside PORTFOLIO_DATA_DIR during execution."""

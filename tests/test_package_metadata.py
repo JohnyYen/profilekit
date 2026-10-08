@@ -28,11 +28,7 @@ def _load_pyproject() -> dict:
 
 def test_required_fields_present_and_non_empty():
     project = _load_pyproject()["project"]
-    missing_or_empty = [
-        field
-        for field in REQUIRED_NON_EMPTY_FIELDS
-        if not project.get(field)
-    ]
+    missing_or_empty = [field for field in REQUIRED_NON_EMPTY_FIELDS if not project.get(field)]
     assert not missing_or_empty, (
         f"pyproject.toml [project] is missing or has empty: {missing_or_empty}"
     )

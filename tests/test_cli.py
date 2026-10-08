@@ -5,8 +5,9 @@ git-diff helper are monkeypatched so no output files are written and git is
 never invoked.
 """
 
-import profilekit.cli as cli
 import pytest
+
+import profilekit.cli as cli
 
 TARGET_ORDER = ["github-readme", "linkedin", "portfolio", "cv"]
 

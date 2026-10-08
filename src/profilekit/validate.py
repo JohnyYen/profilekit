@@ -4,6 +4,7 @@
 import importlib.resources
 import json
 import sys
+from importlib.resources.abc import Traversable
 from pathlib import Path
 from typing import Any
 
@@ -32,10 +33,13 @@ _SCHEMA_MAP = {
 REQUIRED_FILES = [f"{stem}.json" for stem in _SCHEMA_MAP]
 
 
-def _load_json(path: Path) -> Any:
-    """Load raw JSON from *path*."""
-    with open(path, encoding="utf-8") as f:
-        return json.load(f)
+def _load_json(path: Traversable | Path) -> Any:
+    """Load raw JSON from *path*.
+
+    Accepts a ``Traversable`` as well as a ``Path`` so packaged schemas resolve
+    identically from a git checkout and from an installed distribution.
+    """
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def validate_file(data_file: str) -> tuple[bool, list[str]]:
@@ -52,7 +56,7 @@ def validate_file(data_file: str) -> tuple[bool, list[str]]:
     schema_path = SCHEMAS_DIR / schema_name
     data_path = DATA_DIR / data_file
 
-    if not schema_path.exists():
+    if not schema_path.is_file():
         return False, [f"Schema file not found: {schema_path}"]
     if not data_path.exists():
         return False, [f"Data file not found: {data_path}"]

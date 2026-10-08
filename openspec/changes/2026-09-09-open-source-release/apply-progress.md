@@ -88,3 +88,91 @@ None blocking. See Residual Finding above (informational only).
 
 ### Status
 9/9 Phase 1 tasks complete. Ready for next batch (Phase 2 / R1 — Legal + Package Identity) or `sdd-verify` if Phase 1 is reviewed standalone.
+
+---
+
+## Phase 2 (R1): Legal + Package Identity
+
+### Completion
+10/10 tasks complete (2.1–2.10).
+
+### Execution Note
+The delegated phase-2 agent terminated mid-run on a transient API
+authentication error (HTTP 403) after completing the package rename but
+before committing. The same failure had already killed a phase-1 attempt,
+establishing a pattern rather than an accident. Recovery, on the product
+owner's explicit instruction, was to commit the completed rename
+immediately (`e5ee699`) to protect it from a third loss, and to close the
+remaining gates inline in the orchestrator rather than relaunch a long-lived
+sub-agent. `e5ee699` was therefore committed with `--no-verify` and with
+known-failing ruff and mypy gates, disclosed in its own commit message; this
+follow-up commit makes every gate green. No work was lost and no scope was
+narrowed.
+
+### What Changed
+- `generators/` -> `src/profilekit/` (13 modules, `git mv`, history preserved).
+- `schemas/*.schema.json` -> `src/profilekit/schemas/`, loaded via
+  `importlib.resources.files("profilekit.schemas")`.
+- `pyproject.toml`: distribution renamed to `profilekit`; full PEP 621
+  metadata; `[tool.setuptools.packages.find] where=["src"]`;
+  `[tool.setuptools.package-data]` ships `py.typed` and the schemas;
+  `--cov`, mypy `files`, and ruff `src` retargeted; `pythonpath=["."]` dropped.
+- Two console scripts: `profile` and `profilekit`.
+- Added `LICENSE` (MIT), `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`,
+  `SECURITY.md`, `CHANGELOG.md`, `MANIFEST.in`, `src/profilekit/py.typed`.
+- Removed the dead `sys.path` bootstrap from `cli.py` (2.10).
+- Three new test modules: `test_legal_files.py`, `test_package_metadata.py`,
+  `test_package_name.py`.
+
+### Latent Bug Surfaced by the Rename
+`importlib.resources.files()` returns a `Traversable`, not a `Path`.
+`validate.py` called `.exists()` on it (absent from the protocol) and passed
+it to a `Path`-typed `_load_json`. Fixed properly rather than suppressed:
+`_load_json` now accepts `Traversable | Path` and reads via `.read_text()`,
+and the existence check uses `.is_file()`. A `type: ignore` would have left a
+real defect in place behind a silenced diagnostic.
+
+### Test Strengthening
+Two `zip()` calls in `tests/test_generate_portfolio_data.py` gained
+`strict=True`. Both tests assume 1:1 correspondence; without `strict` a
+length mismatch would truncate silently and the assertion would pass.
+
+### Exit Gate Evidence
+- `uv run pytest -q`: 164 passed, coverage 86.52% (gate 80%).
+- Coverage measured `--cov=profilekit`, and the report names 13 modules under
+  `src/profilekit/` totalling 779 statements — not a vacuous 0% or 100%.
+- `uv run ruff check .`: All checks passed.
+- `uv run ruff format --check .`: 47 files already formatted.
+- `uv run mypy`: Success, no issues in 13 source files.
+- `uv build`: wheel + sdist built. Wheel contains all 6
+  `profilekit/schemas/*.schema.json` plus `profilekit/py.typed`.
+- Install smoke test in a venv outside the checkout: both `profile` and
+  `profilekit` console scripts resolve; all 6 schemas enumerate and read via
+  `importlib.resources`; `profile list` runs.
+
+### Name Consistency
+`pyproject.toml` (`name`, scripts, `where`, `package-data`), the real
+directory `src/profilekit/`, and `CONTRIBUTING.md` / `CHANGELOG.md` /
+`SECURITY.md` all state `profilekit`. `LICENSE` and `CODE_OF_CONDUCT.md`
+intentionally do not name the package — neither document type does.
+
+### Carried Forward (not phase-2 scope)
+- `cli.py` still comments that its `GENERATORS` dict is the "single source of
+  truth" while `generate_all.py` keeps a parallel list. The comment remains
+  false and the divergence bug remains live: `profile list` still omits
+  `portfolio_data`. Both are R7's job (Phase 6).
+- `generate_all.py` retains a `sys.path` bootstrap; that module is deleted in
+  R7.
+- Path resolution is still repo-relative (`ROOT_DIR = parent.parent.parent`),
+  so an installed CLI outside a checkout cannot find `data/`. That is R6
+  (Phase 4) by design; only schema resolution was decoupled in this phase.
+
+### Workload / PR Boundary
+- Mode: `size:exception` (owner pre-accepted)
+- Work unit: R1 — Legal + Package Identity (work unit 2 of 11)
+- Boundary: `15418f7` -> `e5ee699` (rename, gates red) -> this commit (gates green)
+
+### Status
+10/10 Phase 2 tasks complete, all gates green. Next: Phase 3 (R2 — the
+generator/publisher boundary), blocked pending authentication recovery before
+sub-agent delegation resumes.

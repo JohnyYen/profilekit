@@ -1,5 +1,8 @@
 # Security Policy
 
+This policy covers the **`profilekit`** package (import package
+`profilekit`, distributed from this repository).
+
 ## Supported Versions
 
 This project is pre-1.0. Only the latest released version on PyPI receives

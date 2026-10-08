@@ -6,7 +6,6 @@ from pathlib import Path
 
 # Import the module under test
 import profilekit.validate as validate
-
 from tests.conftest import FIXTURES_DIR
 
 # Schemas are packaged data (src/profilekit/schemas/), not a repo-relative

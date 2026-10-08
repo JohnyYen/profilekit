@@ -3,7 +3,6 @@
 from pathlib import Path
 
 import profilekit.generate_linkedin as gen
-
 from tests.conftest import make_about
 
 FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"

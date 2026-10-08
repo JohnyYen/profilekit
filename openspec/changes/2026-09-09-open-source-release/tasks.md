@@ -68,16 +68,16 @@ no task — no git-push publisher or PR automation is introduced.
 
 ## Phase 2 (R1): Legal + Package Identity
 
-- [ ] 2.1 RED: test asserting `LICENSE`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, `CHANGELOG.md` exist and `LICENSE` names an OSI license.
-- [ ] 2.2 GREEN: author the five files (MIT for `LICENSE`).
-- [ ] 2.3 RED: test parsing `pyproject.toml` as PEP 621, asserting `description`/`readme`/`license`/`authors`/`keywords`/`classifiers`/`project.urls` non-empty.
-- [ ] 2.4 GREEN: fill `pyproject.toml` metadata.
-- [ ] 2.5 RED: test asserting no top-level `generators` module ships and `profilekit` imports.
-- [ ] 2.6 GREEN: create `src/profilekit/` (D4); `git mv` `generators/*.py` per the D4 file map; `[tool.setuptools.packages.find] where=["src"]`; retarget `--cov=`, mypy `files`, ruff `src`; drop `pythonpath=["."]`.
-- [ ] 2.7 Mechanical: update every `tests/**` import `generators.*` → `profilekit.*`; full suite (152 tests, 80% gate) is the sole acceptance gate — zero behavior change (D8).
-- [ ] 2.8 RED: `test_installed_package_finds_schemas` — `pip install .` into a venv outside the checkout; schema resolution fails today.
-- [ ] 2.9 GREEN: move `schemas/*.schema.json` into `src/profilekit/schemas/`; add `MANIFEST.in`, `py.typed`, `[tool.setuptools.package-data]`; load via `importlib.resources.files("profilekit.schemas")`.
-- [ ] 2.10 REFACTOR: remove the dead `sys.path` bootstrap in `cli.py`; confirm `uv run pytest -q` green.
+- [x] 2.1 RED: test asserting `LICENSE`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, `CHANGELOG.md` exist and `LICENSE` names an OSI license.
+- [x] 2.2 GREEN: author the five files (MIT for `LICENSE`).
+- [x] 2.3 RED: test parsing `pyproject.toml` as PEP 621, asserting `description`/`readme`/`license`/`authors`/`keywords`/`classifiers`/`project.urls` non-empty.
+- [x] 2.4 GREEN: fill `pyproject.toml` metadata.
+- [x] 2.5 RED: test asserting no top-level `generators` module ships and `profilekit` imports.
+- [x] 2.6 GREEN: create `src/profilekit/` (D4); `git mv` `generators/*.py` per the D4 file map; `[tool.setuptools.packages.find] where=["src"]`; retarget `--cov=`, mypy `files`, ruff `src`; drop `pythonpath=["."]`.
+- [x] 2.7 Mechanical: update every `tests/**` import `generators.*` → `profilekit.*`; full suite (152 tests, 80% gate) is the sole acceptance gate — zero behavior change (D8).
+- [x] 2.8 RED: `test_installed_package_finds_schemas` — `pip install .` into a venv outside the checkout; schema resolution fails today.
+- [x] 2.9 GREEN: move `schemas/*.schema.json` into `src/profilekit/schemas/`; add `MANIFEST.in`, `py.typed`, `[tool.setuptools.package-data]`; load via `importlib.resources.files("profilekit.schemas")`.
+- [x] 2.10 REFACTOR: remove the dead `sys.path` bootstrap in `cli.py`; confirm `uv run pytest -q` green.
 
 ## Phase 3 (R2): Generator/Publisher Boundary
 

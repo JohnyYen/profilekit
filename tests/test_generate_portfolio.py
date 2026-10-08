@@ -3,7 +3,6 @@
 from pathlib import Path
 
 from profilekit.generate_portfolio import compute_portfolio_projects, render_portfolio
-
 from tests.conftest import make_about, make_projects
 
 FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"
