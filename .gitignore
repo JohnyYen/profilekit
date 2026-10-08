@@ -219,3 +219,9 @@ __marimo__/
 
 # Gentle AI tooling cache
 .atl/
+
+# CodeGraph local index (lazy-initialized tooling cache, not source)
+.codegraph/
+
+# Vendored cv/ subtree: agent-skill session scaffolding, not CV content
+cv/.agents/

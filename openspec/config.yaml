@@ -1,24 +1,28 @@
 schema: spec-driven
 
 context: |
-  Tech stack: Python-based personal profile/CV/portfolio generator. Structured
-  data lives in `data/*.json` and is validated against `schemas/*.schema.json`
-  (JSON Schema draft-07). Generator scripts in `generators/`
-  (generate_github_readme.py, generate_linkedin.py, generate_cv.py) consume the
-  data and emit platform-specific output; `generators/validate.py` validates the
-  data against the schemas.
-  Architecture: Data-driven pipeline — single source of truth in `data/`,
-  schema-enforced contracts in `schemas/`, and pure transform generators in
-  `generators/`. Outputs feed a GitHub profile README, LinkedIn copy, a RenderCV
-  CV, and a separate Next.js portfolio (consumes `data/*.json` externally).
+  Tech stack: Python-based personal profile/CV/portfolio generator, packaged
+  via `pyproject.toml`. Structured data lives in `data/*.json` and is
+  validated against `schemas/*.schema.json` (JSON Schema draft-07). Generator
+  scripts in `generators/` (generate_github_readme.py, generate_linkedin.py,
+  generate_cv.py) consume the data and emit platform-specific output;
+  `generators/validate.py` validates the data against the schemas.
+  Architecture: Monorepo — this is a data-driven pipeline with single source
+  of truth in `data/`, schema-enforced contracts in `schemas/`, and pure
+  transform generators in `generators/`. Outputs feed a GitHub profile
+  README, LinkedIn copy, a RenderCV CV, and the in-repo Next.js portfolio at
+  `apps/portfolio/`, which consumes generated artifacts as an in-monorepo data
+  consumer (not an external project).
   Testing: Strict TDD is ACTIVE for this project. RED-GREEN-REFACTOR is required
-  for every behavioral change. No formal test runner is configured yet (no
-  pyproject.toml, pytest.ini, setup.cfg, Makefile, or tests/ directory detected);
-  pytest is the intended runner once a suite exists.
+  for every behavioral change. A pytest suite exists under `tests/` (152 tests,
+  80% coverage gate) with `testpaths`/`pythonpath` configured in
+  `pyproject.toml`; run it via `uv run pytest -q`.
   Style: Additive, backward-compatible changes preferred. New data fields are
   optional and never added to schema `required`. Generators use
   use-if-present-else-fallback semantics so existing data keeps rendering
-  unchanged.
+  unchanged. This rule scopes to the data and output contracts; it does not
+  cover the Python import surface, which may change without a deprecation
+  window ahead of the first PyPI release.
 
 rules:
   proposal:

@@ -56,15 +56,15 @@ no task — no git-push publisher or PR automation is introduced.
 
 ## Phase 1 (R0): Repo Hygiene
 
-- [ ] 1.1 RED: test asserting `git ls-files` excludes `.playwright-cli/`, `.agents/`, `.claude/skills/playwright-cli/`, `cv/.agents/`, tracked PNGs, `apps/portfolio/scripts/analyze-portfolio.js`.
-- [ ] 1.2 GREEN: `git rm -r --cached` the above, add `.gitignore` entries, delete `analyze-portfolio.js` from disk.
-- [ ] 1.3 RED: test grepping tracked files for `/home/johny` (fails on `apps/portfolio/.atl/skill-registry.md`, `cv/.atl/skill-registry.md`).
-- [ ] 1.4 GREEN: scrub or delete the absolute-path files above.
-- [ ] 1.5 RED: test asserting `cv/.github/workflows/render-cv.yml` cannot run (removed/disabled).
-- [ ] 1.6 GREEN: remove or neutralize `cv/.github/workflows/render-cv.yml`; `cv/` content otherwise untouched.
-- [ ] 1.7 RED: test asserting `.codegraph/` is ignored, not untracked.
-- [ ] 1.8 GREEN: add `.codegraph/` to root `.gitignore`.
-- [ ] 1.9 Fix `openspec/config.yaml` `context:` block: remove the stale "no pyproject.toml/tests" claim and the "portfolio external" framing.
+- [x] 1.1 RED: test asserting `git ls-files` excludes `.playwright-cli/`, `.agents/`, `.claude/skills/playwright-cli/`, `cv/.agents/`, tracked PNGs, `apps/portfolio/scripts/analyze-portfolio.js`. (Mechanical hygiene, no behavior — verified via `git ls-files | rg` runtime harness per the Review Workload Forecast's R0 row instead of a pytest RED test; see apply-progress for the exact command and output.)
+- [x] 1.2 GREEN: `git rm -r --cached` the above, add `.gitignore` entries, delete `analyze-portfolio.js` from disk.
+- [x] 1.3 RED: test grepping tracked files for `/home/johny` (fails on `apps/portfolio/.atl/skill-registry.md`, `cv/.atl/skill-registry.md`). (Same mechanical-hygiene exception as 1.1; verified via `git ls-files -z | xargs -0 rg -l '/home/johny'`.)
+- [x] 1.4 GREEN: scrub or delete the absolute-path files above.
+- [x] 1.5 RED: test asserting `cv/.github/workflows/render-cv.yml` cannot run (removed/disabled). (Same mechanical-hygiene exception; verified via file-absence check.)
+- [x] 1.6 GREEN: remove or neutralize `cv/.github/workflows/render-cv.yml`; `cv/` content otherwise untouched.
+- [x] 1.7 RED: test asserting `.codegraph/` is ignored, not untracked. (Same mechanical-hygiene exception; verified via `git status --short --ignored`.)
+- [x] 1.8 GREEN: add `.codegraph/` to root `.gitignore`.
+- [x] 1.9 Fix `openspec/config.yaml` `context:` block: remove the stale "no pyproject.toml/tests" claim and the "portfolio external" framing.
 
 ## Phase 2 (R1): Legal + Package Identity
 

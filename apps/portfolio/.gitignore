@@ -39,3 +39,13 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Playwright CLI session scaffolding (console logs, page dumps) — not source
+.playwright-cli/
+
+# Agent-skill session scaffolding — not application source
+.agents/
+.claude/skills/playwright-cli/
+
+# Manual-review screenshots from agent-driven UI sessions — not source
+/portfolio-*.png
