@@ -66,7 +66,7 @@ def format_highlights(highlights: list[str]) -> str:
 
 
 # format_experience_entry and format_education_entry are provided by
-# generators.render — imported above as format_experience_entry_yaml /
+# profilekit.render — imported above as format_experience_entry_yaml /
 # format_education_entry_yaml.  Local aliases keep call sites unchanged.
 format_experience_entry = format_experience_entry_yaml
 format_education_entry = format_education_entry_yaml

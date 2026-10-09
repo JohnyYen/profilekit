@@ -5,7 +5,7 @@
 warning strings; the function never raises. It is fully skippable via
 ``SKIP_LINK_CHECK=1`` or the ``offline`` keyword argument.
 
-The reachability probe mirrors ``generators.icons`` (HEAD, GET fallback on 405).
+The reachability probe mirrors ``profilekit.icons`` (HEAD, GET fallback on 405).
 """
 
 import os
