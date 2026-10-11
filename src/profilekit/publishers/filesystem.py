@@ -26,7 +26,7 @@ from pathlib import Path
 from profilekit.publishers import (
     Artifact,
     Capability,
-    PublisherContext,
+    ProjectContext,
     PublishPlan,
     PublishResult,
 )
@@ -112,7 +112,7 @@ def _digest(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
-def build_artifacts(ctx: PublisherContext) -> list[Artifact]:
+def build_artifacts(ctx: ProjectContext) -> list[Artifact]:
     """Transform canonical data into the four JSON artifacts a frontend reads."""
     about = load_json("about.json", ctx.data_dir)
     social = load_json("social.json", ctx.data_dir)
@@ -133,7 +133,7 @@ class FilesystemPublisher:
     kind: str = "filesystem"
     capability: Capability = "push"
 
-    def plan(self, ctx: PublisherContext, cfg: Mapping[str, object]) -> PublishPlan:
+    def plan(self, ctx: ProjectContext, cfg: Mapping[str, object]) -> PublishPlan:
         """Compute the artifacts and the drift against the destination.
 
         Writes nothing. Path safety is enforced here, before any content is
@@ -157,7 +157,7 @@ class FilesystemPublisher:
             changes=tuple(changes),
         )
 
-    def publish(self, ctx: PublisherContext, plan: PublishPlan) -> PublishResult:
+    def publish(self, ctx: ProjectContext, plan: PublishPlan) -> PublishResult:
         """Write every changed artifact into the planned destination."""
         if not plan.changes:
             return PublishResult(

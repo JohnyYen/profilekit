@@ -4,6 +4,7 @@
 import sys
 from pathlib import Path
 
+from profilekit.context import ProjectContext, discover_project
 from profilekit.render import format_date_range
 from profilekit.utils import (
     load_json,
@@ -12,11 +13,6 @@ from profilekit.utils import (
     what_i_build,
     write_output,
 )
-
-SCRIPT_DIR = Path(__file__).resolve().parent
-ROOT_DIR = SCRIPT_DIR.parent.parent
-DATA_DIR = ROOT_DIR / "data"
-OUTPUT_DIR = ROOT_DIR / "output"
 
 MAX_HEADLINE_LENGTH = 220
 
@@ -114,18 +110,25 @@ def render_linkedin_skills(skills: dict) -> str:
     return "\n".join(lines)
 
 
-def main(output_dir: Path | None = None) -> None:
+def main(ctx: ProjectContext | None = None, output_dir: Path | None = None) -> None:
     """Compose the LinkedIn copy and write it to linkedin.md.
 
-    ``output_dir`` defaults to the module-level ``OUTPUT_DIR``. Callers pass it
-    explicitly so the write destination stays caller-owned: a generator writes
-    only where it was told, which is what keeps it a generator and not a
-    publisher.
+    ``ctx`` carries the project's resolved directories. Passing ``None``
+    discovers the project from the working directory, which is what the CLI
+    does; tests construct a context over a temporary directory instead of
+    monkeypatching module globals.
+
+    ``output_dir`` overrides the context's output directory. A generator
+    writes only where it was told, which is what keeps it a generator and
+    not a publisher.
     """
-    about = load_json("about.json", DATA_DIR)
-    experience = load_json("experience.json", DATA_DIR)
-    education = load_json("education.json", DATA_DIR)
-    skills = load_json("skills.json", DATA_DIR)
+    ctx = ctx or discover_project()
+    out_dir = output_dir or ctx.output_dir
+
+    about = load_json("about.json", ctx.data_dir)
+    experience = load_json("experience.json", ctx.data_dir)
+    education = load_json("education.json", ctx.data_dir)
+    skills = load_json("skills.json", ctx.data_dir)
 
     headline_section = "\n".join(["## Headline", "", compute_headline(about), ""])
     about_section = render_linkedin_about(about)
@@ -143,7 +146,7 @@ def main(output_dir: Path | None = None) -> None:
         ]
     )
 
-    output_path = write_output(output, output_dir or OUTPUT_DIR, "linkedin.md")
+    output_path = write_output(output, out_dir, "linkedin.md")
     print(f"Generated linkedin.md at {output_path}")
 
 

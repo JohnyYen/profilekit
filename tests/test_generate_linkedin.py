@@ -3,6 +3,7 @@
 from pathlib import Path
 
 import profilekit.generate_linkedin as gen
+from profilekit.context import ProjectContext
 from tests.conftest import make_about
 
 FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"
@@ -144,10 +145,9 @@ def test_render_linkedin_skills_includes_details():
 def test_linkedin_full_assembly(monkeypatch, tmp_path):
     """main() writes output/linkedin.md with all six required sections in order."""
     output_dir = tmp_path / "output"
-    monkeypatch.setattr(gen, "OUTPUT_DIR", output_dir)
-    monkeypatch.setattr(gen, "DATA_DIR", FIXTURES_DIR)
+    ctx = ProjectContext.for_root(tmp_path, data_dir=FIXTURES_DIR, output_dir=output_dir)
 
-    gen.main()
+    gen.main(ctx)
 
     content = (output_dir / "linkedin.md").read_text(encoding="utf-8")
     sections = [

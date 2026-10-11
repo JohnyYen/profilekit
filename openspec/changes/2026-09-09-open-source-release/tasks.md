@@ -95,7 +95,7 @@ no task — no git-push publisher or PR automation is introduced.
 - [x] 4.2 GREEN: add `context.py` (`ProjectContext`, `discover_project()` per D2); symlink-resolved walk stops at `/`.
 - [x] 4.3 RED: `test_profile_toml_overrides_paths` — custom `output_dir` honored; unknown top-level key → `ConfigError`; unknown `[generators.X]` key passes through.
 - [x] 4.4 GREEN: add `config.py` parsing the D3 four-section `profile.toml`.
-- [ ] 4.5 REFACTOR (mechanical, one commit): thread `ctx: ProjectContext` through `utils.py`, `cli.py`, `validate.py`, `generate_cv.py`, `generate_github_readme.py`, `generate_linkedin.py`, `generate_portfolio.py`; delete the `SCRIPT_DIR`/`ROOT_DIR`/`OUTPUT_DIR`/`DATA_DIR`/`SCHEMAS_DIR` constants (D2 table); switch monkeypatch tests to `ProjectContext`-over-`tmp_path`.
+- [x] 4.5 REFACTOR (mechanical, one commit): thread `ctx: ProjectContext` through `utils.py`, `cli.py`, `validate.py`, `generate_cv.py`, `generate_github_readme.py`, `generate_linkedin.py`, `generate_portfolio.py`; delete the `SCRIPT_DIR`/`ROOT_DIR`/`OUTPUT_DIR`/`DATA_DIR`/`SCHEMAS_DIR` constants (D2 table); switch monkeypatch tests to `ProjectContext`-over-`tmp_path`.
 - [ ] 4.6 RED: `test_init_in_empty_directory` — `profile init` creates `profile.toml` + example `data/` with no maintainer name/email/handle.
 - [ ] 4.7 GREEN: implement `profile init`.
 - [ ] 4.8 RED: `test_externalized_opinions` — custom greeting renders; unset override reproduces today's exact default text.
@@ -103,7 +103,7 @@ no task — no git-push publisher or PR automation is introduced.
 - [ ] 4.10 RED (threat matrix rows 2–3 — git repository selection, commit state): `test_check_degrades_without_git` — non-git tmp dir completes with the git check reported skipped, not failed; dirty/clean worktree still gates as before.
 - [ ] 4.11 GREEN: rewrite the git invocation as `git -C <project_root> diff --exit-code -- <output_dir>` (argv list, never `shell=True`); degrade to manifest-hash comparison with a notice when `.git`/`git` is absent; read-only — no stage/commit/amend.
 - [x] 4.12 Commit a root `profile.toml` declaring `[paths]` and `[publishers.portfolio-data] destination = "apps/portfolio/app/data"` reproducing today's `__file__`-derived paths exactly.
-- [ ] 4.13 Verification: hash `output/` before/after this phase's cutover; assert byte-identical; existing freshness gate stays green.
+- [x] 4.13 Verification: hash `output/` before/after this phase's cutover; assert byte-identical; existing freshness gate stays green.
 
 ## Phase 5 (R8): Test Neutrality
 

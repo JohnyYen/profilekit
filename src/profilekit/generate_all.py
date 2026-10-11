@@ -24,24 +24,23 @@ import profilekit.generate_cv as cv
 import profilekit.generate_github_readme as github_readme
 import profilekit.generate_linkedin as linkedin
 import profilekit.generate_portfolio as portfolio
-
-SCRIPT_DIR = Path(__file__).resolve().parent
-ROOT_DIR = SCRIPT_DIR.parent.parent
-OUTPUT_DIR = ROOT_DIR / "output"
+from profilekit.context import ProjectContext, discover_project
 
 
-def main():
-    github_readme.main()
-    linkedin.main()
-    portfolio.main()
-    cv.main()
+def main(ctx: ProjectContext | None = None):
+    ctx = ctx or discover_project()
+
+    github_readme.main(ctx)
+    linkedin.main(ctx)
+    portfolio.main(ctx)
+    cv.main(ctx)
 
     output_files = [
-        OUTPUT_DIR / "github-readme.md",
-        OUTPUT_DIR / "linkedin.md",
-        OUTPUT_DIR / "portfolio.md",
-        OUTPUT_DIR / "cv.md",
-        OUTPUT_DIR / "cv.yml",
+        ctx.output_dir / "github-readme.md",
+        ctx.output_dir / "linkedin.md",
+        ctx.output_dir / "portfolio.md",
+        ctx.output_dir / "cv.md",
+        ctx.output_dir / "cv.yml",
     ]
     print("\nGenerated output files:")
     for f in output_files:

@@ -58,6 +58,25 @@ class ProjectContext:
     schemas_dir: Path | None = None
     config: dict[str, Any] | None = None
 
+    @classmethod
+    def for_root(cls, root: Path, **overrides: Any) -> ProjectContext:
+        """Build a context over *root* using the conventional subdirectories.
+
+        A convenience for callers that already know the root and want the
+        defaults — tests building a project over a temporary directory, and
+        ``profile init`` scaffolding a new one. It does not read a config file;
+        use :func:`discover_project` for that.
+        """
+        resolved = Path(root).resolve()
+        defaults: dict[str, Any] = {
+            "root": resolved,
+            "data_dir": resolved / DEFAULT_DATA_DIR,
+            "output_dir": resolved / DEFAULT_OUTPUT_DIR,
+            "assets_dir": resolved / DEFAULT_ASSETS_DIR,
+        }
+        defaults.update(overrides)
+        return cls(**defaults)
+
     def generator_options(self, name: str) -> dict[str, Any]:
         """Return the ``[generators.<name>]`` table, or an empty one.
 

@@ -6,6 +6,7 @@ from pathlib import Path
 
 # Import the module under test
 import profilekit.validate as validate
+from profilekit.context import ProjectContext
 from tests.conftest import FIXTURES_DIR
 
 # Schemas are packaged data (src/profilekit/schemas/), not a repo-relative
@@ -26,10 +27,9 @@ def test_legacy_about_validates(monkeypatch, tmp_path):
     minimal = json.loads((FIXTURES_DIR / "about_minimal.json").read_text())
     data_dir = _write_about_fixture(tmp_path, minimal)
 
-    monkeypatch.setattr(validate, "DATA_DIR", data_dir)
-    monkeypatch.setattr(validate, "SCHEMAS_DIR", SCHEMAS_DIR)
+    ctx = ProjectContext.for_root(data_dir.parent, data_dir=data_dir)
 
-    passed, errors = validate.validate_file("about.json")
+    passed, errors = validate.validate_file("about.json", ctx)
     assert passed is True, f"Expected validation to pass but got errors: {errors}"
     assert errors == []
 
@@ -39,10 +39,9 @@ def test_typed_fields_validate(monkeypatch, tmp_path):
     full = json.loads((FIXTURES_DIR / "about_full.json").read_text())
     data_dir = _write_about_fixture(tmp_path, full)
 
-    monkeypatch.setattr(validate, "DATA_DIR", data_dir)
-    monkeypatch.setattr(validate, "SCHEMAS_DIR", SCHEMAS_DIR)
+    ctx = ProjectContext.for_root(data_dir.parent, data_dir=data_dir)
 
-    passed, errors = validate.validate_file("about.json")
+    passed, errors = validate.validate_file("about.json", ctx)
     assert passed is True, f"Expected validation to pass but got errors: {errors}"
     assert errors == []
 
@@ -57,10 +56,9 @@ def test_wrong_type_fails(monkeypatch, tmp_path):
     }
     data_dir = _write_about_fixture(tmp_path, bad_data)
 
-    monkeypatch.setattr(validate, "DATA_DIR", data_dir)
-    monkeypatch.setattr(validate, "SCHEMAS_DIR", SCHEMAS_DIR)
+    ctx = ProjectContext.for_root(data_dir.parent, data_dir=data_dir)
 
-    passed, errors = validate.validate_file("about.json")
+    passed, errors = validate.validate_file("about.json", ctx)
     assert passed is False, "Expected validation to fail for wrong type"
     assert len(errors) > 0, "Expected at least one error message"
     assert any("portfolioHighlights" in err for err in errors), (
@@ -86,10 +84,9 @@ def test_skills_object_entry_valid(monkeypatch, tmp_path):
     }
     data_dir = _write_skills_fixture(tmp_path, skills_data)
 
-    monkeypatch.setattr(validate, "DATA_DIR", data_dir)
-    monkeypatch.setattr(validate, "SCHEMAS_DIR", SCHEMAS_DIR)
+    ctx = ProjectContext.for_root(data_dir.parent, data_dir=data_dir)
 
-    passed, errors = validate.validate_file("skills.json")
+    passed, errors = validate.validate_file("skills.json", ctx)
     assert passed is True, f"Expected validation to pass for object entry but got errors: {errors}"
     assert errors == []
 
@@ -99,10 +96,9 @@ def test_skills_string_entry_still_valid(monkeypatch, tmp_path):
     skills_data = {"categories": [{"label": "Backend", "details": ["Python", "FastAPI"]}]}
     data_dir = _write_skills_fixture(tmp_path, skills_data)
 
-    monkeypatch.setattr(validate, "DATA_DIR", data_dir)
-    monkeypatch.setattr(validate, "SCHEMAS_DIR", SCHEMAS_DIR)
+    ctx = ProjectContext.for_root(data_dir.parent, data_dir=data_dir)
 
-    passed, errors = validate.validate_file("skills.json")
+    passed, errors = validate.validate_file("skills.json", ctx)
     assert passed is True, f"Expected string entries to still be valid but got errors: {errors}"
     assert errors == []
 
@@ -117,10 +113,9 @@ def test_skills_object_missing_name_invalid(monkeypatch, tmp_path):
     skills_data = {"categories": [{"label": "Backend", "details": [{"icon": "nestjs"}]}]}
     data_dir = _write_skills_fixture(tmp_path, skills_data)
 
-    monkeypatch.setattr(validate, "DATA_DIR", data_dir)
-    monkeypatch.setattr(validate, "SCHEMAS_DIR", SCHEMAS_DIR)
+    ctx = ProjectContext.for_root(data_dir.parent, data_dir=data_dir)
 
-    passed, errors = validate.validate_file("skills.json")
+    passed, errors = validate.validate_file("skills.json", ctx)
     assert passed is False, (
         "jsonschema enforces oneOf inside array items — an object missing 'name' "
         "satisfies neither branch and MUST be rejected."

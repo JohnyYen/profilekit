@@ -3,6 +3,7 @@
 from pathlib import Path
 
 import profilekit.generate_github_readme as gen
+from profilekit.context import ProjectContext
 from tests.conftest import make_about
 
 FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"
@@ -16,15 +17,16 @@ FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"
 def test_root_readme_not_written(tmp_path, monkeypatch):
     """main() must write output/github-readme.md and NOT write README.md to root."""
     output_dir = tmp_path / "output"
-    monkeypatch.setattr(gen, "OUTPUT_DIR", output_dir)
-    monkeypatch.setattr(gen, "DATA_DIR", FIXTURES_DIR)
+    ctx = ProjectContext.for_root(tmp_path, data_dir=FIXTURES_DIR, output_dir=output_dir)
     # Provide a real assets dir with a dummy gif so render_about_html does not warn/raise
     assets_dir = tmp_path / "assets"
     assets_dir.mkdir()
     (assets_dir / "pixel-mario.gif").write_bytes(b"GIF89a")
-    monkeypatch.setattr(gen, "ASSETS_DIR", assets_dir)
+    ctx = ProjectContext.for_root(
+        tmp_path, data_dir=FIXTURES_DIR, output_dir=output_dir, assets_dir=assets_dir
+    )
 
-    gen.main()
+    gen.main(ctx)
 
     assert (output_dir / "github-readme.md").exists(), (
         "output/github-readme.md must be created by main()"

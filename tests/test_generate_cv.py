@@ -3,6 +3,7 @@
 from pathlib import Path
 
 import profilekit.generate_cv as gen
+from profilekit.context import ProjectContext
 from tests.conftest import make_about
 
 FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"
@@ -100,27 +101,24 @@ def test_render_cv_markdown_has_skills_section():
 def test_cv_main_writes_cv_yml_to_output(monkeypatch, tmp_path):
     """main() writes output/cv.yml when OUTPUT_DIR and DATA_DIR are monkeypatched."""
     output_dir = tmp_path / "output"
-    monkeypatch.setattr(gen, "OUTPUT_DIR", output_dir)
-    monkeypatch.setattr(gen, "DATA_DIR", FIXTURES_DIR)
-    gen.main()
+    ctx = ProjectContext.for_root(tmp_path, data_dir=FIXTURES_DIR, output_dir=output_dir)
+    gen.main(ctx)
     assert (output_dir / "cv.yml").exists(), "output/cv.yml must be written by main()"
 
 
 def test_cv_main_writes_cv_md_to_output(monkeypatch, tmp_path):
     """main() writes output/cv.md when OUTPUT_DIR and DATA_DIR are monkeypatched."""
     output_dir = tmp_path / "output"
-    monkeypatch.setattr(gen, "OUTPUT_DIR", output_dir)
-    monkeypatch.setattr(gen, "DATA_DIR", FIXTURES_DIR)
-    gen.main()
+    ctx = ProjectContext.for_root(tmp_path, data_dir=FIXTURES_DIR, output_dir=output_dir)
+    gen.main(ctx)
     assert (output_dir / "cv.md").exists(), "output/cv.md must be written by main()"
 
 
 def test_cv_main_does_not_write_root_cv_yml(monkeypatch, tmp_path):
     """main() must NOT write cv.yml to the root (tmp_path stands in for ROOT_DIR)."""
     output_dir = tmp_path / "output"
-    monkeypatch.setattr(gen, "OUTPUT_DIR", output_dir)
-    monkeypatch.setattr(gen, "DATA_DIR", FIXTURES_DIR)
-    gen.main()
+    ctx = ProjectContext.for_root(tmp_path, data_dir=FIXTURES_DIR, output_dir=output_dir)
+    gen.main(ctx)
     assert not (tmp_path / "cv.yml").exists(), (
         "root cv.yml must NOT be written; all CV output must go to output/"
     )

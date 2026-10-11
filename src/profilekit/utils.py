@@ -1,14 +1,15 @@
-"""Shared utilities for all profile data generators."""
+"""Shared utilities for the profilekit generators.
+
+Every path-taking helper here receives its directory explicitly. There are
+deliberately no module-level path constants: a helper that resolves its own
+destination cannot be redirected, and one derived from ``__file__`` resolves
+inside the installed package rather than the user's project.
+"""
 
 import json
 import sys
 from pathlib import Path
 from typing import Any
-
-SCRIPT_DIR = Path(__file__).resolve().parent
-ROOT_DIR = SCRIPT_DIR.parent.parent
-OUTPUT_DIR = ROOT_DIR / "output"
-
 
 # ---------------------------------------------------------------------------
 # Typed error for known data faults (missing file/field, malformed JSON)

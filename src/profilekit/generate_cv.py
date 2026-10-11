@@ -3,6 +3,7 @@
 
 from pathlib import Path
 
+from profilekit.context import ProjectContext, discover_project
 from profilekit.render import format_education_entry_yaml, format_experience_entry_yaml
 from profilekit.utils import (
     load_json,
@@ -11,11 +12,6 @@ from profilekit.utils import (
     what_i_build,
     write_output,
 )
-
-SCRIPT_DIR = Path(__file__).resolve().parent
-ROOT_DIR = SCRIPT_DIR.parent.parent
-DATA_DIR = ROOT_DIR / "data"
-OUTPUT_DIR = ROOT_DIR / "output"
 
 
 def escape_yaml_string(value: str) -> str:
@@ -158,20 +154,27 @@ def render_cv_markdown(
     return "\n".join(lines)
 
 
-def main(output_dir: Path | None = None) -> None:
+def main(ctx: ProjectContext | None = None, output_dir: Path | None = None) -> None:
     """Compose the RenderCV YAML and the readable CV, and write both.
 
-    ``output_dir`` defaults to the module-level ``OUTPUT_DIR``. Callers pass it
-    explicitly so the write destination stays caller-owned: a generator writes
-    only where it was told, which is what keeps it a generator and not a
-    publisher.
+    ``ctx`` carries the project's resolved directories. Passing ``None``
+    discovers the project from the working directory, which is what the CLI
+    does; tests construct a context over a temporary directory instead of
+    monkeypatching module globals.
+
+    ``output_dir`` overrides the context's output directory. A generator
+    writes only where it was told, which is what keeps it a generator and
+    not a publisher.
     """
-    about = load_json("about.json", DATA_DIR)
-    experience = load_json("experience.json", DATA_DIR)
-    education = load_json("education.json", DATA_DIR)
-    skills = load_json("skills.json", DATA_DIR)
-    projects = load_json("projects.json", DATA_DIR)
-    social = load_json("social.json", DATA_DIR)
+    ctx = ctx or discover_project()
+    out_dir = output_dir or ctx.output_dir
+
+    about = load_json("about.json", ctx.data_dir)
+    experience = load_json("experience.json", ctx.data_dir)
+    education = load_json("education.json", ctx.data_dir)
+    skills = load_json("skills.json", ctx.data_dir)
+    projects = load_json("projects.json", ctx.data_dir)
+    social = load_json("social.json", ctx.data_dir)
 
     # Build social_networks section
     social_networks_lines = []
@@ -246,12 +249,12 @@ def main(output_dir: Path | None = None) -> None:
     )
 
     yaml_content = "\n".join(yaml_lines) + "\n"
-    write_output(yaml_content, output_dir or OUTPUT_DIR, "cv.yml")
+    write_output(yaml_content, out_dir, "cv.yml")
 
     md_content = render_cv_markdown(about, experience, education, projects, skills, social)
-    write_output(md_content, output_dir or OUTPUT_DIR, "cv.md")
+    write_output(md_content, out_dir, "cv.md")
 
-    print(f"Generated cv.yml and cv.md in {OUTPUT_DIR}")
+    print(f"Generated cv.yml and cv.md in {out_dir}")
 
 
 if __name__ == "__main__":

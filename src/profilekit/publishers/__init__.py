@@ -32,25 +32,14 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal, Protocol
 
+from profilekit.context import ProjectContext
+
 Capability = Literal["push", "manual"]
 Status = Literal["published", "unchanged", "pending-manual", "skipped", "failed"]
 
 # Credentials are injected by the core, never read from os.environ by a
 # publisher. The filesystem publisher needs none; the mapping stays empty.
 CredentialSet = Mapping[str, str]
-
-
-@dataclass(frozen=True)
-class PublisherContext:
-    """The project a publisher acts within.
-
-    ``root`` bounds every destination a publisher may resolve. It is the anchor
-    for path safety, so it must be the real project root and never a value
-    derived from publisher configuration.
-    """
-
-    root: Path
-    data_dir: Path
 
 
 @dataclass(frozen=True)
@@ -98,11 +87,11 @@ class Publisher(Protocol):
     kind: str
     capability: Capability
 
-    def plan(self, ctx: PublisherContext, cfg: Mapping[str, object]) -> PublishPlan:
+    def plan(self, ctx: ProjectContext, cfg: Mapping[str, object]) -> PublishPlan:
         """Compute what publishing would do. MUST NOT write anything."""
         ...
 
-    def publish(self, ctx: PublisherContext, plan: PublishPlan) -> PublishResult:
+    def publish(self, ctx: ProjectContext, plan: PublishPlan) -> PublishResult:
         """Carry out *plan*. Only reached when the caller opted in to writing."""
         ...
 
@@ -114,6 +103,6 @@ __all__ = [
     "PublishPlan",
     "PublishResult",
     "Publisher",
-    "PublisherContext",
+    "ProjectContext",
     "Status",
 ]

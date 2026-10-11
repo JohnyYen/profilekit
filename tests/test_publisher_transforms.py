@@ -180,14 +180,14 @@ def test_build_artifacts_exits_nonzero_on_missing_canonical_file(tmp_path):
     """Dropping one canonical file must abort before any artifact is produced."""
     import shutil
 
-    from profilekit.publishers import PublisherContext
+    from profilekit.context import ProjectContext
     from profilekit.publishers.filesystem import build_artifacts
 
     data_dir = tmp_path / "data"
     shutil.copytree(ROOT_DIR / "data", data_dir)
     (data_dir / "about.json").unlink()
 
-    ctx = PublisherContext(root=tmp_path, data_dir=data_dir)
+    ctx = ProjectContext.for_root(tmp_path, data_dir=data_dir)
     with pytest.raises(SystemExit) as exc_info:
         build_artifacts(ctx)
 

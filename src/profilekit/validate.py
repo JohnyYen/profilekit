@@ -10,17 +10,25 @@ from typing import Any
 
 import jsonschema
 
-SCRIPT_DIR = Path(__file__).resolve().parent
-ROOT_DIR = SCRIPT_DIR.parent.parent
-DATA_DIR = ROOT_DIR / "data"
+from profilekit.context import ProjectContext, discover_project
 
-# Schemas are packaged data (see pyproject.toml [tool.setuptools.package-data]
-# and MANIFEST.in), not a repository-relative path — this resolves correctly
-# both from a git checkout (editable install) and from a `pip install`ed
-# copy outside any checkout.
-SCHEMAS_DIR = importlib.resources.files("profilekit.schemas")
 
-# Map of data file stem → schema file name (all under DATA_DIR / SCHEMAS_DIR)
+def packaged_schemas() -> Traversable:
+    """Return the schemas shipped inside the distribution.
+
+    Schemas are package data (see pyproject.toml [tool.setuptools.package-data]
+    and MANIFEST.in), never a repository-relative path, so they resolve from a
+    git checkout and from a `pip install`ed copy outside any checkout alike.
+    """
+    return importlib.resources.files("profilekit.schemas")
+
+
+def schemas_dir(ctx: ProjectContext) -> Traversable:
+    """Return the project's schema source: its override, else the packaged set."""
+    return ctx.schemas_dir if ctx.schemas_dir is not None else packaged_schemas()
+
+
+# Map of data file stem → schema file name (resolved against the context)
 _SCHEMA_MAP = {
     "about": "about.schema.json",
     "social": "social.schema.json",
@@ -42,19 +50,19 @@ def _load_json(path: Traversable | Path) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def validate_file(data_file: str) -> tuple[bool, list[str]]:
+def validate_file(data_file: str, ctx: ProjectContext) -> tuple[bool, list[str]]:
     """Validate *data_file* against its JSON Schema. Returns (passed, errors).
 
     Errors include the file name and the jsonschema validation message so
     callers can produce a meaningful FAIL line.
 
-    ``DATA_DIR`` and ``SCHEMAS_DIR`` are module-level names — tests can
-    monkeypatch them to point at fixtures without touching the filesystem.
+    Both directories come from *ctx*, so a caller points this at fixtures by
+    constructing a context rather than monkeypatching module state.
     """
     stem = data_file.replace(".json", "")
     schema_name = _SCHEMA_MAP.get(stem, f"{stem}.schema.json")
-    schema_path = SCHEMAS_DIR / schema_name
-    data_path = DATA_DIR / data_file
+    schema_path = schemas_dir(ctx) / schema_name
+    data_path = ctx.data_dir / data_file
 
     if not schema_path.is_file():
         return False, [f"Schema file not found: {schema_path}"]
@@ -111,8 +119,13 @@ def validate_portfolio_highlights(about: dict, projects: list) -> list[str]:
     return warnings
 
 
-def main() -> int:
-    """Validate all data files; return 0 on success, 1 on any failure."""
+def main(ctx: ProjectContext | None = None) -> int:
+    """Validate all data files; return 0 on success, 1 on any failure.
+
+    Passing ``None`` for *ctx* discovers the project from the working
+    directory, which is what the CLI does.
+    """
+    ctx = ctx or discover_project()
     print("=" * 60)
     print("Profile Data Validation")
     print("=" * 60)
@@ -122,7 +135,7 @@ def main() -> int:
     results = []
 
     for filename in REQUIRED_FILES:
-        passed, errors = validate_file(filename)
+        passed, errors = validate_file(filename, ctx)
         status = "PASS" if passed else "FAIL"
         results.append((filename, status, errors))
         if not passed:
@@ -139,8 +152,8 @@ def main() -> int:
     print()
 
     # Cross-file: validate portfolioHighlights against projects.json
-    about_path = DATA_DIR / "about.json"
-    projects_path = DATA_DIR / "projects.json"
+    about_path = ctx.data_dir / "about.json"
+    projects_path = ctx.data_dir / "projects.json"
     if about_path.exists() and projects_path.exists():
         try:
             about_data = _load_json(about_path)
@@ -155,7 +168,7 @@ def main() -> int:
     try:
         from profilekit.icons import check_icons  # noqa: PLC0415
 
-        skills_path = DATA_DIR / "skills.json"
+        skills_path = ctx.data_dir / "skills.json"
         if skills_path.exists():
             skills_data = _load_json(skills_path)
             icon_warnings = check_icons(skills_data)
@@ -169,8 +182,8 @@ def main() -> int:
     try:
         from profilekit.links import check_links  # noqa: PLC0415
 
-        projects_path = DATA_DIR / "projects.json"
-        social_path = DATA_DIR / "social.json"
+        projects_path = ctx.data_dir / "projects.json"
+        social_path = ctx.data_dir / "social.json"
         projects_data = _load_json(projects_path) if projects_path.exists() else []
         social_data = _load_json(social_path) if social_path.exists() else {}
         link_warnings = check_links(projects_data, social_data)

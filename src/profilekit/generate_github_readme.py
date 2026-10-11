@@ -4,6 +4,7 @@
 import sys
 from pathlib import Path
 
+from profilekit.context import ProjectContext, discover_project
 from profilekit.render import format_date_range
 from profilekit.utils import (
     load_json,
@@ -13,12 +14,6 @@ from profilekit.utils import (
     what_i_build,
     write_output,
 )
-
-SCRIPT_DIR = Path(__file__).resolve().parent
-ROOT_DIR = SCRIPT_DIR.parent.parent
-DATA_DIR = ROOT_DIR / "data"
-OUTPUT_DIR = ROOT_DIR / "output"
-ASSETS_DIR = ROOT_DIR / "assets"
 
 # Spacer image injected between icons in each row
 IMG_SPACER = '<img width="15" />'
@@ -54,16 +49,16 @@ def render_what_i_build_section(about: dict) -> str:
     return "\n".join(lines)
 
 
-def render_about_html(about: dict, assets_dir: Path | None = None) -> str:
+def render_about_html(about: dict, assets_dir: Path) -> str:
     """Render the centered about block with the pixel-mario gif.
 
     Emits the mario gif as a relative path `assets/pixel-mario.gif`.
     Warns to stderr when the asset is missing so regeneration can continue
     even if the gif has not been downloaded yet.
-    """
-    if assets_dir is None:
-        assets_dir = ASSETS_DIR
 
+    ``assets_dir`` is required: the caller owns it, so there is no module
+    constant to fall back to.
+    """
     mario_path = assets_dir / "pixel-mario.gif"
     if not mario_path.exists():
         print(
@@ -183,22 +178,29 @@ def render_footer(about: dict) -> str:
     return "\n".join(lines)
 
 
-def main(output_dir: Path | None = None) -> None:
+def main(ctx: ProjectContext | None = None, output_dir: Path | None = None) -> None:
     """Compose the GitHub profile README and write it to github-readme.md.
 
-    ``output_dir`` defaults to the module-level ``OUTPUT_DIR``. Callers pass it
-    explicitly so the write destination stays caller-owned: a generator writes
-    only where it was told, which is what keeps it a generator and not a
-    publisher.
+    ``ctx`` carries the project's resolved directories. Passing ``None``
+    discovers the project from the working directory, which is what the CLI
+    does; tests construct a context over a temporary directory instead of
+    monkeypatching module globals.
+
+    ``output_dir`` overrides the context's output directory. A generator
+    writes only where it was told, which is what keeps it a generator and
+    not a publisher.
     """
-    about = load_json("about.json", DATA_DIR)
-    skills = load_json("skills.json", DATA_DIR)
-    experience = load_json("experience.json", DATA_DIR)
+    ctx = ctx or discover_project()
+    out_dir = output_dir or ctx.output_dir
+
+    about = load_json("about.json", ctx.data_dir)
+    skills = load_json("skills.json", ctx.data_dir)
+    experience = load_json("experience.json", ctx.data_dir)
 
     sections = [
         render_header(about),
         render_what_i_build_section(about),
-        render_about_html(about, ASSETS_DIR),
+        render_about_html(about, ctx.assets_dir),
         render_focus(about),
         render_icon_rows(skills),
         render_experience_text(experience),
@@ -207,7 +209,7 @@ def main(output_dir: Path | None = None) -> None:
     ]
 
     output = "\n".join(s for s in sections if s)
-    output_path = write_output(output, output_dir or OUTPUT_DIR, "github-readme.md")
+    output_path = write_output(output, out_dir, "github-readme.md")
     print(f"Generated github-readme.md at {output_path}")
 
 

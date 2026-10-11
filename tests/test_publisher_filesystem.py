@@ -15,7 +15,7 @@ from pathlib import Path
 
 import pytest
 
-from profilekit.publishers import PublisherContext
+from profilekit.context import ProjectContext
 from profilekit.publishers.filesystem import FilesystemPublisher, UnsafeDestinationError
 
 CANONICAL = {
@@ -41,13 +41,13 @@ CANONICAL = {
 
 
 @pytest.fixture
-def project(tmp_path: Path) -> PublisherContext:
+def project(tmp_path: Path) -> ProjectContext:
     """A sandboxed project root with canonical data and a destination inside it."""
     data_dir = tmp_path / "data"
     data_dir.mkdir()
     for filename, payload in CANONICAL.items():
         (data_dir / filename).write_text(json.dumps(payload), encoding="utf-8")
-    return PublisherContext(root=tmp_path, data_dir=data_dir)
+    return ProjectContext.for_root(tmp_path, data_dir=data_dir)
 
 
 def _destinations_written(root: Path) -> list[Path]:
@@ -59,14 +59,14 @@ def _destinations_written(root: Path) -> list[Path]:
 # ---------------------------------------------------------------------------
 
 
-def test_rejects_parent_directory_escape(project: PublisherContext) -> None:
+def test_rejects_parent_directory_escape(project: ProjectContext) -> None:
     publisher = FilesystemPublisher()
     with pytest.raises(UnsafeDestinationError):
         publisher.plan(project, {"destination": "../../etc"})
     assert not _destinations_written(project.root)
 
 
-def test_rejects_absolute_destination(project: PublisherContext, tmp_path: Path) -> None:
+def test_rejects_absolute_destination(project: ProjectContext, tmp_path: Path) -> None:
     publisher = FilesystemPublisher()
     outside = tmp_path.parent / "outside-target"
     with pytest.raises(UnsafeDestinationError):
@@ -74,7 +74,7 @@ def test_rejects_absolute_destination(project: PublisherContext, tmp_path: Path)
     assert not outside.exists()
 
 
-def test_rejects_symlink_escape(project: PublisherContext, tmp_path: Path) -> None:
+def test_rejects_symlink_escape(project: ProjectContext, tmp_path: Path) -> None:
     """A destination inside the root that resolves outside it is still an escape."""
     outside = tmp_path.parent / f"outside-{tmp_path.name}"
     outside.mkdir(exist_ok=True)
@@ -92,7 +92,7 @@ def test_rejects_symlink_escape(project: PublisherContext, tmp_path: Path) -> No
 # ---------------------------------------------------------------------------
 
 
-def test_plan_writes_nothing(project: PublisherContext) -> None:
+def test_plan_writes_nothing(project: ProjectContext) -> None:
     """Dry-run is the default, so plan() must never touch the destination."""
     publisher = FilesystemPublisher()
     plan = publisher.plan(project, {"destination": "apps/portfolio/app/data"})
@@ -101,7 +101,7 @@ def test_plan_writes_nothing(project: PublisherContext) -> None:
     assert not _destinations_written(project.root)
 
 
-def test_publish_writes_the_four_app_data_files(project: PublisherContext) -> None:
+def test_publish_writes_the_four_app_data_files(project: ProjectContext) -> None:
     publisher = FilesystemPublisher()
     cfg = {"destination": "apps/portfolio/app/data"}
     result = publisher.publish(project, publisher.plan(project, cfg))
@@ -112,7 +112,7 @@ def test_publish_writes_the_four_app_data_files(project: PublisherContext) -> No
     assert result.status == "published"
 
 
-def test_publish_is_idempotent(project: PublisherContext) -> None:
+def test_publish_is_idempotent(project: ProjectContext) -> None:
     """Re-publishing identical content reports unchanged rather than rewriting."""
     publisher = FilesystemPublisher()
     cfg = {"destination": "apps/portfolio/app/data"}
@@ -123,7 +123,7 @@ def test_publish_is_idempotent(project: PublisherContext) -> None:
     assert publisher.publish(project, second).status == "unchanged"
 
 
-def test_plan_reports_drift_when_destination_is_stale(project: PublisherContext) -> None:
+def test_plan_reports_drift_when_destination_is_stale(project: ProjectContext) -> None:
     publisher = FilesystemPublisher()
     cfg = {"destination": "apps/portfolio/app/data"}
     publisher.publish(project, publisher.plan(project, cfg))
