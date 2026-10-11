@@ -17,6 +17,13 @@ assets = "assets"
 # inside the distribution, so an installed CLI resolves them without needing
 # a checkout. Set it only to validate against project-local schemas instead.
 
+[generators.cv]
+# Pinned so the committed output/ and the golden snapshots stay reproducible.
+# The default is "auto", which lets RenderCV resolve the date at render time —
+# correct for most projects, but non-deterministic, and this repository asserts
+# byte-identical output in CI.
+current_date = "2026-07-30"
+
 [publishers.portfolio-data]
 # The in-repo Next.js portfolio is a reference *consumer* of this data, not
 # part of the distributed package. Any frontend reading the same four JSON

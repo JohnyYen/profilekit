@@ -12,7 +12,7 @@ commit the updated golden.
 import os
 from pathlib import Path
 
-from profilekit.context import ProjectContext
+from profilekit.context import discover_project
 
 GOLDEN_DIR = Path(__file__).resolve().parent / "golden"
 ROOT_DIR = Path(__file__).resolve().parent.parent
@@ -21,11 +21,13 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 def _run_generator(generator_module, tmp_output_dir: Path) -> None:
     """Run *generator_module*.main() against the repository's real data.
 
-    The context reads the repository's canonical ``data/`` and ``assets/`` so
-    the snapshot reflects the published artifacts, but writes into a temporary
-    directory so running the suite never mutates the committed ``output/``.
+    The context is discovered from the repository itself, so the snapshot
+    reflects what this project's own ``profile.toml`` produces — including its
+    pinned ``current_date``, without which the CV would not be reproducible.
+    Output goes to a temporary directory so running the suite never mutates
+    the committed ``output/``.
     """
-    ctx = ProjectContext.for_root(ROOT_DIR, output_dir=tmp_output_dir)
+    ctx = discover_project(explicit=ROOT_DIR, output_dir=tmp_output_dir)
     generator_module.main(ctx)
 
 

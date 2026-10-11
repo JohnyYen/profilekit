@@ -98,8 +98,8 @@ no task — no git-push publisher or PR automation is introduced.
 - [x] 4.5 REFACTOR (mechanical, one commit): thread `ctx: ProjectContext` through `utils.py`, `cli.py`, `validate.py`, `generate_cv.py`, `generate_github_readme.py`, `generate_linkedin.py`, `generate_portfolio.py`; delete the `SCRIPT_DIR`/`ROOT_DIR`/`OUTPUT_DIR`/`DATA_DIR`/`SCHEMAS_DIR` constants (D2 table); switch monkeypatch tests to `ProjectContext`-over-`tmp_path`.
 - [x] 4.6 RED: `test_init_in_empty_directory` — `profile init` creates `profile.toml` + example `data/` with no maintainer name/email/handle.
 - [x] 4.7 GREEN: implement `profile init`.
-- [ ] 4.8 RED: `test_externalized_opinions` — custom greeting renders; unset override reproduces today's exact default text.
-- [ ] 4.9 GREEN: externalize `generate_github_readme.py:38,78,180` and `generate_cv.py:180,216-238` into `[generators.github-readme]`/`[generators.cv]`; replace frozen `current_date` with `"auto"` default; goldens pin it explicitly.
+- [x] 4.8 RED: `test_externalized_opinions` — custom greeting renders; unset override reproduces today's exact default text.
+- [x] 4.9 GREEN: externalize `generate_github_readme.py:38,78,180` and `generate_cv.py:180,216-238` into `[generators.github-readme]`/`[generators.cv]`; replace frozen `current_date` with `"auto"` default; goldens pin it explicitly.
 - [ ] 4.10 RED (threat matrix rows 2–3 — git repository selection, commit state): `test_check_degrades_without_git` — non-git tmp dir completes with the git check reported skipped, not failed; dirty/clean worktree still gates as before.
 - [ ] 4.11 GREEN: rewrite the git invocation as `git -C <project_root> diff --exit-code -- <output_dir>` (argv list, never `shell=True`); degrade to manifest-hash comparison with a notice when `.git`/`git` is absent; read-only — no stage/commit/amend.
 - [x] 4.12 Commit a root `profile.toml` declaring `[paths]` and `[publishers.portfolio-data] destination = "apps/portfolio/app/data"` reproducing today's `__file__`-derived paths exactly.

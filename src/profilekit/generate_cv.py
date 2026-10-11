@@ -13,6 +13,19 @@ from profilekit.utils import (
     write_output,
 )
 
+# RenderCV presentation defaults. These are the author's taste, overridable
+# through ``[generators.cv]``. The values reproduce what this project
+# published before they were configurable.
+DEFAULT_THEME = "classic"
+DEFAULT_LOCALE = "english"
+DEFAULT_RENDERCV_SCHEMA = "v2.8"
+
+# RenderCV resolves "auto" at render time. The previous value was a frozen
+# literal date, which is a determinism trap: it silently aged out, and every
+# regeneration kept asserting a date from the past. A project that needs a
+# fixed date pins it explicitly — which is what the golden snapshots do.
+DEFAULT_CURRENT_DATE = "auto"
+
 
 def escape_yaml_string(value: str) -> str:
     """Escape a string for safe YAML embedding."""
@@ -169,6 +182,12 @@ def main(ctx: ProjectContext | None = None, output_dir: Path | None = None) -> N
     ctx = ctx or discover_project()
     out_dir = output_dir or ctx.output_dir
 
+    options = ctx.generator_options("cv")
+    theme = options.get("theme", DEFAULT_THEME)
+    locale = options.get("locale", DEFAULT_LOCALE)
+    rendercv_schema = options.get("rendercv_schema", DEFAULT_RENDERCV_SCHEMA)
+    current_date = options.get("current_date", DEFAULT_CURRENT_DATE)
+
     about = load_json("about.json", ctx.data_dir)
     experience = load_json("experience.json", ctx.data_dir)
     education = load_json("education.json", ctx.data_dir)
@@ -187,7 +206,8 @@ def main(ctx: ProjectContext | None = None, output_dir: Path | None = None) -> N
 
     # Build the YAML
     yaml_lines = [
-        "# yaml-language-server: $schema=https://raw.githubusercontent.com/rendercv/rendercv/refs/tags/v2.8/schema.json",
+        "# yaml-language-server: $schema=https://raw.githubusercontent.com/"
+        f"rendercv/rendercv/refs/tags/{rendercv_schema}/schema.json",
         "cv:",
         f"  name: {escape_yaml_string(about['username'])}",
         f"  headline: {compute_cv_headline(about)}",
@@ -224,13 +244,13 @@ def main(ctx: ProjectContext | None = None, output_dir: Path | None = None) -> N
     yaml_lines.extend(
         [
             "design:",
-            "  theme: classic",
+            f"  theme: {theme}",
             "  links:",
             "    show_external_link_icon: true",
             "locale:",
-            "  language: english",
+            f"  language: {locale}",
             "settings:",
-            '  current_date: "2026-07-30"',
+            f'  current_date: "{current_date}"',
             "  render_command:",
             "    design:",
             "    locale:",

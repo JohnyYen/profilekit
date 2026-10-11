@@ -18,10 +18,20 @@ from profilekit.utils import (
 # Spacer image injected between icons in each row
 IMG_SPACER = '<img width="15" />'
 
+# Author-facing defaults. These are taste, not behavior, so each is
+# overridable through ``[generators.github-readme]`` in profile.toml. The
+# values below reproduce the output this project published before they were
+# configurable, so an unset option changes nothing.
+DEFAULT_GREETING = "Hi 👋, I'm {name}"
+DEFAULT_ABOUT_IMAGE = "assets/pixel-mario.gif"
+DEFAULT_FOOTER = (
+    "Feel free to reach out for collaboration, architecture discussions, or just to say hi!"
+)
+
 SKILLICONS_BASE = "https://skillicons.dev/icons?i="
 
 
-def render_header(about: dict) -> str:
+def render_header(about: dict, greeting: str = DEFAULT_GREETING) -> str:
     """Render the centered HTML header with h1 (username) and h2 (headline/tagline).
 
     Prefers `githubReadmeSummary` for the h2 subtitle; falls back to
@@ -30,7 +40,7 @@ def render_header(about: dict) -> str:
     name = about.get("username", "")
     subtitle = about.get("githubReadmeSummary") or about.get("headline") or about.get("tagline", "")
     lines = [
-        f'<h1 align="center">Hi 👋, I\'m {name}</h1>',
+        f'<h1 align="center">{greeting.format(name=name)}</h1>',
         f'<h2 align="center"><b>{subtitle}</b></h2>',
         "",
     ]
@@ -49,28 +59,34 @@ def render_what_i_build_section(about: dict) -> str:
     return "\n".join(lines)
 
 
-def render_about_html(about: dict, assets_dir: Path) -> str:
-    """Render the centered about block with the pixel-mario gif.
+def render_about_html(about: dict, assets_dir: Path, about_image: str = DEFAULT_ABOUT_IMAGE) -> str:
+    """Render the centered about block, optionally with a decorative image.
 
-    Emits the mario gif as a relative path `assets/pixel-mario.gif`.
-    Warns to stderr when the asset is missing so regeneration can continue
-    even if the gif has not been downloaded yet.
+    ``about_image`` is a project-relative path. An empty string omits the
+    image entirely — a decoration the author likes must be removable by
+    everyone else, not merely swappable.
+
+    Warns to stderr when a configured image is missing so regeneration can
+    continue rather than failing on an asset that has not been fetched yet.
 
     ``assets_dir`` is required: the caller owns it, so there is no module
     constant to fall back to.
     """
-    mario_path = assets_dir / "pixel-mario.gif"
-    if not mario_path.exists():
+    description = about.get("description", "")
+    if not about_image:
+        return "\n".join([description, ""])
+
+    image_path = assets_dir / Path(about_image).name
+    if not image_path.exists():
         print(
-            f"WARNING: assets/pixel-mario.gif not found at {mario_path}. "
-            "Run the asset download step before regenerating.",
+            f"WARNING: {about_image} not found at {image_path}. Add the asset before regenerating.",
             file=sys.stderr,
         )
 
-    description = about.get("description", "")
+    alt = Path(about_image).stem.replace("-", " ")
     lines = [
         '<div align="center">',
-        '  <img src="assets/pixel-mario.gif" alt="pixel mario" />',
+        f'  <img src="{about_image}" alt="{alt}" />',
         "</div>",
         "",
         description,
@@ -162,8 +178,8 @@ def render_learning(about: dict) -> str:
     return "\n".join(lines)
 
 
-def render_footer(about: dict) -> str:
-    """Render the closing footer with an optional quote and invite."""
+def render_footer(about: dict, footer: str = DEFAULT_FOOTER) -> str:
+    """Render the closing footer with an optional quote and sign-off."""
     quote = about.get("githubQuote", "")
     lines: list[str] = []
     if quote:
@@ -171,9 +187,7 @@ def render_footer(about: dict) -> str:
         lines.append("")
     lines.append("---")
     lines.append("")
-    lines.append(
-        "*Feel free to reach out for collaboration, architecture discussions, or just to say hi!*"
-    )
+    lines.append(f"*{footer}*")
     lines.append("")
     return "\n".join(lines)
 
@@ -197,15 +211,20 @@ def main(ctx: ProjectContext | None = None, output_dir: Path | None = None) -> N
     skills = load_json("skills.json", ctx.data_dir)
     experience = load_json("experience.json", ctx.data_dir)
 
+    options = ctx.generator_options("github-readme")
+    greeting = options.get("greeting", DEFAULT_GREETING)
+    about_image = options.get("about_image", DEFAULT_ABOUT_IMAGE)
+    footer = options.get("footer", DEFAULT_FOOTER)
+
     sections = [
-        render_header(about),
+        render_header(about, greeting),
         render_what_i_build_section(about),
-        render_about_html(about, ctx.assets_dir),
+        render_about_html(about, ctx.assets_dir, about_image),
         render_focus(about),
         render_icon_rows(skills),
         render_experience_text(experience),
         render_learning(about),
-        render_footer(about),
+        render_footer(about, footer),
     ]
 
     output = "\n".join(s for s in sections if s)
