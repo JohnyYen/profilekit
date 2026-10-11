@@ -53,6 +53,7 @@ def test_no_submodules():
     assert not (ROOT / ".gitmodules").exists()
 
 
-def test_github_profile_repo_not_absorbed():
-    # spec Req: Platform-forced targets remain external deploy destinations
-    assert not (ROOT / "JohnyYen").exists()
+# Removed: `test_github_profile_repo_not_absorbed` asserted that no directory
+# literally named after the maintainer's GitHub handle existed at the root. That
+# encoded one person's repository layout as a project invariant, which is
+# meaningless for anyone else who adopts the package.

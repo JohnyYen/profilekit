@@ -17,14 +17,8 @@ import pytest
 from profilekit import cli
 from profilekit.context import CONFIG_FILENAME, discover_project
 
-# Identity that must never appear in a scaffolded project.
-MAINTAINER_MARKERS = (
-    "johny",
-    "pedraza",
-    "johnyyen",
-    "bernalsuarez",
-    "+53",
-)
+# The deny-list lives in one place so the two guards cannot drift apart.
+from tests.test_no_real_pii import DENY_LIST as MAINTAINER_MARKERS
 
 
 def _init(target: Path) -> int:

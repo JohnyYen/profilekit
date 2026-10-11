@@ -107,14 +107,14 @@ no task — no git-push publisher or PR automation is introduced.
 
 ## Phase 5 (R8): Test Neutrality
 
-- [ ] 5.1 RED: `test_no_real_pii_in_fixtures` — deny-list grep over `tests/**` for maintainer name/email/phone; fails today.
-- [ ] 5.2 GREEN: create `tests/fixtures/project/` fictional persona; replace `tests/fixtures/portfolio_data/*.json` and username fixtures.
-- [ ] 5.3 RED: rewritten `test_golden.py` asserting goldens read from `tests/fixtures/project/`, not `ROOT_DIR/data`; fails against current `:50-51,66,81,96,111`.
-- [ ] 5.4 GREEN: repoint golden tests to the fixture project; regenerate golden files against fictional data.
-- [ ] 5.5 RED: `tests/test_generate_all.py` rewritten wholesale — copy the fixture project into `tmp_path`, run with `cwd=tmp_path` + `PROFILEKIT_PROJECT`; assert the real `output/` and `apps/portfolio/app/data/` stay untouched.
-- [ ] 5.6 GREEN: land the rewrite; delete the old body that mutates the real tree (`:25-53`).
-- [ ] 5.7 GREEN: delete the `JohnyYen` invariant at `tests/test_monorepo_layout.py:59`.
-- [ ] 5.8 Guard: assert zero tracked-tree diff after the full suite runs (generalizes 5.5's guard).
+- [x] 5.1 RED: `test_no_real_pii_in_fixtures` — deny-list grep over `tests/**` for maintainer name/email/phone; fails today.
+- [x] 5.2 GREEN: create `tests/fixtures/project/` fictional persona; replace `tests/fixtures/portfolio_data/*.json` and username fixtures.
+- [x] 5.3 RED: rewritten `test_golden.py` asserting goldens read from `tests/fixtures/project/`, not `ROOT_DIR/data`; fails against current `:50-51,66,81,96,111`.
+- [x] 5.4 GREEN: repoint golden tests to the fixture project; regenerate golden files against fictional data.
+- [x] 5.5 RED: `tests/test_generate_all.py` rewritten wholesale — copy the fixture project into `tmp_path`, run with `cwd=tmp_path` + `PROFILEKIT_PROJECT`; assert the real `output/` and `apps/portfolio/app/data/` stay untouched.
+- [x] 5.6 GREEN: land the rewrite; delete the old body that mutates the real tree (`:25-53`).
+- [x] 5.7 GREEN: delete the `JohnyYen` invariant at `tests/test_monorepo_layout.py:59`.
+- [x] 5.8 Guard: assert zero tracked-tree diff after the full suite runs (generalizes 5.5's guard).
 
 ## Phase 6 (R7): Single Registry
 

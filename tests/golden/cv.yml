@@ -1,137 +1,52 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/rendercv/rendercv/refs/tags/v2.8/schema.json
 cv:
-  name: Johny A. Pedraza Romero
-  headline: "Backend Engineer · Software Architecture · Clean Architecture & DDD"
-  location: La Habana, Cuba
-  email: johny.antonio.pedraza.romero@gmail.com
-  phone: +53 55002026
+  name: Ada Lovelace
+  headline: "Mathematician | Analytical Engine Programmer"
+  location: London, England
+  email: ada@example.com
+  phone: 
   social_networks:
     - network: GitHub
-      username: https://github.com/JohnyYen
+      username: https://github.com/example
     - network: LinkedIn
-      username: https://linkedin.com/in/johnyyen
+      username: https://linkedin.com/in/example
   custom_connections:
   sections:
     education:
-      - institution: Technological University of Havana "José Antonio Echeverría" (CUJAE)
-        area: Computer Engineering
-        degree: BS
+      - institution: Private tuition
+        area: Mathematics
+        degree: Independent study
         date:
-        start_date: 2023-01
-        end_date: 2026-07
-        location: La Havana, CU
+        start_date: 1829-01
+        end_date: 1840-12
+        location: London, England
         summary: 
         highlights:
-          - "Thesis: Architecture of an Educational Platform Based on Adaptive Video Games with Teacher Control for Programming Learning"
-          - "Advisor: Prof. Raisa Socorro Llanés"
-          - "Graduated in July 2026"
+          - "Studied mathematics and logic under Mary Somerville and Augustus De Morgan."
     experience:
-      - company: Medialityc
-        position: Backend Developer
+      - company: Analytical Engine Project
+        position: Collaborator
         date:
-        start_date: 2024-10
-        end_date: 2025-07
-        location: La Habana, CU
-        summary: "Completed backend development training in .NET and FastAPI, focusing on a generalization-oriented development approach and the design of robust, project-aligned architectures."
+        start_date: 1842-01
+        end_date: 1843-12
+        location: London, England
+        summary: "Translated and annotated the first description of a general-purpose computer."
         highlights:
-          - "Developed the backend for a foodie community platform using .NET, applying a scalable architecture design based on Clean Architecture and a generalization-oriented development approach."
-          - "Developed a backend using FastAPI for a photo monetization mobile application, integrated with an OCR model for image interpretation and analysis."
-      - company: Avangenio
-        position: Frappe Developer
-        date:
-        start_date: 2025-05
-        end_date: present
-        location: La Habana, CU
-        summary: Currently responsible for developing new features using Python and JavaScript for custom ERPNext applications.
-        highlights:
-          - "Designed and implemented custom functionalities in ERPNext, enhancing system adaptability to business workflows."
-          - "Led a team as team leader during Avangenio's internal hackathon, building a custom Frappe-based application that acts as a fully customizable assistant, allowing end users to dynamically create the tools they need."
-          - "Leading the integration with Facel, a Cuban electronic invoicing API, as a key milestone for the application."
+          - "Wrote Note G, the first published algorithm intended for a machine."
+          - "Argued the engine could manipulate symbols, not only numbers."
     projects:
-      - name: "NestJS Boilerplate"
-        date:
-        start_date: 2025-08
-        end_date: 2025-10
-        location:
-        summary: Complete boilerplate for NestJS projects with Prisma ORM
-        highlights:
-          - "Modular and scalable architecture with organized folder structure"
-          - "Integrated Prisma ORM configuration with migrations and seeding"
-          - "Generic base controllers, services, and repositories"
-          - "Centralized app configuration and DTOs for pagination/responses"
-          - "Production-ready setup with Swagger auto-documentation"
-          - "Custom exception handling and decorators"
-      - name: "FastAPI Template"
-        date:
-        start_date: 2025-07
-        end_date: 2025-08
-        location:
-        summary: Base template for creating fast, scalable APIs with FastAPI
-        highlights:
-          - "JWT authentication integrated"
-          - "SQLAlchemy async configuration with Alembic migrations"
-          - "Pydantic schemas for data validation"
-          - "Complete CRUD implementation with Repository pattern"
-          - "Testing configuration with pytest"
-          - "Docker and Docker Compose ready for deployment"
-          - "Automatic documentation with Swagger UI and ReDoc"
-      - name: "Ignix Core"
-        date:
-        start_date: 2026-01
-        end_date: 2026-02
-        location:
-        summary: "TypeScript package for building type-safe, extensible services with Result pattern and ORM-agnostic repositories"
-        highlights:
-          - "Implements Result pattern for explicit success/failure handling, improving reliability"
-          - "Provides generic services (IService<T>) with CRUD operations and customizable DTOs"
-          - "ORM-agnostic repository interface supporting TypeORM, Prisma, and Sequelize"
-          - "Framework-flexible API handlers with adapters for NestJS, Express, Fastify, and Hono"
-          - "Promotes SOLID principles and type safety to reduce bugs and improve maintainability"
-      - name: "FastAPI Generic Scaffold"
-        date:
-        start_date: 2026-07
-        end_date: 
-        location:
-        summary: "A fully generic FastAPI scaffold architected with Screaming Architecture and Clean Architecture, featuring an automated scaffolding script that generates complete, production-ready modules — repository, service, and API layers — out of the box. The generic core is extensible through a Builder pattern, allowing custom wrappers at any layer, making it adaptable to virtually any backend domain. Includes a customizable built-in admin panel."
-        highlights:
-          - "Architected with Screaming Architecture and Clean Architecture for domain-driven module organization"
-          - "Automated scaffolding script generates ready-to-use modules with full repository, service, and API layers"
-          - "Extensible core with Builder pattern for adding custom wrappers at repo, service, or controller level"
-          - "Built-in customizable admin panel"
-          - "Designed for adaptability across any backend domain"
-      - name: "Educational Game-Based Learning Platform (Thesis)"
-        date:
-        start_date: 2026-01
-        end_date: 2026-07
-        location:
-        summary: "A game-based educational platform designed to integrate with multiple video game types for programming learning. Features analytics dashboards to track student performance, course management, and teacher controls for customizing learning paths. Built with an adaptive architecture that enables seamless integration of diverse game genres while collecting and analyzing learning analytics in real time."
-        highlights:
-          - "Multi-game integration architecture supporting diverse video game genres for programming education"
-          - "Analytics dashboards for real-time student performance tracking and learning insights"
-          - "Course management system with teacher-controlled adaptive learning paths"
-          - "Scalable architecture designed for extensibility to new game types and analytics modules"
-      - name: "hello-world-project"
+      - name: "Note G"
         date:
         start_date: 
         end_date: 
         location:
-        summary: Starter template for new projects. Quick bootstrap with essential configurations and folder structure.
+        summary: An algorithm for computing Bernoulli numbers on the Analytical Engine.
         highlights:
     skills:
-      - label: Back-end Frameworks
-        details: NestJS, FastAPI, .NET, Hono, Strapi
-      - label: ERP Platforms
-        details: Frappe, ERPNext
-      - label: Databases
-        details: PostgreSQL, MongoDB, Prisma ORM
-      - label: Dev & Infrastructure
-        details: Docker, Git, GitHub Actions, Vercel, GitHub, GitLab
-      - label: Languages
-        details: TypeScript, Python, C#, JavaScript
-      - label: Software Design
-        details: Clean Architecture, Domain-Driven Design, SOLID Principles, Design Patterns, C4 Model, MVC
-      - label: AI-Driven Development
-        details: Spec-Driven Development (SDD), AI Gentle Stack
+      - label: Mathematics
+        details: Analysis, Number theory, Symbolic logic
+      - label: Writing
+        details: Technical translation, Annotation
 design:
   theme: classic
   links:
@@ -139,7 +54,7 @@ design:
 locale:
   language: english
 settings:
-  current_date: "2026-07-30"
+  current_date: "2000-01-01"
   render_command:
     design:
     locale:

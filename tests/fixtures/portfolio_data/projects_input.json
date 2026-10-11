@@ -1,23 +1,8 @@
 [
   {
-    "name": "NestJS Boilerplate",
-    "description": "Complete boilerplate for NestJS projects with Prisma ORM",
-    "tech": "TypeScript",
-    "url": "https://github.com/JohnyYen/NestJs-Template",
-    "start_date": "2025-08",
-    "end_date": "2025-10",
-    "highlights": [
-      "Modular and scalable architecture with organized folder structure",
-      "Integrated Prisma ORM configuration with migrations and seeding"
-    ]
-  },
-  {
-    "name": "FastAPI Generic Scaffold",
-    "description": "A fully generic FastAPI scaffold",
-    "start_date": "2026-07",
-    "end_date": "",
-    "highlights": [
-      "Architected with Screaming Architecture"
-    ]
+    "name": "Note G",
+    "description": "An algorithm for computing Bernoulli numbers on the Analytical Engine.",
+    "tech": "Analytical Engine",
+    "url": "https://example.com/note-g"
   }
 ]

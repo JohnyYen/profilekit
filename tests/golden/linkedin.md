@@ -1,55 +1,41 @@
 ## Headline
 
-Backend Engineer | Clean Architecture & DDD | FastAPI · NestJS · .NET | Building scalable APIs and developer tooling | AI-Augmented Development
+Mathematician | Analytical Engine Programmer
 
 ## About
 
-Currently focused on building robust APIs and exploring software architecture patterns for scalable systems. Passionate about clean architecture, domain-driven design, and AI-augmented development workflows.
+Mathematician working on general-purpose computation. Interested in symbolic manipulation, the limits of mechanical reasoning, and notation that makes hard ideas teachable.
 
 ## Current Focus
 
-- **Software Architecture**: Designing maintainable systems, understanding DDD, Clean Architecture, and system design principles.
-- **AI Engineering**: Learning ML integration, building AI-powered features, and understanding LLM patterns.
+- **General-purpose computation**: Showing the engine can operate on symbols, not just numbers.
+- **Algorithm notation**: Describing a computation precisely enough to be executed.
 
 ## What I Build
 
-- Scalable APIs and reusable backend architectures that help teams ship faster.
+- Algorithms for mechanical computation
+- Annotated translations of technical papers
+- Notation for describing programs
 
 ## Experience
 
-**Backend Developer** at Medialityc
-2024-10 – 2025-07 | La Habana, CU
+**Collaborator** at Analytical Engine Project
+1842-01 – 1843-12 | London, England
 
-Completed backend development training in .NET and FastAPI, focusing on a generalization-oriented development approach and the design of robust, project-aligned architectures.
+Translated and annotated the first description of a general-purpose computer.
 
-- Developed the backend for a foodie community platform using .NET, applying a scalable architecture design based on Clean Architecture and a generalization-oriented development approach.
-- Developed a backend using FastAPI for a photo monetization mobile application, integrated with an OCR model for image interpretation and analysis.
-
-**Frappe Developer** at Avangenio
-2025-05 – present | La Habana, CU
-
-Currently responsible for developing new features using Python and JavaScript for custom ERPNext applications.
-
-- Designed and implemented custom functionalities in ERPNext, enhancing system adaptability to business workflows.
-- Led a team as team leader during Avangenio's internal hackathon, building a custom Frappe-based application that acts as a fully customizable assistant, allowing end users to dynamically create the tools they need.
-- Leading the integration with Facel, a Cuban electronic invoicing API, as a key milestone for the application.
+- Wrote Note G, the first published algorithm intended for a machine.
+- Argued the engine could manipulate symbols, not only numbers.
 
 ## Education
 
-**BS in Computer Engineering**
-Technological University of Havana "José Antonio Echeverría" (CUJAE) | 2023-01 – 2026-07
-Location: La Havana, CU
+**Independent study in Mathematics**
+Private tuition | 1829-01 – 1840-12
+Location: London, England
 
-- Thesis: Architecture of an Educational Platform Based on Adaptive Video Games with Teacher Control for Programming Learning
-- Advisor: Prof. Raisa Socorro Llanés
-- Graduated in July 2026
+- Studied mathematics and logic under Mary Somerville and Augustus De Morgan.
 
 ## Skills
 
-**Back-end Frameworks**: NestJS, FastAPI, .NET, Hono, Strapi
-**ERP Platforms**: Frappe, ERPNext
-**Databases**: PostgreSQL, MongoDB, Prisma ORM
-**Dev & Infrastructure**: Docker, Git, GitHub Actions, Vercel, GitHub, GitLab
-**Languages**: TypeScript, Python, C#, JavaScript
-**Software Design**: Clean Architecture, Domain-Driven Design, SOLID Principles, Design Patterns, C4 Model, MVC
-**AI-Driven Development**: Spec-Driven Development (SDD), AI Gentle Stack
+**Mathematics**: Analysis, Number theory, Symbolic logic
+**Writing**: Technical translation, Annotation

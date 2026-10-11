@@ -15,19 +15,23 @@ from pathlib import Path
 from profilekit.context import discover_project
 
 GOLDEN_DIR = Path(__file__).resolve().parent / "golden"
-ROOT_DIR = Path(__file__).resolve().parent.parent
+FIXTURE_PROJECT = Path(__file__).resolve().parent / "fixtures" / "project"
 
 
 def _run_generator(generator_module, tmp_output_dir: Path) -> None:
     """Run *generator_module*.main() against the repository's real data.
 
-    The context is discovered from the repository itself, so the snapshot
-    reflects what this project's own ``profile.toml`` produces — including its
-    pinned ``current_date``, without which the CV would not be reproducible.
-    Output goes to a temporary directory so running the suite never mutates
-    the committed ``output/``.
+    Snapshots are taken against ``tests/fixtures/project/`` — a fictional
+    persona — rather than the owner's real ``data/``. Two reasons: the suite
+    must not carry a real person's details, and goldens bound to live data
+    break on every content edit, which trains people to regenerate them
+    without reading the diff. The repository's own published artifacts are
+    covered separately by the ``output/`` freshness gate.
+
+    Output goes to a temporary directory, so running the suite never mutates
+    the committed tree.
     """
-    ctx = discover_project(explicit=ROOT_DIR, output_dir=tmp_output_dir)
+    ctx = discover_project(explicit=FIXTURE_PROJECT, output_dir=tmp_output_dir)
     generator_module.main(ctx)
 
 

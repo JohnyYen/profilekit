@@ -1,0 +1,28 @@
+{
+  "username": "Ada Lovelace",
+  "headline": "Mathematician | Analytical Engine Programmer",
+  "tagline": "Writing algorithms for machines that do not exist yet",
+  "description": "Mathematician working on general-purpose computation. Interested in symbolic manipulation, the limits of mechanical reasoning, and notation that makes hard ideas teachable.",
+  "location": "London, England",
+  "email": "ada@example.com",
+  "languages": [
+    "English",
+    "French"
+  ],
+  "currentFocus": [
+    {
+      "title": "General-purpose computation",
+      "description": "Showing the engine can operate on symbols, not just numbers."
+    },
+    {
+      "title": "Algorithm notation",
+      "description": "Describing a computation precisely enough to be executed."
+    }
+  ],
+  "whatIBuild": [
+    "Algorithms for mechanical computation",
+    "Annotated translations of technical papers",
+    "Notation for describing programs"
+  ],
+  "learningJourney": "Replace this with what you are learning right now. It is the section people read most and the easiest one to leave stale."
+}

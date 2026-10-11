@@ -27,16 +27,23 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 GOLDEN_DIR = REPO_ROOT / "tests" / "golden"
 
 
+FIXTURE_PROJECT = REPO_ROOT / "tests" / "fixtures" / "project"
+
+
 @pytest.fixture
 def project(tmp_path: Path) -> Path:
-    """A project over the repository's real canonical data."""
-    shutil.copytree(REPO_ROOT / "data", tmp_path / "data")
-    shutil.copytree(REPO_ROOT / "assets", tmp_path / "assets")
-    (tmp_path / "profile.toml").write_text("[project]\nconfig_version = 1\n", encoding="utf-8")
-    return tmp_path
+    """A writable copy of the fictional fixture project.
+
+    Driving the fictional persona rather than the owner's real data keeps the
+    suite free of a real person's details, and keeps these assertions stable
+    when the owner edits their own profile.
+    """
+    shutil.copytree(FIXTURE_PROJECT, tmp_path / "p")
+    return tmp_path / "p"
 
 
 def _write_config(project: Path, body: str) -> None:
+    """Replace the project's configuration, keeping the pinned CV date."""
     (project / "profile.toml").write_text(
         "[project]\nconfig_version = 1\n\n" + body, encoding="utf-8"
     )
@@ -67,7 +74,7 @@ def test_only_pinning_the_date_reproduces_the_committed_cv(project: Path) -> Non
     ``auto``, and a project that needs byte-identical output pins the date —
     which is exactly what this repository's profile.toml does.
     """
-    _write_config(project, '[generators.cv]\ncurrent_date = "2026-07-30"\n')
+    _write_config(project, '[generators.cv]\ncurrent_date = "2000-01-01"\n')
     produced = _generate(project, cv, "cv.yml")
     assert produced == (GOLDEN_DIR / "cv.yml").read_text(encoding="utf-8")
 
@@ -81,7 +88,7 @@ def test_custom_greeting_is_honored(project: Path) -> None:
     _write_config(project, '[generators.github-readme]\ngreeting = "Hey, {name} here."\n')
     produced = _generate(project, readme, "github-readme.md")
 
-    assert "Hey, Johny A. Pedraza Romero here." in produced
+    assert "Hey, Ada Lovelace here." in produced
     assert "Hi 👋" not in produced
 
 
@@ -132,11 +139,11 @@ def test_cv_current_date_defaults_to_auto_not_a_frozen_literal(project: Path) ->
     `auto` lets RenderCV resolve the date, and a project that needs a fixed
     one pins it explicitly — which is what the goldens do.
     """
-    _write_config(project, '[generators.cv]\ncurrent_date = "2000-01-01"\n')
+    _write_config(project, '[generators.cv]\ncurrent_date = "1843-07-10"\n')
     produced = _generate(project, cv, "cv.yml")
 
-    assert '"2000-01-01"' in produced
-    assert "2026-07-30" not in produced
+    assert '"1843-07-10"' in produced
+    assert "auto" not in produced
 
 
 def test_cv_rendercv_schema_version_is_configurable(project: Path) -> None:

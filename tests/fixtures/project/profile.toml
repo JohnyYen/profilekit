@@ -1,0 +1,30 @@
+# profilekit project configuration.
+# See the documentation for every available option.
+
+[project]
+config_version = 1
+
+[paths]
+data = "data"
+output = "output"
+assets = "assets"
+
+# A destination binds a name to a publisher kind. `filesystem` writes into a
+# directory inside this project — point it at whatever frontend reads the
+# generated JSON.
+#
+# [publishers.site-data]
+# kind = "filesystem"
+# destination = "site/src/data"
+
+# Some platforms expose no write API for profile fields. A `manual`
+# destination emits its artifact and reports the pending action rather than
+# claiming a publish it never performed.
+#
+# [publishers.linkedin]
+# kind = "manual"
+# artifacts = ["linkedin.md"]
+
+[generators.cv]
+# Pinned so golden snapshots stay reproducible regardless of when they run.
+current_date = "2000-01-01"

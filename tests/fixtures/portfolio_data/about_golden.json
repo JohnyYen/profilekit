@@ -1,21 +1,21 @@
 {
-  "username": "Johny A. Pedraza Romero",
-  "tagline": "Backend Engineer in Evolution",
-  "description": "Currently focused on building robust APIs and exploring software architecture patterns for scalable systems. Passionate about clean architecture, domain-driven design, and AI-augmented development workflows.",
+  "username": "Ada Lovelace",
+  "tagline": "Writing algorithms for machines that do not exist yet",
+  "description": "Mathematician working on general-purpose computation. Interested in symbolic manipulation, the limits of mechanical reasoning, and notation that makes hard ideas teachable.",
   "currentFocus": [
     {
-      "title": "Software Architecture",
-      "description": "Designing maintainable systems, understanding DDD, Clean Architecture, and system design principles."
+      "title": "General-purpose computation",
+      "description": "Showing the engine can operate on symbols, not just numbers."
     },
     {
-      "title": "AI Engineering",
-      "description": "Learning ML integration, building AI-powered features, and understanding LLM patterns."
+      "title": "Algorithm notation",
+      "description": "Describing a computation precisely enough to be executed."
     }
   ],
   "whatIBuild": [
-    "APIs with FastAPI & NestJS",
-    "Developer templates & boilerplates",
-    "Clean Architecture patterns"
+    "Algorithms for mechanical computation",
+    "Annotated translations of technical papers",
+    "Notation for describing programs"
   ],
-  "learningJourney": "Currently diving deep into system design and exploring how AI/ML can enhance developer productivity. Open to architecture discussions and collaboration!"
+  "learningJourney": "Replace this with what you are learning right now. It is the section people read most and the easiest one to leave stale."
 }

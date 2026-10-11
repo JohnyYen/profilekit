@@ -1,0 +1,14 @@
+[
+  {
+    "company": "Analytical Engine Project",
+    "position": "Collaborator",
+    "start_date": "1842-01",
+    "end_date": "1843-12",
+    "location": "London, England",
+    "summary": "Translated and annotated the first description of a general-purpose computer.",
+    "highlights": [
+      "Wrote Note G, the first published algorithm intended for a machine.",
+      "Argued the engine could manipulate symbols, not only numbers."
+    ]
+  }
+]

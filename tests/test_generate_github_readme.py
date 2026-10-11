@@ -44,9 +44,9 @@ def test_root_readme_not_written(tmp_path, monkeypatch):
 
 def test_render_header_contains_username():
     """render_header must include the username in the h1 tag."""
-    about = make_about({"username": "Johny", "tagline": "Backend Engineer"})
+    about = make_about({"username": "Ada", "tagline": "Backend Engineer"})
     result = gen.render_header(about)
-    assert "Johny" in result
+    assert "Ada" in result
     assert "<h1" in result
 
 
@@ -65,7 +65,7 @@ def test_render_header_falls_back_to_tagline():
 
 def test_render_header_h1_h2():
     """render_header returns a string with both <h1 align="center"> and <h2 align="center">."""
-    about = make_about({"username": "Johny", "headline": "Backend Architect"})
+    about = make_about({"username": "Ada", "headline": "Backend Architect"})
     result = gen.render_header(about)
     assert '<h1 align="center">' in result
     assert '<h2 align="center">' in result

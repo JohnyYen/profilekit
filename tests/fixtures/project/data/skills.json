@@ -1,0 +1,19 @@
+{
+  "categories": [
+    {
+      "label": "Mathematics",
+      "details": [
+        "Analysis",
+        "Number theory",
+        "Symbolic logic"
+      ]
+    },
+    {
+      "label": "Writing",
+      "details": [
+        "Technical translation",
+        "Annotation"
+      ]
+    }
+  ]
+}

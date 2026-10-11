@@ -1,66 +1,18 @@
 {
   "categories": [
     {
-      "label": "Back-end Frameworks",
+      "label": "Mathematics",
       "details": [
-        {"name": "NestJS", "icon": "nestjs"},
-        {"name": "FastAPI", "icon": "fastapi"},
-        {"name": ".NET", "icon": "dotnet"},
-        {"name": "Hono", "iconUrl": "https://devicons.railway.com/i/hono.svg"},
-        {"name": "Strapi", "iconUrl": "https://devicons.railway.com/i/strapi.svg"}
+        "Analysis",
+        "Number theory",
+        "Symbolic logic"
       ]
     },
     {
-      "label": "ERP Platforms",
+      "label": "Writing",
       "details": [
-        {"name": "Frappe", "iconUrl": "https://devicons.railway.com/i/frappe.svg"},
-        {"name": "ERPNext", "iconUrl": "https://devicons.railway.com/i/erpnext.svg"}
-      ]
-    },
-    {
-      "label": "Databases",
-      "details": [
-        {"name": "PostgreSQL", "icon": "postgres"},
-        {"name": "MongoDB", "icon": "mongodb"},
-        {"name": "Prisma ORM", "icon": "prisma"}
-      ]
-    },
-    {
-      "label": "Dev & Infrastructure",
-      "details": [
-        {"name": "Docker", "icon": "docker"},
-        {"name": "Git", "icon": "git"},
-        {"name": "GitHub Actions", "icon": "githubactions"},
-        {"name": "Vercel", "icon": "vercel"},
-        {"name": "GitHub", "icon": "github"},
-        {"name": "GitLab", "icon": "gitlab"}
-      ]
-    },
-    {
-      "label": "Languages",
-      "details": [
-        {"name": "TypeScript", "icon": "ts"},
-        {"name": "Python", "icon": "python"},
-        {"name": "C#", "icon": "cs"},
-        {"name": "JavaScript", "icon": "js"}
-      ]
-    },
-    {
-      "label": "Software Design",
-      "details": [
-        "Clean Architecture",
-        "Domain-Driven Design",
-        "SOLID Principles",
-        "Design Patterns",
-        "C4 Model",
-        "MVC"
-      ]
-    },
-    {
-      "label": "AI-Driven Development",
-      "details": [
-        "Spec-Driven Development (SDD)",
-        "AI Gentle Stack"
+        "Technical translation",
+        "Annotation"
       ]
     }
   ]
