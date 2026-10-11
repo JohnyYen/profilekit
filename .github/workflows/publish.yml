@@ -1,0 +1,66 @@
+name: Publish Profile Artifacts
+
+# Runs only when the generated artifacts actually change. Publishing on every
+# commit would make this job noise, and noise gets ignored or switched off.
+#
+# Kept separate from validate.yml on purpose: a correctness gate that can also
+# write to a destination is no longer a gate.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "output/**"
+      - "profile.toml"
+      - ".github/workflows/publish.yml"
+  workflow_dispatch:
+    inputs:
+      execute:
+        description: "Actually publish. Leave unchecked for a dry run."
+        type: boolean
+        required: false
+        default: false
+
+# Read-only by default. A destination that needs more declares its own
+# credential in profile.toml and receives it from secrets below.
+permissions:
+  contents: read
+
+concurrency:
+  # Two publish runs racing on the same destination would interleave writes.
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      # Reachability probes are non-fatal and skipped in CI to avoid flakiness.
+      SKIP_ICON_CHECK: "1"
+      SKIP_LINK_CHECK: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install
+        run: uv sync --extra dev
+
+      # Always show the plan first, including on an execute run. The log then
+      # records what was about to happen even if the write step fails.
+      - name: Plan (dry run)
+        run: uv run profile publish all
+
+      - name: Publish
+        # A push to main publishes. A manual run publishes only when the
+        # operator explicitly asked for it.
+        if: >-
+          github.event_name == 'push' ||
+          (github.event_name == 'workflow_dispatch' && inputs.execute)
+        # No --require-credentials: a fork has none of the maintainer's
+        # secrets, and an absent credential must skip its destination rather
+        # than fail the job. Otherwise every fork's CI is permanently red
+        # through no fault of its own.
+        run: uv run profile publish all --execute

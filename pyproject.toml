@@ -26,7 +26,17 @@ requires-python = ">=3.11"
 dependencies = ["jsonschema>=4"]
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "ruff>=0.4", "mypy>=1.10", "pytest-cov>=5", "pre-commit>=3"]
+# pyyaml is a dev dependency because the CI-workflow tests parse the
+# workflow YAML. Without it declared they would silently skip, and a
+# skipped test that reads as green is worse than a failing one.
+dev = [
+    "pytest>=8",
+    "ruff>=0.4",
+    "mypy>=1.10",
+    "pytest-cov>=5",
+    "pre-commit>=3",
+    "pyyaml>=6",
+]
 
 [project.urls]
 Homepage = "https://github.com/JohnyYen/profile-data"

@@ -1,0 +1,108 @@
+name: Release
+
+# Tag-triggered only. Publishing a package version is irreversible: the name
+# and that exact version number are claimed on PyPI forever, and a version
+# cannot be reused even after a yank. A push to main must never be able to
+# claim one by accident.
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install
+        run: uv sync --extra dev
+
+      # The full gate runs before anything is built. A release is the one
+      # artifact that cannot be corrected in place.
+      - name: Quality gates
+        env:
+          SKIP_ICON_CHECK: "1"
+          SKIP_LINK_CHECK: "1"
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+          uv run mypy
+          uv run pytest -q
+
+      - name: Build
+        run: uv build
+
+      - name: Verify the tag matches the package version
+        # A tag that disagrees with pyproject.toml would publish a version
+        # nobody tagged, which is unfixable once it is on the index.
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          VERSION=$(uv run python -c \
+            "import tomllib;print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")
+          if [ "$TAG" != "$VERSION" ]; then
+            echo "tag $TAG does not match pyproject version $VERSION" >&2
+            exit 1
+          fi
+
+      - name: Smoke test the built wheel outside any checkout
+        # Installing from the wheel in a bare directory is the only way to
+        # catch a packaging mistake that a working checkout hides.
+        run: |
+          python -m venv /tmp/release-smoke
+          /tmp/release-smoke/bin/pip install --quiet dist/*.whl
+          mkdir -p /tmp/release-smoke-project
+          cd /tmp/release-smoke-project
+          /tmp/release-smoke/bin/profile init
+          SKIP_ICON_CHECK=1 SKIP_LINK_CHECK=1 /tmp/release-smoke/bin/profile validate
+          SKIP_ICON_CHECK=1 SKIP_LINK_CHECK=1 /tmp/release-smoke/bin/profile generate
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  testpypi:
+    # Rehearse on TestPyPI first. A version number cannot be reused, so the
+    # real index is the wrong place to discover a metadata problem.
+    needs: build
+    runs-on: ubuntu-latest
+    environment: testpypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publish to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          skip-existing: true
+
+  pypi:
+    needs: testpypi
+    runs-on: ubuntu-latest
+    # A protected environment means a human approves the irreversible step.
+    environment: pypi
+    permissions:
+      # Trusted publishing: no long-lived token is stored anywhere.
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
