@@ -93,8 +93,8 @@ no task — no git-push publisher or PR automation is introduced.
 
 - [x] 4.1 RED: `test_discovery_precedence` — flag > `PROFILEKIT_PROJECT` env > upward `profile.toml` walk > exit 2 with the documented message; nested and no-config cases.
 - [x] 4.2 GREEN: add `context.py` (`ProjectContext`, `discover_project()` per D2); symlink-resolved walk stops at `/`.
-- [ ] 4.3 RED: `test_profile_toml_overrides_paths` — custom `output_dir` honored; unknown top-level key → `ConfigError`; unknown `[generators.X]` key passes through.
-- [ ] 4.4 GREEN: add `config.py` parsing the D3 four-section `profile.toml`.
+- [x] 4.3 RED: `test_profile_toml_overrides_paths` — custom `output_dir` honored; unknown top-level key → `ConfigError`; unknown `[generators.X]` key passes through.
+- [x] 4.4 GREEN: add `config.py` parsing the D3 four-section `profile.toml`.
 - [ ] 4.5 REFACTOR (mechanical, one commit): thread `ctx: ProjectContext` through `utils.py`, `cli.py`, `validate.py`, `generate_cv.py`, `generate_github_readme.py`, `generate_linkedin.py`, `generate_portfolio.py`; delete the `SCRIPT_DIR`/`ROOT_DIR`/`OUTPUT_DIR`/`DATA_DIR`/`SCHEMAS_DIR` constants (D2 table); switch monkeypatch tests to `ProjectContext`-over-`tmp_path`.
 - [ ] 4.6 RED: `test_init_in_empty_directory` — `profile init` creates `profile.toml` + example `data/` with no maintainer name/email/handle.
 - [ ] 4.7 GREEN: implement `profile init`.

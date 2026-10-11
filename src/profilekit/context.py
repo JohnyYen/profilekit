@@ -18,10 +18,11 @@ did not ask for. Failing with an actionable message is the better outcome.
 from __future__ import annotations
 
 import os
-import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+
+from profilekit.config import ConfigError, load_config
 
 CONFIG_FILENAME = "profile.toml"
 PROJECT_ENV_VAR = "PROFILEKIT_PROJECT"
@@ -37,12 +38,6 @@ class ProjectNotFoundError(Exception):
     Carries the exit code the CLI should use, so the caller does not have to
     remember which number means "the user needs to do something".
     """
-
-    exit_code = 2
-
-
-class ConfigError(Exception):
-    """Raised when a ``profile.toml`` exists but cannot be honored."""
 
     exit_code = 2
 
@@ -83,14 +78,6 @@ class ProjectContext:
         if not isinstance(publishers, dict):
             return {}
         return {name: dict(table) for name, table in publishers.items() if isinstance(table, dict)}
-
-
-def _load_config(path: Path) -> dict[str, Any]:
-    try:
-        with open(path, "rb") as handle:
-            return tomllib.load(handle)
-    except tomllib.TOMLDecodeError as exc:
-        raise ConfigError(f"{path}: invalid TOML: {exc}") from exc
 
 
 def _find_upwards(start: Path) -> Path | None:
@@ -160,7 +147,7 @@ def discover_project(
     beats ``[paths]`` in ``profile.toml``, which beats the convention.
     """
     root = _resolve_root(explicit, cwd)
-    config = _load_config(root / CONFIG_FILENAME)
+    config = load_config(root / CONFIG_FILENAME)
 
     paths = config.get("paths")
     paths = paths if isinstance(paths, dict) else {}
