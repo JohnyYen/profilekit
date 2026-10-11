@@ -85,7 +85,10 @@ jobs:
           path: dist/
 
       - name: Publish to TestPyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+        # Pinned to a commit rather than the mutable `release/v1` branch: this
+        # job holds id-token: write, so whatever that ref points to at run
+        # time could mint a trusted-publishing token.
+        uses: pypa/gh-action-pypi-publish@76f52bc884231f62b9a034ebfe128415bbaabdfc # v1.12.4
         with:
           repository-url: https://test.pypi.org/legacy/
           skip-existing: true
@@ -105,4 +108,13 @@ jobs:
           path: dist/
 
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+        # Pinned for the same reason as the rehearsal step, and more so: this
+        # is the one irreversible action in the repository.
+        uses: pypa/gh-action-pypi-publish@76f52bc884231f62b9a034ebfe128415bbaabdfc # v1.12.4
+        with:
+          # Retry safety. If the upload partly succeeds — the wheel accepted,
+          # the sdist failing on a transient error — a re-run without this is
+          # rejected because the file already exists. The version cannot be
+          # reused, so the release would be left half-published with no
+          # fix-forward path inside the workflow.
+          skip-existing: true

@@ -1,7 +1,22 @@
-name: Publish Profile Artifacts
+name: Verify Publish Destinations
 
-# Runs only when the generated artifacts actually change. Publishing on every
-# commit would make this job noise, and noise gets ignored or switched off.
+# What this job can and cannot do, stated plainly, because the distinction is
+# easy to get wrong:
+#
+# The two destination kinds that ship with profilekit are `filesystem` and
+# `manual`. A `filesystem` destination writes *inside the project directory*,
+# which on a runner is a throwaway checkout — the write is discarded when the
+# job ends. A `manual` destination is a human's job by definition.
+#
+# So this job does NOT publish on a push. It verifies that the committed
+# destinations already match the canonical data, which is the question CI can
+# actually answer. Publishing a filesystem destination happens locally,
+# followed by a commit; `profile check` is what guarantees the two agree.
+#
+# `--execute` is available through a manual dispatch, for a project that has
+# wired a genuinely remote destination. An earlier version of this file ran
+# `--execute` automatically on every push to main, which reported destinations
+# as published while nothing durable changed.
 #
 # Kept separate from validate.yml on purpose: a correctness gate that can also
 # write to a destination is no longer a gate.
@@ -11,17 +26,18 @@ on:
     paths:
       - "output/**"
       - "profile.toml"
+      - "data/**"
       - ".github/workflows/publish.yml"
   workflow_dispatch:
     inputs:
       execute:
-        description: "Actually publish. Leave unchecked for a dry run."
+        description: >-
+          Actually publish. Only meaningful for a remote destination: a
+          filesystem write lands in the runner's throwaway checkout.
         type: boolean
         required: false
         default: false
 
-# Read-only by default. A destination that needs more declares its own
-# credential in profile.toml and receives it from secrets below.
 permissions:
   contents: read
 
@@ -31,7 +47,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  publish:
+  verify:
     runs-on: ubuntu-latest
     env:
       # Reachability probes are non-fatal and skipped in CI to avoid flakiness.
@@ -48,19 +64,28 @@ jobs:
       - name: Install
         run: uv sync --extra dev
 
-      # Always show the plan first, including on an execute run. The log then
-      # records what was about to happen even if the write step fails.
+      # Run the gate before anything else. Publishing output that is stale or
+      # invalid would otherwise be possible in parallel with the validation
+      # workflow that would have rejected it.
+      - name: Check (data, output freshness, destination drift)
+        run: uv run profile check
+
+      # Always show the plan, including on an execute run, so the log records
+      # what was about to happen even if a later step fails.
       - name: Plan (dry run)
         run: uv run profile publish all
 
       - name: Publish
-        # A push to main publishes. A manual run publishes only when the
-        # operator explicitly asked for it.
-        if: >-
-          github.event_name == 'push' ||
-          (github.event_name == 'workflow_dispatch' && inputs.execute)
+        # Manual dispatch only, and only when explicitly requested. A push
+        # cannot reach this step: there is nothing durable for it to write.
+        if: github.event_name == 'workflow_dispatch' && inputs.execute
         # No --require-credentials: a fork has none of the maintainer's
         # secrets, and an absent credential must skip its destination rather
         # than fail the job. Otherwise every fork's CI is permanently red
         # through no fault of its own.
+        #
+        # No secrets are mapped in here yet because no credentialed
+        # destination is declared. Add both together: a destination that
+        # declares `[publishers.X.credential]` needs its variable passed in an
+        # `env:` block on this step, or it will skip silently.
         run: uv run profile publish all --execute

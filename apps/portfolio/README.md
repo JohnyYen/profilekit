@@ -50,7 +50,7 @@ canonical data, so the two cannot silently disagree.
 ```sh
 pnpm install
 pnpm dev          # http://localhost:3000
-pnpm exec next build
+pnpm build
 ```
 
 Node 22 and pnpm 10. The app is built in CI by

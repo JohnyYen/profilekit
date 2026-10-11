@@ -19,6 +19,8 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
+import pytest
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 #: Suffixes that are never executable. A `.md` file with the bit set is wrong
@@ -71,15 +73,30 @@ def _tracked_modes() -> list[tuple[str, str]]:
 
 
 def test_there_are_tracked_files_to_check() -> None:
-    """Guard the guard: an empty listing would pass while proving nothing."""
-    assert len(_tracked_modes()) > 50
+    """Guard the guard: an empty listing would let the mode check pass vacuously.
+
+    Skips with a reason when git cannot answer — an sdist, a tarball, or a
+    container that trips git's dubious-ownership check are all legitimate
+    places to run the suite, and failing there would say nothing useful.
+    """
+    tracked = _tracked_modes()
+    if not tracked:
+        pytest.skip("not a usable git checkout: file modes cannot be inspected")
+
+    # This repository tracks a few hundred files; a listing in the single
+    # digits would mean git answered with something unexpected.
+    assert len(tracked) > 50, f"git listed only {len(tracked)} tracked files"
 
 
 def test_no_stray_executable_bits() -> None:
     """No file whose type cannot be executed may be mode 100755."""
+    tracked = _tracked_modes()
+    if not tracked:
+        pytest.skip("not a usable git checkout: file modes cannot be inspected")
+
     offenders = [
         path
-        for mode, path in _tracked_modes()
+        for mode, path in tracked
         if mode == "100755"
         and (
             Path(path).suffix in NON_EXECUTABLE_SUFFIXES or Path(path).name in NON_EXECUTABLE_NAMES
@@ -89,7 +106,8 @@ def test_no_stray_executable_bits() -> None:
     assert not offenders, (
         f"{len(offenders)} tracked files carry an executable bit they cannot use: "
         f"{offenders[:10]}{'…' if len(offenders) > 10 else ''}. "
-        "Clear them with `git update-index --chmod=-x <path>`."
+        "Clear them on disk with `chmod -x <path>` — `git update-index "
+        "--chmod=-x` only touches the index and is undone by the next `git add`."
     )
 
 

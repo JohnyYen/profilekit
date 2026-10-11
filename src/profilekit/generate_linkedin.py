@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Generate a full LinkedIn profile from canonical profile data."""
 
 import sys

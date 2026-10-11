@@ -38,7 +38,7 @@ cv:
         highlights:
           - Developed the backend for a foodie community platform using .NET, applying a scalable architecture design based on Clean Architecture and a generalization-oriented development approach.
           - Developed a backend using FastAPI for a photo monetization mobile application, integrated with an OCR model for image interpretation and analysis.
-      
+
       - company: Avangenio
         position: Frappe Developer
         date:

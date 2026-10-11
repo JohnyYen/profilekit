@@ -1,8 +1,8 @@
 # Archive Report: portfolio-data-integration
 
-**Date**: 2026-09-05  
-**Change**: portfolio-data-integration  
-**Artifact Store**: openspec  
+**Date**: 2026-09-05
+**Change**: portfolio-data-integration
+**Artifact Store**: openspec
 **Status**: ARCHIVED
 
 ---

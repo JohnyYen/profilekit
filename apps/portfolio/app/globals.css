@@ -6,22 +6,22 @@
   --terminal-bg-secondary: #252526;
   --terminal-bg-elevated: #2d2d2d;
   --terminal-border: #3c3c3c;
-  
+
   /* Starship-inspired accent colors */
   --starship-green: #26e08d;
   --starship-cyan: #36d1ea;
   --starship-yellow: #f5a524;
   --starship-red: #ed5a5a;
   --starship-purple: #b392f0;
-  
+
   /* Text hierarchy */
   --text-primary: #e4e4e4;
   --text-secondary: #888888;
   --text-muted: #555555;
-  
+
   /* Typography */
   --font-mono: 'JetBrains Mono', 'SF Mono', 'Cascadia Code', 'Fira Code', Consolas, monospace;
-  
+
   /* Spacing */
   --line-height: 1.6;
 }
@@ -405,32 +405,32 @@ body {
   html {
     font-size: 13px;
   }
-  
+
   .terminal-window {
     border-radius: 0;
     height: 100vh;
   }
-  
+
   /* Increase touch targets for mobile */
   .traffic-light {
     width: 16px;
     height: 16px;
   }
-  
+
   .terminal-header {
     padding: 16px 20px;
   }
-  
+
   .terminal-input-container {
     padding: 8px 20px;
   }
-  
+
   /* Make output more readable on small screens */
   .Output {
     font-size: 14px;
     line-height: 1.5;
   }
-  
+
   /* Improve input usability */
   input[aria-label="Terminal input"] {
     font-size: 16px;

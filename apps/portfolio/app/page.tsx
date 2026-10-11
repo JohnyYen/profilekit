@@ -5,7 +5,7 @@ import Terminal from './components/terminal/terminal';
 
 export default function Home() {
   return (
-    <Terminal 
+    <Terminal
       username="visitor"
       hostname="portfolio"
     />

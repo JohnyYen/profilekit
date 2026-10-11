@@ -158,7 +158,7 @@ no task — no git-push publisher or PR automation is introduced.
 - [x] 9.1 RED: `test_no_publish_without_output_change` — a diff touching only non-output paths does not trigger the publish job.
 - [x] 9.2 GREEN: add `.github/workflows/publish.yml` gated on `on.push.paths: ["output/**"]` to `main`.
 - [x] 9.3 RED: `test_missing_secret_skips_not_fails`.
-- [x] 9.4 GREEN: wire `profile publish all --live` in `publish.yml`; missing-credential skip (8.12) must not fail the job.
+- [x] 9.4 GREEN: wire `profile publish all --execute` in `publish.yml` (the flag was named `--live` when this task was written; it shipped as `--execute`); missing-credential skip (8.12) must not fail the job.
 - [x] 9.5 RED: `test_validate_workflow_never_publishes` — grep `validate.yml` for any publish invocation/credential env; none present.
 - [x] 9.6 GREEN: confirm `validate.yml` stays secret-free and publish-free; add the grep as a CI meta-test.
 - [x] 9.7 GREEN: add `workflow_dispatch` input to `publish.yml` defaulting to dry-run.

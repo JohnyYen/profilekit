@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Generate RenderCV-compatible YAML and human-readable markdown CV from canonical profile data."""
 
 from pathlib import Path

@@ -21,7 +21,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
+import yaml
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 WORKFLOWS = REPO_ROOT / ".github" / "workflows"
@@ -37,7 +37,6 @@ def _text(path: Path) -> str:
 
 
 def _yaml(path: Path) -> dict:
-    yaml = pytest.importorskip("yaml")
     return yaml.safe_load(_text(path))
 
 
@@ -127,6 +126,41 @@ def test_publish_runs_the_cli_not_an_inline_script() -> None:
     """The workflow must exercise the same code path a user runs locally."""
     text = _text(PUBLISH)
     assert "profile publish" in text or "profilekit.cli publish" in text
+
+
+def test_publish_checks_before_it_plans() -> None:
+    """Stale or invalid output must not reach a destination.
+
+    Without this, a push whose output is stale could be published in parallel
+    with the validation run that would have rejected it.
+    """
+    lines = [line.strip() for line in _text(PUBLISH).splitlines()]
+    check_at = next(i for i, line in enumerate(lines) if "profile check" in line)
+    publish_at = next(i for i, line in enumerate(lines) if "profile publish" in line)
+
+    assert check_at < publish_at, "`profile check` must run before any publish step"
+
+
+def test_a_push_cannot_execute_a_publish() -> None:
+    """A filesystem write on a runner lands in a checkout that is thrown away.
+
+    An earlier version executed on every push to main, which reported
+    destinations as published while nothing durable changed. Publishing a
+    filesystem destination happens locally and is then committed; CI verifies
+    the two agree.
+    """
+    config = _yaml(PUBLISH)
+    steps = config["jobs"]["verify"]["steps"]
+
+    execute_steps = [s for s in steps if "--execute" in str(s.get("run", ""))]
+    assert execute_steps, "the workflow must still offer a manual publish"
+
+    for step in execute_steps:
+        condition = str(step.get("if", ""))
+        assert "workflow_dispatch" in condition, (
+            "an --execute step must be reachable only by manual dispatch"
+        )
+        assert "push" not in condition, "a push must not execute a publish"
 
 
 # ---------------------------------------------------------------------------

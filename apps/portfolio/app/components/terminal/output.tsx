@@ -69,7 +69,7 @@ export default function Output({ lines, typingSpeed = 2 }: OutputProps) {
 
     // Check if there are new lines to process
     const lastLineIndex = lines.length - 1;
-    
+
     if (lastLineIndex > lastProcessedIndex.current) {
       // Add new line to displayedLines
       setDisplayedLines(prev => {
@@ -82,7 +82,7 @@ export default function Output({ lines, typingSpeed = 2 }: OutputProps) {
         }
         return newLines;
       });
-      
+
       // Start typing animation for the new line
       setCurrentTyping({ lineIndex: lastLineIndex, charIndex: 0 });
     }
@@ -116,7 +116,7 @@ export default function Output({ lines, typingSpeed = 2 }: OutputProps) {
     if (charIndex < line.content.length) {
       const timeout = setTimeout(() => {
         setCurrentTyping({ lineIndex, charIndex: charIndex + 1 });
-        
+
         setDisplayedLines(prev => {
           const newLines = [...prev];
           newLines[lineIndex] = {
@@ -164,7 +164,7 @@ export default function Output({ lines, typingSpeed = 2 }: OutputProps) {
   };
 
   return (
-    <div 
+    <div
       ref={outputRef}
       className="space-y-0.5"
       role="log"
@@ -177,7 +177,7 @@ export default function Output({ lines, typingSpeed = 2 }: OutputProps) {
         }
 
         const isTyping = isTypingThisLine(index);
-        let displayContent = isTyping 
+        let displayContent = isTyping
           ? (line.content || '').substring(0, currentTyping?.charIndex || 0)
           : (line.content || '');
 
@@ -192,9 +192,9 @@ export default function Output({ lines, typingSpeed = 2 }: OutputProps) {
             }
             return url;
           });
-          
+
           return (
-            <div 
+            <div
               key={`${line.timestamp || index}-${index}`}
               className={`${getLineClass(line.type)} whitespace-pre-wrap break-words relative cursor-select-text`}
               onClick={() => copyToClipboard(line.content)}
@@ -206,7 +206,7 @@ export default function Output({ lines, typingSpeed = 2 }: OutputProps) {
         }
 
         return (
-          <div 
+          <div
             key={`${line.timestamp || index}-${index}`}
             className={`${getLineClass(line.type)} whitespace-pre-wrap break-words relative cursor-select-text`}
             onClick={() => copyToClipboard(line.content)}

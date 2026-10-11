@@ -1,8 +1,8 @@
 # Archive Report: repo-quality-gates
 
-**Date**: 2026-09-05  
-**Status**: ARCHIVED  
-**Mode**: openspec  
+**Date**: 2026-09-05
+**Status**: ARCHIVED
+**Mode**: openspec
 
 ## Executive Summary
 
@@ -129,6 +129,6 @@ The `repo-quality-gates` change is now closed and audited. All implementation ta
 
 ---
 
-**Archived by**: sdd-archive phase  
-**Archive date**: 2026-09-05  
+**Archived by**: sdd-archive phase
+**Archive date**: 2026-09-05
 **Archival mode**: openspec (filesystem + source-of-truth merge)

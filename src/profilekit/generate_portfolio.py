@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Generate a portfolio markdown page from canonical profile data."""
 
 import sys

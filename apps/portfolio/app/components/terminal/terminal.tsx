@@ -24,10 +24,10 @@ interface TerminalProps {
   onReady?: () => void;
 }
 
-export default function Terminal({ 
-  username = 'visitor', 
+export default function Terminal({
+  username = 'visitor',
   hostname = 'portfolio',
-  onReady 
+  onReady
 }: TerminalProps) {
   const [outputLines, setOutputLines] = useState<OutputLine[]>([]);
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
@@ -173,25 +173,25 @@ export default function Terminal({
 
   const getHistoryUp = useCallback(() => {
     if (commandHistory.length === 0) return null;
-    
-    const newIndex = historyIndex < 0 
-      ? commandHistory.length - 1 
+
+    const newIndex = historyIndex < 0
+      ? commandHistory.length - 1
       : Math.max(0, historyIndex - 1);
-    
+
     setHistoryIndex(newIndex);
     return commandHistory[newIndex];
   }, [commandHistory, historyIndex]);
 
   const getHistoryDown = useCallback(() => {
     if (commandHistory.length === 0 || historyIndex < 0) return null;
-    
+
     const newIndex = historyIndex + 1;
-    
+
     if (newIndex >= commandHistory.length) {
       setHistoryIndex(-1);
       return '';
     }
-    
+
     setHistoryIndex(newIndex);
     return commandHistory[newIndex];
   }, [commandHistory, historyIndex]);
@@ -223,7 +223,7 @@ export default function Terminal({
   };
 
   return (
-    <div 
+    <div
       className="h-screen w-full bg-[var(--terminal-bg)] flex flex-col"
       onClick={handleTerminalClick}
     >
@@ -233,23 +233,23 @@ export default function Terminal({
         <div className="terminal-header">
           {/* Traffic lights */}
           <div className="flex items-center gap-2.5">
-            <button 
-              className="traffic-light close" 
+            <button
+              className="traffic-light close"
               aria-label="Close"
               onClick={(e) => e.preventDefault()}
             />
-            <button 
-              className="traffic-light minimize" 
+            <button
+              className="traffic-light minimize"
               aria-label="Minimize"
               onClick={(e) => e.preventDefault()}
             />
-            <button 
-              className="traffic-light maximize" 
+            <button
+              className="traffic-light maximize"
               aria-label="Maximize"
               onClick={(e) => e.preventDefault()}
             />
           </div>
-          
+
           {/* Terminal title */}
           <div className="terminal-title">
             <span style={{ color: 'var(--starship-cyan)' }}>⌘</span>
@@ -264,13 +264,13 @@ export default function Terminal({
               </span>
             )}
           </div>
-          
+
           {/* Spacer for centering */}
           <div className="w-14" />
         </div>
-        
+
         {/* Terminal Content */}
-        <div 
+        <div
           ref={terminalRef}
           className="flex-1 overflow-y-auto p-0"
         >
@@ -307,7 +307,7 @@ export default function Terminal({
                 )}
 
                 <Output lines={outputLines} typingSpeed={2} />
-                
+
                 {/* Input area */}
                 {isReady && (
                   <div className="terminal-input-container mt-1">
@@ -319,7 +319,7 @@ export default function Terminal({
                       onHistoryUp={getHistoryUp}
                       onHistoryDown={getHistoryDown}
                       promptComponent={
-                        <Prompt 
+                        <Prompt
                           username={username}
                           hostname={hostname}
                           currentPath={currentPath}

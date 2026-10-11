@@ -170,11 +170,11 @@ const commands: Command[] = [
     name: 'about',
     description: 'Learn about me',
     handler: () => {
-      const focusLines = aboutData.currentFocus.map(f => 
+      const focusLines = aboutData.currentFocus.map(f =>
         `   • ${f.title} - ${f.description}`
       ).join('\n');
-      
-      const buildLines = aboutData.whatIBuild.map(item => 
+
+      const buildLines = aboutData.whatIBuild.map(item =>
         `   • ${item}`
       ).join('\n');
 
@@ -579,17 +579,17 @@ export function executeCommand(parsed: ParsedCommand, history?: string[], contex
   }
 
   // Find command by name or alias
-  const cmd = commands.find(c => 
+  const cmd = commands.find(c =>
     c.name === command || c.aliases?.includes(command)
   );
 
   if (!cmd) {
     // Improved command not found message with suggestions
     const available = getAvailableCommands();
-    const similar = available.filter(c => 
+    const similar = available.filter(c =>
       c.length > 2 && (c.startsWith(command[0]) || command.includes(c))
     ).slice(0, 3);
-    
+
     return {
       output: [
         `╭─ Command not found ─────────────────────────────`,
@@ -613,7 +613,7 @@ export function executeCommand(parsed: ParsedCommand, history?: string[], contex
 // Get command suggestions for autocomplete
 export function getCommandSuggestions(partial: string): string[] {
   const available = getAvailableCommands();
-  return available.filter(cmd => 
+  return available.filter(cmd =>
     cmd.toLowerCase().startsWith(partial.toLowerCase())
   ).slice(0, 5);
 }

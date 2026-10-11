@@ -174,7 +174,7 @@ No data migration required.
 ## Traceability
 
 - **Proposal**: `openspec/changes/archive/2026-09-04-rich-github-readme/proposal.md`
-- **Specs**: 
+- **Specs**:
   - `openspec/specs/github-readme-generation/spec.md`
   - `openspec/specs/skills-data-model/spec.md`
   - (Archived copies also in change folder)

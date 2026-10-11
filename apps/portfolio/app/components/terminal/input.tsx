@@ -13,9 +13,9 @@ interface InputProps {
   promptComponent?: React.ReactNode;
 }
 
-export default function Input({ 
-  onSubmit, 
-  commands, 
+export default function Input({
+  onSubmit,
+  commands,
   commandHistory,
   onHistoryUp,
   onHistoryDown,
@@ -33,7 +33,7 @@ export default function Input({
 
   useEffect(() => {
     if (inputValue.trim()) {
-      const filtered = commands.filter(cmd => 
+      const filtered = commands.filter(cmd =>
         cmd.toLowerCase().startsWith(inputValue.toLowerCase())
       ).slice(0, 5);
       setSuggestions(filtered);
@@ -92,7 +92,7 @@ export default function Input({
       case 'ArrowUp':
         e.preventDefault();
         if (showSuggestions) {
-          setSelectedSuggestion(prev => 
+          setSelectedSuggestion(prev =>
             prev > 0 ? prev - 1 : suggestions.length - 1
           );
         } else {
@@ -106,7 +106,7 @@ export default function Input({
       case 'ArrowDown':
         e.preventDefault();
         if (showSuggestions) {
-          setSelectedSuggestion(prev => 
+          setSelectedSuggestion(prev =>
             prev < suggestions.length - 1 ? prev + 1 : 0
           );
         } else {
@@ -134,7 +134,7 @@ export default function Input({
       <div className="flex items-center">
         {/* Prompt */}
         {promptComponent}
-        
+
         {/* Input */}
         <div className="flex-1 relative flex items-center">
           <input
@@ -157,12 +157,12 @@ export default function Input({
             autoCapitalize="off"
             spellCheck="false"
           />
-          
+
           {/* Custom cursor */}
-          <span 
+          <span
             ref={cursorRef}
             className="absolute top-1/2 -translate-y-1/2 inline-block w-[8px] h-[18px] bg-[var(--starship-green)] cursor-blink pointer-events-none"
-            style={{ 
+            style={{
               left: `${getCursorPosition()}px`,
             }}
             aria-hidden="true"
@@ -172,7 +172,7 @@ export default function Input({
 
       {/* Suggestions dropdown */}
       {showSuggestions && suggestions.length > 0 && (
-        <div 
+        <div
           className="absolute left-0 top-full mt-2 z-10 min-w-[200px]"
           style={{
             backgroundColor: 'var(--terminal-bg)',
@@ -180,7 +180,7 @@ export default function Input({
             borderRadius: '4px',
           }}
         >
-          <div 
+          <div
             className="px-3 py-1.5 text-xs"
             style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--text-muted)' }}
           >
@@ -190,8 +190,8 @@ export default function Input({
             <div
               key={suggestion}
               className={`px-3 py-1.5 cursor-pointer flex items-center gap-2 ${
-                index === selectedSuggestion 
-                  ? 'text-[var(--text-primary)]' 
+                index === selectedSuggestion
+                  ? 'text-[var(--text-primary)]'
                   : 'text-[var(--text-secondary)]'
               }`}
               style={{

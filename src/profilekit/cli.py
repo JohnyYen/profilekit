@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Unified command-line interface for profilekit.
 
 A thin orchestration layer over the generators and publishers — it adds no

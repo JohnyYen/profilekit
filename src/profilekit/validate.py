@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Validate all data/*.json files against schemas/*.schema.json using jsonschema."""
 
 import importlib.resources

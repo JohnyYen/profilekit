@@ -15,6 +15,7 @@ import re
 from pathlib import Path
 
 import pytest
+import yaml
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 README = REPO_ROOT / "README.md"
@@ -130,7 +131,6 @@ def test_hooks_run_without_uv() -> None:
     The previous configuration shelled out to `uv run`, so the first commit
     from a pip-based environment failed with no obvious cause.
     """
-    yaml = pytest.importorskip("yaml")
     config = yaml.safe_load(PRE_COMMIT.read_text(encoding="utf-8"))
 
     offenders = []
@@ -144,15 +144,25 @@ def test_hooks_run_without_uv() -> None:
 
 
 def test_hooks_do_not_depend_on_the_network_for_data_checks() -> None:
-    """A commit must work offline and not depend on third-party uptime."""
-    yaml = pytest.importorskip("yaml")
-    config = yaml.safe_load(PRE_COMMIT.read_text(encoding="utf-8"))
+    """A commit must work offline and not depend on third-party uptime.
 
+    The switches have to be set inline in `entry`, not in a hook-level `env:`
+    mapping. `env:` is not a key pre-commit supports — it warns about unknown
+    keys and ignores them — so asserting on `env` would pass while the
+    variables never reached the process. An earlier version of this test did
+    exactly that, and the review caught it.
+    """
+    config = yaml.safe_load(PRE_COMMIT.read_text(encoding="utf-8"))
     local = next(repo for repo in config["repos"] if repo["repo"] == "local")
+
     for hook in local["hooks"]:
-        env = hook.get("env", {})
-        assert env.get("SKIP_ICON_CHECK") == "1", f"{hook['id']} must skip network probes"
-        assert env.get("SKIP_LINK_CHECK") == "1", f"{hook['id']} must skip network probes"
+        assert "env" not in hook, (
+            f"{hook['id']}: a hook-level `env:` mapping is silently ignored by "
+            "pre-commit; set the variables inline in `entry`"
+        )
+        entry = hook["entry"]
+        for variable in ("SKIP_ICON_CHECK=1", "SKIP_LINK_CHECK=1"):
+            assert variable in entry, f"{hook['id']} must set {variable} in its entry"
 
 
 def test_contributing_documents_the_hook_install() -> None:
