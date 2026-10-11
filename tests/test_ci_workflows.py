@@ -134,9 +134,15 @@ def test_publish_checks_before_it_plans() -> None:
     Without this, a push whose output is stale could be published in parallel
     with the validation run that would have rejected it.
     """
-    lines = [line.strip() for line in _text(PUBLISH).splitlines()]
-    check_at = next(i for i, line in enumerate(lines) if "profile check" in line)
-    publish_at = next(i for i, line in enumerate(lines) if "profile publish" in line)
+    # Inspect parsed steps, not raw lines. A line scan resolves to the header
+    # comment, which names `profile check` long before any step — so the test
+    # would pass even if the step were deleted. That is exactly the vacuity
+    # this file is supposed to be guarding against.
+    steps = _yaml(PUBLISH)["jobs"]["verify"]["steps"]
+    runs = [str(step.get("run", "")) for step in steps]
+
+    check_at = next(i for i, run in enumerate(runs) if "profile check" in run)
+    publish_at = next(i for i, run in enumerate(runs) if "profile publish" in run)
 
     assert check_at < publish_at, "`profile check` must run before any publish step"
 

@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 from collections.abc import Mapping
@@ -215,8 +216,12 @@ def _published_artifacts_are_valid(ctx: ProjectContext) -> int:
             if not artifact.is_file():
                 continue
 
+            # Published schemas describe this tool's own output, so they
+            # always come from the package. A project's `[paths] schemas`
+            # override applies to its *input* data; reading these from there
+            # would raise FileNotFoundError for any project that sets it.
             schema = json.loads(
-                (validate.schemas_dir(ctx) / schema_name).read_text(encoding="utf-8")
+                (validate.packaged_schemas() / schema_name).read_text(encoding="utf-8")
             )
             payload = json.loads(artifact.read_text(encoding="utf-8"))
 
@@ -388,6 +393,11 @@ def build_parser() -> argparse.ArgumentParser:
         description="Turn structured profile data into generated artifacts.",
     )
     parser.add_argument(
+        "--offline",
+        action="store_true",
+        help="Skip network reachability probes for icons and links.",
+    )
+    parser.add_argument(
         "--project",
         type=Path,
         default=None,
@@ -474,6 +484,13 @@ def main(argv: list[str] | None = None) -> int:
     """Parse *argv*, resolve the project, and dispatch to the subcommand."""
     parser = build_parser()
     args = parser.parse_args(argv)
+
+    if args.offline:
+        # A flag rather than a shell prefix. `env VAR=1 cmd` is POSIX-only, so
+        # a pre-commit hook written that way fails to launch on native Windows
+        # — which trades a silent network dependency for a broken commit.
+        os.environ["SKIP_ICON_CHECK"] = "1"
+        os.environ["SKIP_LINK_CHECK"] = "1"
 
     if getattr(args, "init", False):
         return cmd_init(args.directory or args.project or Path.cwd())

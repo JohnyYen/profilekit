@@ -57,20 +57,22 @@ repos:
       # installed, so these two run in whatever environment the contributor
       # already has. `python -m` rather than a console script: the module path
       # works from a plain checkout as well as an install.
-      # The offline switches are set inline in `entry`. A hook-level `env:`
-      # mapping is NOT a key pre-commit supports: it warns about unknown keys
-      # and ignores them, so the variables would never reach the process and
-      # every commit would hit skillicons.dev and GitHub.
+      # Offline by flag, not by shell prefix. A hook-level `env:` mapping is
+      # not a key pre-commit supports — it warns and ignores it, so the
+      # variables never reach the process. An `env VAR=1 …` prefix does work,
+      # but `env` is POSIX-only and a Windows contributor would get a
+      # launch failure on every commit instead. The test suite pins itself
+      # offline in conftest, and the CLI takes `--offline`.
       - id: pytest
         name: pytest
-        entry: env SKIP_ICON_CHECK=1 SKIP_LINK_CHECK=1 python -m pytest -q
+        entry: python -m pytest -q
         language: system
         pass_filenames: false
         always_run: true
 
       - id: profile-check
         name: profile check (data, output freshness, destinations)
-        entry: env SKIP_ICON_CHECK=1 SKIP_LINK_CHECK=1 python -m profilekit.cli check
+        entry: python -m profilekit.cli --offline check
         language: system
         pass_filenames: false
         always_run: true

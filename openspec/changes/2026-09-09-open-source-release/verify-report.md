@@ -4,6 +4,19 @@
 **Mode**: Strict TDD (runner `uv run pytest -q`, threshold 80%), artifact store `openspec`
 **Verdict**: **FAIL** (5 CRITICAL, 10 WARNING, 5 SUGGESTION). Status: `partial`.
 
+> **Resolution (added after the report was written).** All five CRITICAL
+> findings were closed in `195e440`, and the second-round review findings in
+> the commit that follows it. The verdict below is the state at `ec30641` and
+> is kept verbatim as the record of what verification found — it is not the
+> current state of the tree. C2 (adapter idempotency), C4 (home paths in
+> tracked content) and S1 (`Secret` pickling) were real defects; C3 was an
+> incompletely implemented task marked done; C1 and C5 were the specs and the
+> record disagreeing with settled decisions. Two findings were escalated to
+> the owner rather than fixed: whether `projects.json` should be wrapped to
+> carry an inline `schemaVersion`, and whether the publish-on-push
+> requirement should be amended now that a CI filesystem write is known to be
+> discarded.
+
 `apply-progress.md` was treated as a claim. Everything below was re-run or re-observed.
 
 ## Completeness

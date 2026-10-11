@@ -146,23 +146,39 @@ def test_hooks_run_without_uv() -> None:
 def test_hooks_do_not_depend_on_the_network_for_data_checks() -> None:
     """A commit must work offline and not depend on third-party uptime.
 
-    The switches have to be set inline in `entry`, not in a hook-level `env:`
-    mapping. `env:` is not a key pre-commit supports — it warns about unknown
-    keys and ignores them — so asserting on `env` would pass while the
-    variables never reached the process. An earlier version of this test did
-    exactly that, and the review caught it.
+    Three mechanisms were tried and two were wrong, so this asserts the one
+    that works for each hook rather than a shape:
+
+    - A hook-level `env:` mapping is not a key pre-commit supports. It warns
+      and ignores it, so the variables never reach the process — and a test
+      asserting on `env` passed while the behaviour was broken.
+    - An `env VAR=1 …` prefix does reach the process, but `env` is POSIX-only,
+      so a Windows contributor gets a launch failure on every commit.
+    - So: the CLI hook passes `--offline`, and the test suite pins itself
+      offline in conftest.
     """
     config = yaml.safe_load(PRE_COMMIT.read_text(encoding="utf-8"))
     local = next(repo for repo in config["repos"] if repo["repo"] == "local")
 
     for hook in local["hooks"]:
         assert "env" not in hook, (
-            f"{hook['id']}: a hook-level `env:` mapping is silently ignored by "
-            "pre-commit; set the variables inline in `entry`"
+            f"{hook['id']}: a hook-level `env:` mapping is silently ignored by pre-commit"
         )
         entry = hook["entry"]
-        for variable in ("SKIP_ICON_CHECK=1", "SKIP_LINK_CHECK=1"):
-            assert variable in entry, f"{hook['id']} must set {variable} in its entry"
+        assert not entry.startswith("env "), (
+            f"{hook['id']}: an `env` prefix is POSIX-only and fails on native Windows"
+        )
+
+    cli_hook = next(h for h in local["hooks"] if h["id"] == "profile-check")
+    assert "--offline" in cli_hook["entry"], (
+        "the CLI hook must disable reachability probes with --offline"
+    )
+
+    # The pytest hook needs no flag: conftest pins the whole suite offline.
+    conftest = (REPO_ROOT / "tests" / "conftest.py").read_text(encoding="utf-8")
+    assert "SKIP_ICON_CHECK" in conftest and "SKIP_LINK_CHECK" in conftest, (
+        "the suite must pin itself offline, since the pytest hook sets nothing"
+    )
 
 
 def test_contributing_documents_the_hook_install() -> None:

@@ -251,14 +251,44 @@ class _AdapterPublisher:
         )
 
     def publish(self, ctx: ProjectContext, plan: Any) -> PublishResult:
-        """Invoke the entry point with its configuration and credentials.
+        """Invoke the entry point with as much as its signature accepts.
 
         An earlier version called the entry point with the context alone, so a
         credentialed adapter received nothing it had declared and could only
         have worked by reading the environment itself — which is precisely
         what the credential model exists to prevent.
+
+        Widening the call is a contract change for anything already written to
+        the one-argument form, so the arity is inspected rather than assumed.
+        Calling an older adapter with three arguments would raise an uncaught
+        TypeError and abort the whole run, destroying the per-destination
+        failure isolation this layer exists to provide.
         """
-        return self._entry_point(ctx, self._cfg, self.credentials)
+        import inspect
+
+        try:
+            parameters = inspect.signature(self._entry_point).parameters
+        except (TypeError, ValueError):
+            # A builtin or C-implemented callable exposes no signature. Assume
+            # the current contract and let a genuine mismatch surface as this
+            # destination's own failure.
+            return self._entry_point(ctx, self._cfg, self.credentials)
+
+        accepts_varargs = any(
+            p.kind is inspect.Parameter.VAR_POSITIONAL for p in parameters.values()
+        )
+        positional = [
+            p
+            for p in parameters.values()
+            if p.kind
+            in (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD)
+        ]
+
+        if accepts_varargs or len(positional) >= 3:
+            return self._entry_point(ctx, self._cfg, self.credentials)
+        if len(positional) == 2:
+            return self._entry_point(ctx, self._cfg)
+        return self._entry_point(ctx)
 
 
 __all__ = [

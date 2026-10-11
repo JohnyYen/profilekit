@@ -112,9 +112,16 @@ jobs:
         # is the one irreversible action in the repository.
         uses: pypa/gh-action-pypi-publish@76f52bc884231f62b9a034ebfe128415bbaabdfc # v1.12.4
         with:
-          # Retry safety. If the upload partly succeeds — the wheel accepted,
-          # the sdist failing on a transient error — a re-run without this is
-          # rejected because the file already exists. The version cannot be
-          # reused, so the release would be left half-published with no
-          # fix-forward path inside the workflow.
+          # Retry safety, with a trade worth naming. Without this, a partly
+          # successful upload — wheel accepted, sdist failing on a transient
+          # error — cannot be retried, and since a version number cannot be
+          # reused the release is left half-published with no fix-forward
+          # path.
+          #
+          # The cost: a re-run whose rebuilt files differ from what is already
+          # on the index succeeds silently, and PyPI keeps serving the earlier
+          # artifact. That is acceptable only because the tag-to-version check
+          # above makes a same-version re-run deliberate rather than
+          # accidental. Changing what a released version contains requires a
+          # new version, which is the correct answer anyway.
           skip-existing: true

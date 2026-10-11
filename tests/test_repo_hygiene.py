@@ -153,10 +153,15 @@ def test_portfolio_readme_points_at_the_data_contract() -> None:
 #: has to be able to quote what it searches for.
 HOME_PATH = re.compile(r"/home/[a-z_][a-z0-9_-]*/[A-Za-z0-9_.-]+/")
 
-#: Files whose subject *is* this check, and which therefore quote the pattern.
+#: Files whose subject *is* this check, and which therefore have to quote the
+#: pattern to describe it. Listed individually: an earlier version exempted the
+#: whole change directory, which would have hidden a real path in any of its
+#: dozen files while reading as a narrow exception.
 PATTERN_DOCS = (
-    "openspec/changes/2026-09-09-open-source-release/",
     "tests/test_repo_hygiene.py",
+    "openspec/changes/2026-09-09-open-source-release/tasks.md",
+    "openspec/changes/2026-09-09-open-source-release/apply-progress.md",
+    "openspec/changes/2026-09-09-open-source-release/specs/monorepo-structure/spec.md",
 )
 
 
@@ -173,7 +178,7 @@ def test_no_absolute_home_paths_in_tracked_content() -> None:
 
     offenders: list[str] = []
     for _mode, path in tracked:
-        if path.startswith(PATTERN_DOCS):
+        if path in PATTERN_DOCS:
             continue
         full = REPO_ROOT / path
         if not full.is_file():

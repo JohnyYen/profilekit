@@ -173,13 +173,22 @@ def test_a_credential_set_cannot_be_pickled_either() -> None:
         pickle.dumps(CredentialSet({"token": Secret(TOKEN)}))
 
 
-def test_deepcopy_does_not_leak_through_reduce() -> None:
-    """copy falls back to __reduce__, so the refusal must not break legitimate use.
+def test_deepcopy_is_refused_rather_than_leaking() -> None:
+    """`copy` falls back to `__reduce__`, so deep-copying a Secret is refused.
 
-    A context carrying credentials gets copied in ordinary code. Refusing is
-    acceptable; silently producing a copy with the value exposed is not.
+    This is a deliberate trade, stated plainly because it is a real
+    limitation: a structure holding a Secret cannot be copied at all, shallow
+    or deep. Refusing is better than the alternative — a copy whose value is
+    exposed through the same reduce path. Code that needs a second reference
+    passes the same Secret; code that needs the value calls `.reveal()`.
     """
     import copy
 
     with pytest.raises(TypeError):
         copy.deepcopy(Secret(TOKEN))
+
+    # Shallow copy goes through the same reduce path, so it is refused too.
+    # Carrying a credential into another structure means passing the same
+    # object; there is no supported way to duplicate one.
+    with pytest.raises(TypeError):
+        copy.copy(Secret(TOKEN))

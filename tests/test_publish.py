@@ -384,3 +384,55 @@ def test_an_adapter_receives_its_config_and_credentials(
 
     assert seen["cfg"]["region"] == "eu"  # type: ignore[index]
     assert seen["credentials"]["token"].reveal() == "s3cret"  # type: ignore[index]
+
+
+def test_a_legacy_one_argument_adapter_still_works(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Widening the entry-point call must not break adapters already written.
+
+    Calling a one-argument adapter with three would raise an uncaught
+    TypeError and abort the whole run, which destroys the per-destination
+    failure isolation this layer exists to provide.
+    """
+    seen: list[object] = []
+
+    def legacy_adapter(ctx):
+        seen.append(ctx)
+        from profilekit.publishers import PublishResult as _R
+
+        return _R(destination="acme", status="published", detail="sent")
+
+    shutil.copytree(FIXTURE_PROJECT, tmp_path / "p")
+    (tmp_path / "p" / "profile.toml").write_text(
+        '[project]\nconfig_version = 1\n\n[publishers.acme]\nkind = "acme-cdn"\n',
+        encoding="utf-8",
+    )
+    monkeypatch.setattr("profilekit.registry.publishers", lambda: {"acme-cdn": legacy_adapter})
+
+    rc = cli.main(["--project", str(tmp_path / "p"), "publish", "--execute"])
+
+    assert rc == 0, "a legacy adapter must not fail the run"
+    assert len(seen) == 1
+
+
+def test_a_two_argument_adapter_receives_its_config(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen: dict[str, object] = {}
+
+    def two_arg_adapter(ctx, cfg):
+        seen["cfg"] = cfg
+        from profilekit.publishers import PublishResult as _R
+
+        return _R(destination="acme", status="published", detail="sent")
+
+    shutil.copytree(FIXTURE_PROJECT, tmp_path / "p")
+    (tmp_path / "p" / "profile.toml").write_text(
+        '[project]\nconfig_version = 1\n\n[publishers.acme]\nkind = "acme-cdn"\nregion = "eu"\n',
+        encoding="utf-8",
+    )
+    monkeypatch.setattr("profilekit.registry.publishers", lambda: {"acme-cdn": two_arg_adapter})
+
+    assert cli.main(["--project", str(tmp_path / "p"), "publish", "--execute"]) == 0
+    assert seen["cfg"]["region"] == "eu"  # type: ignore[index]
