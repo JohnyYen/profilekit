@@ -36,6 +36,29 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Publish the canonical data into the app before building, so the
+      # reference consumer is proven against freshly generated output rather
+      # than whatever happened to be committed. This is the end-to-end proof
+      # that the data contract actually works: if a transform drops a field
+      # the app reads, the build fails here instead of in production.
+      # `working-directory` is only honoured on `run` steps, so the action
+      # itself needs no override; the job default only affects the shell.
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.11"
+
+      - name: Publish canonical data into the app
+        working-directory: ${{ github.workspace }}
+        run: |
+          uv sync --extra dev
+          uv run profile --offline generate
+          uv run profile --offline publish portfolio-data --execute
+
+      - name: Fail if the committed app data differed from a fresh publish
+        working-directory: ${{ github.workspace }}
+        run: git diff --exit-code -- apps/portfolio/app/data/
+
       # `pnpm build` works again now that pnpm-workspace.yaml answers the
       # native-build question with real booleans instead of the placeholder
       # text it used to carry. The previous workaround invoked next directly

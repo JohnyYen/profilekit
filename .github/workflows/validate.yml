@@ -52,7 +52,15 @@ jobs:
         run: uv run mypy
 
       - name: Tests + coverage
-        run: uv run pytest -q
+        run: uv run pytest -q --ignore=tests/e2e
+
+      # Run separately so a packaging failure is distinguishable from a unit
+      # failure at a glance. These build the wheel and install it into a fresh
+      # interpreter, which is the only way to catch package data that was
+      # never declared or an entry point that resolves solely because the
+      # checkout happens to be importable.
+      - name: End-to-end (installed package)
+        run: uv run pytest tests/e2e -q --no-cov
 
       - name: Validate data files
         run: uv run python -m profilekit.cli validate

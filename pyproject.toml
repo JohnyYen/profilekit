@@ -36,6 +36,8 @@ dev = [
     "pytest-cov>=5",
     "pre-commit>=3",
     "pyyaml>=6",
+    # The end-to-end suite builds the distribution before installing it.
+    "build>=1",
 ]
 
 [project.urls]
