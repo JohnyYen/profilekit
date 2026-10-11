@@ -37,8 +37,8 @@ def spies(monkeypatch, project: Path):
 
         return _spy
 
-    registry = {name: make_spy(name) for name in TARGET_ORDER}
-    monkeypatch.setattr(cli, "GENERATORS", registry)
+    fake = {name: make_spy(name) for name in TARGET_ORDER}
+    monkeypatch.setattr(cli.registry, "generators", lambda: fake)
     return calls
 
 
@@ -94,10 +94,10 @@ def test_generate_unknown_target_errors(spies, project, capsys):
 def test_generate_failure_propagates(project, monkeypatch, capsys):
     """If a generator raises, generate exits non-zero and names the failing target."""
 
-    def boom():
+    def boom(ctx):
         raise RuntimeError("kaboom")
 
-    monkeypatch.setattr(cli, "GENERATORS", {"cv": boom})
+    monkeypatch.setattr(cli.registry, "generators", lambda: {"cv": boom})
     rc = _run(project, "generate", "cv")
     assert rc != 0
     out = capsys.readouterr()

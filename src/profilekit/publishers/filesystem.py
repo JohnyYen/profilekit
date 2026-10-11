@@ -183,3 +183,17 @@ class FilesystemPublisher:
         if not path.is_file():
             return True
         return _digest(path.read_text(encoding="utf-8")) != _digest(content)
+
+
+def publish_entry_point(
+    ctx: ProjectContext, cfg: Mapping[str, object] | None = None
+) -> PublishResult:
+    """Registry entry point: plan and publish in one call.
+
+    The registry hands every component a uniform callable. Publishers keep
+    their two-phase protocol internally — a plan is still computed before
+    anything is written — but the registered surface is a single function so
+    the loader does not need to know about kinds beyond its group.
+    """
+    publisher = FilesystemPublisher()
+    return publisher.publish(ctx, publisher.plan(ctx, cfg or {}))

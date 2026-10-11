@@ -17,28 +17,14 @@ from __future__ import annotations
 import argparse
 import subprocess
 import sys
-from collections.abc import Callable, Mapping
+from collections.abc import Mapping
 from pathlib import Path
 
-import profilekit.generate_cv as cv
-import profilekit.generate_github_readme as github_readme
-import profilekit.generate_linkedin as linkedin
-import profilekit.generate_portfolio as portfolio
-from profilekit import validate
+from profilekit import registry, validate
 from profilekit.config import ConfigError
 from profilekit.context import ProjectContext, ProjectNotFoundError, discover_project
 from profilekit.publishers.filesystem import FilesystemPublisher
 from profilekit.scaffold import ScaffoldError, init_project
-
-# Generation targets and their run order. Publishers are deliberately absent:
-# ``generate`` only invokes generators. R7 replaces this literal and the
-# parallel list in ``profilekit.generate_all`` with one entry-point registry.
-GENERATORS: dict[str, Callable[..., object]] = {
-    "github-readme": github_readme.main,
-    "linkedin": linkedin.main,
-    "portfolio": portfolio.main,
-    "cv": cv.main,
-}
 
 
 def _git_output_is_clean(ctx: ProjectContext) -> bool | None:
@@ -111,13 +97,24 @@ def _stale_published_destinations(ctx: ProjectContext) -> list[str]:
 
 
 def cmd_generate(target: str, ctx: ProjectContext) -> int:
-    """Run one generator, or all of them (``target == "all"``), in order."""
+    """Run one generator, or all of them (``target == "all"``), in order.
+
+    Targets come from the registry, which is the only enumeration source.
+    Publishers are in a different entry-point group, so none can be reached
+    from here regardless of what a project declares.
+    """
+    try:
+        available = registry.generators()
+    except registry.RegistryError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return exc.exit_code
+
     if target == "all":
-        selected = list(GENERATORS.items())
-    elif target in GENERATORS:
-        selected = [(target, GENERATORS[target])]
+        selected = list(available.items())
+    elif target in available:
+        selected = [(target, available[target])]
     else:
-        valid = ", ".join(["all", *GENERATORS])
+        valid = ", ".join(["all", *available])
         print(f"error: unknown target '{target}' (choose from: {valid})", file=sys.stderr)
         return 2
 
@@ -202,9 +199,13 @@ def cmd_init(target: Path) -> int:
 
 
 def cmd_list(ctx: ProjectContext) -> int:
-    """Print the available generation targets."""
-    for name in GENERATORS:
-        print(name)
+    """Print the registered generation targets and publish destinations."""
+    try:
+        for name in registry.generators():
+            print(name)
+    except registry.RegistryError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return exc.exit_code
     return 0
 
 
@@ -243,7 +244,7 @@ def build_parser() -> argparse.ArgumentParser:
         "target",
         nargs="?",
         default="all",
-        help="Target to generate: all (default), " + ", ".join(GENERATORS),
+        help="Target to generate: 'all' (default), or a registered target (see `profile list`).",
     )
     gen.set_defaults(func=lambda args, ctx: cmd_generate(args.target, ctx))
 

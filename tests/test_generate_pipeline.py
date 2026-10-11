@@ -1,13 +1,17 @@
-"""``generate_all`` in both invocation modes, without touching the real tree.
+"""End-to-end generation through the CLI, without touching the real tree.
 
-The previous version of this file ran the pipeline from the repository root,
-which meant running the test suite rewrote the committed ``output/`` and the
-portfolio's ``app/data/``. A suite that mutates the repository it is testing
-makes every `git status` after a test run ambiguous, and quietly launders
-generated-artifact drift into "I ran the tests".
+This file used to test ``profilekit.generate_all``, a convenience runner that
+kept its own list of generators alongside the one in ``cli.py``. The two
+diverged in production, so the module is gone and the registry is the single
+enumeration source. What remains worth testing is the property the old module
+was standing in for: the whole pipeline runs, writes every artifact, and
+writes nothing anywhere else.
 
-So these drive a throwaway copy of the fixture project and assert the real
-tree is untouched afterwards.
+The previous version ran from the repository root, so running the suite
+rewrote the committed ``output/`` and the portfolio's ``app/data/``. These
+drive a throwaway copy of the fixture project and assert the real tree is
+untouched afterwards. ``conftest`` enforces the same property for the whole
+session.
 """
 
 import hashlib
@@ -20,6 +24,8 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 FIXTURE_PROJECT = REPO_ROOT / "tests" / "fixtures" / "project"
+
+EXPECTED_ARTIFACTS = ["cv.md", "cv.yml", "github-readme.md", "linkedin.md", "portfolio.md"]
 
 #: Directories the suite must never write into.
 PROTECTED = (
@@ -73,42 +79,39 @@ def _run(argv: list[str], project: Path) -> subprocess.CompletedProcess:
     )
 
 
-def test_module_invocation_exits_zero(project: Path) -> None:
-    """``python -m profilekit.generate_all`` must succeed."""
-    result = _run([sys.executable, "-m", "profilekit.generate_all"], project)
-    assert result.returncode == 0, f"stdout: {result.stdout}\nstderr: {result.stderr}"
+def _generate(project: Path) -> subprocess.CompletedProcess:
+    return _run([sys.executable, "-m", "profilekit.cli", "generate"], project)
 
 
-def test_script_invocation_exits_zero(project: Path) -> None:
-    """Direct script execution must still work, via the sys.path bootstrap."""
-    script = REPO_ROOT / "src" / "profilekit" / "generate_all.py"
-    result = _run([sys.executable, str(script)], project)
+def test_generate_all_exits_zero(project: Path) -> None:
+    result = _generate(project)
     assert result.returncode == 0, f"stdout: {result.stdout}\nstderr: {result.stderr}"
 
 
 def test_generate_all_writes_every_artifact(project: Path) -> None:
-    result = _run([sys.executable, "-m", "profilekit.generate_all"], project)
+    result = _generate(project)
     assert result.returncode == 0, result.stderr
 
     produced = sorted(p.name for p in (project / "output").glob("*"))
-    assert produced == ["cv.md", "cv.yml", "github-readme.md", "linkedin.md", "portfolio.md"]
+    assert produced == EXPECTED_ARTIFACTS
 
 
-def test_generate_all_does_not_publish(project: Path) -> None:
+def test_generation_writes_nothing_outside_the_output_directory(project: Path) -> None:
     """Generation must not write a published destination — that is `publish`."""
-    _run([sys.executable, "-m", "profilekit.generate_all"], project)
+    _generate(project)
 
+    output_dir = project / "output"
     escaped = [
         p
-        for p in (project).rglob("*")
-        if p.is_file() and (project / "output") not in p.parents and p.suffix in {".md", ".yml"}
+        for p in project.rglob("*")
+        if p.is_file() and output_dir not in p.parents and p.suffix in {".md", ".yml"}
     ]
     assert not escaped, f"generation wrote artifacts outside output/: {escaped}"
 
 
 def test_the_real_tree_is_untouched(project: Path, protected_digests: dict[Path, str]) -> None:
-    """The guard that the previous version of this file needed and lacked."""
-    _run([sys.executable, "-m", "profilekit.generate_all"], project)
+    """The guard the previous version of this file needed and lacked."""
+    _generate(project)
 
     drifted = [
         str(path.relative_to(REPO_ROOT))
@@ -116,3 +119,9 @@ def test_the_real_tree_is_untouched(project: Path, protected_digests: dict[Path,
         if _tree_digest(path) != before
     ]
     assert not drifted, f"running the suite modified the repository: {drifted}"
+
+
+def test_the_deleted_convenience_runner_is_gone(project: Path) -> None:
+    """``generate_all`` held the second list that caused the divergence bug."""
+    result = _run([sys.executable, "-m", "profilekit.generate_all"], project)
+    assert result.returncode != 0, "profilekit.generate_all must no longer exist"

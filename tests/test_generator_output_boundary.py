@@ -16,7 +16,7 @@ import profilekit.generate_cv as cv
 import profilekit.generate_github_readme as github_readme
 import profilekit.generate_linkedin as linkedin
 import profilekit.generate_portfolio as portfolio
-from profilekit import cli
+from profilekit import registry
 
 GENERATOR_MODULES = (github_readme, linkedin, portfolio, cv)
 
@@ -65,8 +65,10 @@ def test_generate_path_contains_no_publishers() -> None:
     publisher reachable from it is a boundary violation regardless of whether
     any individual generator behaves.
     """
-    for name, entry in cli.GENERATORS.items():
+    for name, entry in registry.generators().items():
         module_name = getattr(entry, "__module__", "")
-        assert "portfolio_data" not in module_name, (
+        assert "publishers" not in module_name, (
             f"generate target {name!r} resolves to publisher module {module_name!r}"
         )
+
+    assert set(registry.generators()).isdisjoint(registry.publishers())

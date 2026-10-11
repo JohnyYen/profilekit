@@ -118,15 +118,15 @@ no task — no git-push publisher or PR automation is introduced.
 
 ## Phase 6 (R7): Single Registry
 
-- [ ] 6.1 RED: `test_single_source_enumerates_all` — fake entry points; `cli_targets() == registry.generators()`; fails while two lists exist.
-- [ ] 6.2 GREEN: add `registry.py` reading `profilekit.generators`/`profilekit.publishers` via `importlib.metadata.entry_points(group=...)`.
-- [ ] 6.3 RED: `test_new_component_needs_no_core_edit` — register a fake generator via entry point only; appears with no other file touched.
-- [ ] 6.4 GREEN: delete `cli.py`'s `GENERATORS` dict and `generate_all.py`; `cmd_generate`/`cmd_list`/help derive from `registry.generators()`.
-- [ ] 6.5 RED: `test_generate_excludes_publishers` and `test_unknown_kind_rejected` — `portfolio_data` MUST NOT run under `generate all`; an invalid-kind entry point is rejected at load.
-- [ ] 6.6 GREEN: enforce kind-filtering in `registry.generators()`/`registry.publishers()`; raise `ConfigError` on unknown kind.
-- [ ] 6.7 GREEN: register `portfolio_data` as a `profilekit.publishers` entry point; wire `[publishers.portfolio-data]` (4.12) through the registry, replacing R2's direct-call interim in `profile check`. **BLOCKING CONSTRAINT (from 3.7):** `profile check` MUST keep failing on stale published destinations after this rewire. R2 made that gate the only thing covering `apps/portfolio/app/data/` — the generate path does not touch it and `validate.yml` only diffs `output/`. Replacing `cli.FILESYSTEM_DESTINATIONS` with registry discovery without carrying `_stale_published_destinations()` forward leaves destination drift gated by nothing. `tests/test_check_app_data_gate.py` must stay green; do not weaken or delete it.
-- [ ] 6.8 **Spec conflict — do not silently resolve by guesswork**: `portfolio-data-sync/spec.md`'s registration requirement scenario says `profile generate all` should write app data and log the step; this contradicts `component-registry/spec.md`'s explicit "generate does not invoke publishers" scenario and design D5. Implement per component-registry + D5 (generate excludes publishers; `profile publish all` includes `portfolio_data`); add a combined-flow test proving `generate all && publish all` reproduces the pre-change end state; flag the spec text for correction.
-- [ ] 6.9 RED→GREEN: `test_divergence_regression` — both commands, from the same registry, produce identical sets for what they each own; no second list exists.
+- [x] 6.1 RED: `test_single_source_enumerates_all` — fake entry points; `cli_targets() == registry.generators()`; fails while two lists exist.
+- [x] 6.2 GREEN: add `registry.py` reading `profilekit.generators`/`profilekit.publishers` via `importlib.metadata.entry_points(group=...)`.
+- [x] 6.3 RED: `test_new_component_needs_no_core_edit` — register a fake generator via entry point only; appears with no other file touched.
+- [x] 6.4 GREEN: delete `cli.py`'s `GENERATORS` dict and `generate_all.py`; `cmd_generate`/`cmd_list`/help derive from `registry.generators()`.
+- [x] 6.5 RED: `test_generate_excludes_publishers` and `test_unknown_kind_rejected` — `portfolio_data` MUST NOT run under `generate all`; an invalid-kind entry point is rejected at load.
+- [x] 6.6 GREEN: enforce kind-filtering in `registry.generators()`/`registry.publishers()`; raise `ConfigError` on unknown kind.
+- [x] 6.7 GREEN: register `portfolio_data` as a `profilekit.publishers` entry point; wire `[publishers.portfolio-data]` (4.12) through the registry, replacing R2's direct-call interim in `profile check`. **BLOCKING CONSTRAINT (from 3.7):** `profile check` MUST keep failing on stale published destinations after this rewire. R2 made that gate the only thing covering `apps/portfolio/app/data/` — the generate path does not touch it and `validate.yml` only diffs `output/`. Replacing `cli.FILESYSTEM_DESTINATIONS` with registry discovery without carrying `_stale_published_destinations()` forward leaves destination drift gated by nothing. `tests/test_check_app_data_gate.py` must stay green; do not weaken or delete it.
+- [x] 6.8 **Spec conflict — do not silently resolve by guesswork**: `portfolio-data-sync/spec.md`'s registration requirement scenario says `profile generate all` should write app data and log the step; this contradicts `component-registry/spec.md`'s explicit "generate does not invoke publishers" scenario and design D5. Implement per component-registry + D5 (generate excludes publishers; `profile publish all` includes `portfolio_data`); add a combined-flow test proving `generate all && publish all` reproduces the pre-change end state; flag the spec text for correction.
+- [x] 6.9 RED→GREEN: `test_divergence_regression` — both commands, from the same registry, produce identical sets for what they each own; no second list exists.
 
 ## Phase 7 (R3): Output Data Contract
 

@@ -38,6 +38,19 @@ Changelog = "https://github.com/JohnyYen/profile-data/blob/main/CHANGELOG.md"
 profile = "profilekit.cli:main"
 profilekit = "profilekit.cli:main"
 
+# Components are discovered through these two groups and nowhere else. A
+# third-party package registers its own the same way, with no edit to
+# profilekit. The split between the groups is what enforces the boundary:
+# `generate` resolves only generators, `publish` only publishers.
+[project.entry-points."profilekit.generators"]
+github-readme = "profilekit.generate_github_readme:main"
+linkedin = "profilekit.generate_linkedin:main"
+portfolio = "profilekit.generate_portfolio:main"
+cv = "profilekit.generate_cv:main"
+
+[project.entry-points."profilekit.publishers"]
+portfolio-data = "profilekit.publishers.filesystem:publish_entry_point"
+
 # src-layout: the import package lives under src/profilekit, decoupled from
 # the distribution name. `pip install .` / `pip install -e .` makes the
 # `profile` console script resolve with no pythonpath hacks required.
