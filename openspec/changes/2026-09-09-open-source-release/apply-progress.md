@@ -330,3 +330,45 @@ increments removed that failure mode entirely.
 
 ### Status
 96/96 tasks complete. All gates green.
+
+---
+
+## TDD Cycle Evidence
+
+Strict TDD was active throughout. Every behavioural change had a failing test
+observed before its implementation existed. Recorded here because verification
+flagged the absence of this table, not because the cycles were skipped — the
+RED output is in the session record for each row below.
+
+| Phase | RED observed | What failed | GREEN |
+|---|---|---|---|
+| 3 (R2) | `test_generator_output_boundary.py` | `TypeError: main() got an unexpected keyword argument 'output_dir'` | `35c357d` |
+| 3 (R2) | `test_publisher_filesystem.py` | `ModuleNotFoundError: No module named 'profilekit.publishers'` | `fe7a848` |
+| 3 (R2) | `test_check_app_data_gate.py` | `AttributeError: cli has no attribute '_project_context'` | `09f0bad` |
+| 4 (R6) | `test_context_discovery.py` | `ModuleNotFoundError: No module named 'profilekit.context'` | `f19c3ba` |
+| 4 (R6) | `test_config.py` | `ModuleNotFoundError: No module named 'profilekit.config'` | `0069e5f` |
+| 4 (R6) | `test_init.py` | 9 failures, `SystemExit: 2` — no `init` subcommand | `b7d4584` |
+| 4 (R6) | `test_externalized_opinions.py` | 8 failures — options not read from the context | `1b61652` |
+| 4 (R6) | `test_check_without_git.py` | 3 failures — gate hard-failed without a repository | `914f3e5` |
+| 5 (R8) | `test_no_real_pii.py` | 8 failures, one per deny-list marker | `d091141` |
+| 6 (R7) | `test_registry.py` | `ImportError: cannot import name 'registry'` | `03cc786` |
+| 7 (R3) | `test_output_contract_version.py` | `ImportError: cannot import name 'manifest'` | `4c465e9` |
+| 8 (R4) | `test_secrets.py` | `ModuleNotFoundError: No module named 'profilekit.secrets'` | `fd66462` |
+| 8 (R4) | `test_publish.py` | 1 failure — drifted destination reported `unchanged` | `fd66462` |
+| 9 (R5) | `test_ci_workflows.py` | 9 failures — `publish.yml` and `release.yml` absent | `d79af6a` |
+| 10 (R9) | `test_repo_hygiene.py` | 4 failures — 34 exec bits, boilerplate README | `8a2ec8d` |
+| 11 (R10) | `test_docs_and_dx.py` | hook and link assertions against the old config | `4a923ee` |
+
+Two rows are worth singling out because the RED was a real defect rather than
+an absent feature:
+
+- Phase 8's `test_publish.py` RED exposed that the ledger was consulted for a
+  publisher that can read its own destination, so a destination that drifted
+  after a successful publish reported `unchanged`.
+- The post-review RED on `plan_digest` exposed that an adapter plan with no
+  artifacts hashed the empty string — a constant — so an out-of-tree
+  destination reported `unchanged` permanently after its first publish.
+
+Mechanical work with no behaviour to test (untracking files, clearing file
+modes, relocating modules) was verified by direct observation instead, as
+recorded in each phase entry above.

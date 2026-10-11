@@ -25,7 +25,7 @@ The rich-github-readme change has successfully completed all implementation, ver
 
 ## Archive Contents
 
-**Location**: `/home/johny/Projects/personal/profile-data/openspec/changes/archive/2026-09-04-rich-github-readme/`
+**Location**: `openspec/changes/archive/2026-09-04-rich-github-readme/`
 
 ### Artifacts Present
 
@@ -68,7 +68,7 @@ The rich-github-readme change has successfully completed all implementation, ver
 
 ## Active Change Folder Status
 
-**Original Location**: `/home/johny/Projects/personal/profile-data/openspec/changes/rich-github-readme/`
+**Original Location**: `openspec/changes/rich-github-readme/`
 **Status**: DELETED (moved to archive)
 **Confirmation**: The active change directory no longer exists in `openspec/changes/`. Only the archive folder remains.
 
@@ -193,5 +193,5 @@ The change was executed under Strict TDD mode with user approval for a `size:exc
 ---
 
 **Archived**: 2026-09-04
-**Archive Path**: `/home/johny/Projects/personal/profile-data/openspec/changes/archive/2026-09-04-rich-github-readme/`
+**Archive Path**: `openspec/changes/archive/2026-09-04-rich-github-readme/`
 **Status**: COMPLETE

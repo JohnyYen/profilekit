@@ -274,3 +274,76 @@ def test_check_fails_when_the_manifest_is_malformed(project: Path, monkeypatch) 
     monkeypatch.setattr(cli, "cmd_generate", lambda target, ctx: 0)
 
     assert cli.main(["--project", str(project), "check"]) != 0
+
+
+# ---------------------------------------------------------------------------
+# Published artifacts validate against their OWN schemas
+# ---------------------------------------------------------------------------
+
+
+def test_every_published_artifact_has_a_schema() -> None:
+    """The output shapes are a contract, so they need schemas of their own.
+
+    The schemas under `data/` validate the *input*. Validating published files
+    against those passes only because they allow additional properties, so a
+    transform could drop a required field and nothing would notice.
+    """
+    from profilekit import cli
+    from profilekit.validate import packaged_schemas
+
+    schemas = packaged_schemas()
+    for filename, schema_name in cli.PUBLISHED_SCHEMAS.items():
+        assert (schemas / schema_name).is_file(), f"{filename} has no published schema"
+
+
+def test_published_artifacts_validate_against_their_schemas(project: Path) -> None:
+    import jsonschema
+
+    from profilekit import cli
+    from profilekit.validate import packaged_schemas
+
+    ctx = discover_project(explicit=project)
+    publisher = FilesystemPublisher()
+    publisher.publish(ctx, publisher.plan(ctx, {"destination": "app/data"}))
+
+    schemas = packaged_schemas()
+    checked = 0
+    for filename, schema_name in cli.PUBLISHED_SCHEMAS.items():
+        artifact = project / "app" / "data" / filename
+        schema = json.loads((schemas / schema_name).read_text(encoding="utf-8"))
+        jsonschema.Draft7Validator(schema).validate(
+            json.loads(artifact.read_text(encoding="utf-8"))
+        )
+        checked += 1
+
+    assert checked == 4
+
+
+def test_check_fails_when_a_published_artifact_breaks_its_schema(
+    project: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Dropping a required field from a published shape must fail the gate."""
+    from profilekit import cli
+
+    ctx = discover_project(explicit=project)
+    (project / "profile.toml").write_text(
+        "[project]\nconfig_version = 1\n\n"
+        '[generators.cv]\ncurrent_date = "2000-01-01"\n\n'
+        '[publishers.site]\nkind = "filesystem"\ndestination = "app/data"\n',
+        encoding="utf-8",
+    )
+    _generate_all(project)
+    manifest.write(discover_project(explicit=project))
+
+    publisher = FilesystemPublisher()
+    ctx = discover_project(explicit=project)
+    publisher.publish(ctx, publisher.plan(ctx, {"destination": "app/data"}))
+
+    broken = project / "app" / "data" / "about.json"
+    broken.write_text('{"schemaVersion": 1}\n', encoding="utf-8")
+
+    monkeypatch.setattr(cli.validate, "main", lambda ctx: 0)
+    monkeypatch.setattr(cli, "_git_output_is_clean", lambda ctx: True)
+    monkeypatch.setattr(cli, "cmd_generate", lambda target, ctx: 0)
+
+    assert cli.main(["--project", str(project), "check"]) != 0

@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "published about.json",
+  "description": "The about shape a frontend consumes. Narrower than the canonical data/about.json: only the keys a consumer needs are published.",
+  "type": "object",
+  "required": ["schemaVersion", "username", "tagline", "description"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "type": "integer", "minimum": 1 },
+    "username": { "type": "string", "minLength": 1 },
+    "tagline": { "type": "string" },
+    "description": { "type": "string" },
+    "currentFocus": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["title", "description"],
+        "properties": {
+          "title": { "type": "string" },
+          "description": { "type": "string" }
+        }
+      }
+    },
+    "whatIBuild": { "type": "array", "items": { "type": "string" } },
+    "learningJourney": { "type": "string" }
+  }
+}

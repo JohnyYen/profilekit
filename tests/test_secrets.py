@@ -148,3 +148,38 @@ def test_publishers_do_not_read_the_environment() -> None:
             f"{module.__name__} must receive credentials, not read them"
         )
         assert "getenv" not in source, f"{module.__name__} must receive credentials, not read them"
+
+
+def test_secret_refuses_to_pickle() -> None:
+    """Pickle reads __slots__ directly, so the default behaviour leaks the value.
+
+    This matters because pickling happens implicitly — `multiprocessing`,
+    caching layers, crash dumps. A credential that silently lands on disk that
+    way defeats every other redaction in this class.
+    """
+    import pickle
+
+    with pytest.raises(TypeError) as exc_info:
+        pickle.dumps(Secret(TOKEN))
+
+    assert TOKEN not in str(exc_info.value), "even the refusal must not echo the value"
+
+
+def test_a_credential_set_cannot_be_pickled_either() -> None:
+    """The container must not become a way around the refusal."""
+    import pickle
+
+    with pytest.raises(TypeError):
+        pickle.dumps(CredentialSet({"token": Secret(TOKEN)}))
+
+
+def test_deepcopy_does_not_leak_through_reduce() -> None:
+    """copy falls back to __reduce__, so the refusal must not break legitimate use.
+
+    A context carrying credentials gets copied in ordinary code. Refusing is
+    acceptable; silently producing a copy with the value exposed is not.
+    """
+    import copy
+
+    with pytest.raises(TypeError):
+        copy.deepcopy(Secret(TOKEN))

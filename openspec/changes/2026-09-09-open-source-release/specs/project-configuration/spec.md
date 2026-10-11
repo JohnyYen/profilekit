@@ -28,14 +28,27 @@ derive them from the installed package's own file location.
 
 - GIVEN no `profile.toml` exists in the current directory or any parent
 - WHEN a command needing project paths runs
-- THEN the tool SHALL fall back to documented default relative paths under
-  the current working directory
+- THEN the tool SHALL exit 2 with a message naming where it looked and
+  directing the user to `profile init`
+- AND it SHALL NOT fall back to the current working directory
+
+> Amended during verification. This scenario originally said the tool should
+> fall back to default paths under the working directory. Design decision D2
+> settled the opposite, and the implementation follows D2: a tool that guesses
+> the project when it cannot find one writes generated files somewhere the
+> user never asked for, which is worse than refusing to run. The original
+> wording was never updated to match the decision.
 
 ### Requirement: profile.toml declares project paths
 
-A `profile.toml` at the project root MAY declare `data_dir`, `output_dir`,
-`schemas_dir`, and generator-specific overrides. When present, its values
-MUST take precedence over defaults.
+A `profile.toml` at the project root MAY declare the project's data,
+output, assets, and schemas directories, plus generator-specific overrides.
+When present, its values MUST take precedence over defaults.
+
+The concrete keys are those fixed by design decision D3 — `data`, `output`,
+`assets` and `schemas` inside a `[paths]` table. Elsewhere in these specs
+`data_dir` / `output_dir` / `schemas_dir` name the *concepts*, not TOML keys;
+they are the attribute names on the resolved project context.
 
 #### Scenario: profile.toml overrides the default output directory
 

@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "published projects.json",
+  "description": "Projects as published. A JSON array, so it carries no top-level schemaVersion: wrapping it in an object to make room would break every consumer that indexes into it as a list. Its version lives in output/manifest.json.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["name", "description", "tech", "url"],
+    "additionalProperties": true,
+    "properties": {
+      "name": { "type": "string", "minLength": 1 },
+      "description": { "type": "string" },
+      "tech": { "type": "string" },
+      "url": { "type": "string" }
+    }
+  }
+}

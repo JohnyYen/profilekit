@@ -16,6 +16,7 @@ the directory is scaffolding rather than a deliberate reference.
 
 from __future__ import annotations
 
+import re
 import subprocess
 from pathlib import Path
 
@@ -141,3 +142,50 @@ def test_portfolio_readme_points_at_the_data_contract() -> None:
     """An adopter reading this should be sent to the contract, not to the code."""
     text = PORTFOLIO_README.read_text(encoding="utf-8")
     assert "data-contract" in text
+
+
+# ---------------------------------------------------------------------------
+# No developer's home directory in tracked content
+# ---------------------------------------------------------------------------
+
+#: An absolute path under a home directory. Matches the path itself, not a
+#: document that merely names the pattern — a file describing this very check
+#: has to be able to quote what it searches for.
+HOME_PATH = re.compile(r"/home/[a-z_][a-z0-9_-]*/[A-Za-z0-9_.-]+/")
+
+#: Files whose subject *is* this check, and which therefore quote the pattern.
+PATTERN_DOCS = (
+    "openspec/changes/2026-09-09-open-source-release/",
+    "tests/test_repo_hygiene.py",
+)
+
+
+def test_no_absolute_home_paths_in_tracked_content() -> None:
+    """A published repository must not carry anyone's home directory layout.
+
+    An earlier check in this change ran `git ls-files | rg '/home/...'`, which
+    greps *filenames* only and reported clean while two archived reports
+    carried the maintainer's full checkout path in their content.
+    """
+    tracked = _tracked_modes()
+    if not tracked:
+        pytest.skip("not a usable git checkout: tracked content cannot be inspected")
+
+    offenders: list[str] = []
+    for _mode, path in tracked:
+        if path.startswith(PATTERN_DOCS):
+            continue
+        full = REPO_ROOT / path
+        if not full.is_file():
+            continue
+        try:
+            text = full.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+        if HOME_PATH.search(text):
+            offenders.append(path)
+
+    assert not offenders, (
+        f"tracked files contain an absolute home path: {offenders}. "
+        "Use a repository-relative path instead."
+    )

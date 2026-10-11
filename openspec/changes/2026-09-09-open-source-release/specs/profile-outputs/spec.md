@@ -17,8 +17,13 @@ configurable `output_dir`)
 
 - GIVEN `output_dir` is configured (or defaults to `output/`)
 - WHEN all generators are executed
-- THEN `output_dir` SHALL contain exactly five artifacts:
-  `github-readme.md`, `linkedin.md`, `portfolio.md`, `cv.md`, and `cv.yml`
+- THEN the output directory SHALL contain exactly six artifacts:
+  `github-readme.md`, `linkedin.md`, `portfolio.md`, `cv.md`, `cv.yml`, and
+  `manifest.json`
+
+> Amended during verification: the count was five before the output contract
+> (R3) added `manifest.json`, which is the authoritative index for the
+> artifacts that cannot carry a version of their own.
 - AND the root `README.md` SHALL remain byte-identical to its pre-run state
 
 #### Scenario: Root README regression guard

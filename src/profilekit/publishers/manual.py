@@ -87,7 +87,9 @@ def _artifact_names(cfg: Mapping[str, object]) -> Sequence[str]:
 
 
 def publish_entry_point(
-    ctx: ProjectContext, cfg: Mapping[str, object] | None = None
+    ctx: ProjectContext,
+    cfg: Mapping[str, object] | None = None,
+    credentials: Mapping[str, object] | None = None,
 ) -> PublishResult:
     """Registry entry point: plan, then report the pending action."""
     publisher = ManualPublisher()

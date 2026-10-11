@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "published skills.json",
+  "description": "Categorised skills as published. A details entry is either a plain string or an object with a name; a consumer must handle both.",
+  "type": "object",
+  "required": ["schemaVersion", "categories"],
+  "additionalProperties": true,
+  "properties": {
+    "schemaVersion": { "type": "integer", "minimum": 1 },
+    "categories": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["label", "details"],
+        "properties": {
+          "label": { "type": "string" },
+          "details": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                { "type": "string" },
+                {
+                  "type": "object",
+                  "required": ["name"],
+                  "properties": {
+                    "name": { "type": "string" },
+                    "icon": { "type": "string" },
+                    "iconUrl": { "type": "string" }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}

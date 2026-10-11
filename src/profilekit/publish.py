@@ -40,7 +40,7 @@ from typing import Any
 from profilekit import manifest, registry
 from profilekit.context import ProjectContext
 from profilekit.publishers import PublishResult
-from profilekit.secrets import MissingCredentialError, resolve
+from profilekit.secrets import CredentialSet, MissingCredentialError, resolve
 
 STATE_DIR = ".profilekit"
 STATE_FILENAME = "publish-state.json"
@@ -94,12 +94,22 @@ def write_state(ctx: ProjectContext, state: Mapping[str, str]) -> Path:
     return path
 
 
-def plan_digest(plan: Any) -> str:
-    """Return a digest of everything a plan would write.
+def plan_digest(plan: Any) -> str | None:
+    """Return a digest of everything a plan would write, or ``None``.
 
     Derived from artifact names and contents, so a reordering that changes
     nothing does not look like a change.
+
+    ``None`` means the content is not knowable from the plan — an out-of-tree
+    adapter manages its own payload and exposes no artifacts. Returning a
+    digest of nothing would be far worse than returning nothing: the empty
+    hash is constant, so after one publish the ledger would match forever and
+    the destination would report ``unchanged`` no matter how much the data
+    changed.
     """
+    if not plan.artifacts:
+        return None
+
     parts = []
     for artifact in sorted(plan.artifacts, key=lambda a: a.name):
         parts.append(artifact.name)
@@ -123,7 +133,7 @@ def publish_destination(
     publisher = _load_publisher(destination)
 
     try:
-        resolve(destination.config, destination=destination.name)
+        credentials = resolve(destination.config, destination=destination.name)
     except MissingCredentialError as exc:
         status = "failed" if require_credentials else "skipped"
         return PublishResult(
@@ -141,6 +151,7 @@ def publish_destination(
     # publisher derives its destination from configuration, which may be a
     # path or absent entirely, so operator-facing text would otherwise name
     # something the project never declared.
+    publisher.credentials = credentials  # type: ignore[attr-defined]
     plan = replace(publisher.plan(ctx, destination.config), destination=destination.name)
     digest = plan_digest(plan)
 
@@ -156,6 +167,11 @@ def publish_destination(
     # what this machine last published.
     if getattr(publisher, "reads_destination", False):
         unchanged = not plan.changes
+    elif digest is None:
+        # No comparable content: publish every time. The failure modes are
+        # asymmetric — a wrong skip looks like success and silently leaves the
+        # destination stale, while a redundant publish is merely wasteful.
+        unchanged = False
     else:
         unchanged = state.get(destination.name) == digest
 
@@ -176,7 +192,7 @@ def publish_destination(
         )
 
     result = publisher.publish(ctx, plan)
-    if result.status == "published":
+    if result.status == "published" and digest is not None:
         state[destination.name] = digest
 
     # The declared name is authoritative. A publisher derives its plan's
@@ -217,19 +233,32 @@ class _AdapterPublisher:
         # An out-of-tree adapter is assumed unable to read its destination.
         # Guessing the other way would skip republishes it actually needs.
         self.reads_destination = False
+        self.credentials: CredentialSet = CredentialSet({})
+        self._cfg: Mapping[str, Any] = {}
 
     def plan(self, ctx: ProjectContext, cfg: Mapping[str, Any]) -> Any:
         from profilekit.publishers import PublishPlan
 
+        self._cfg = cfg
         return PublishPlan(
             destination=str(cfg.get("destination", self.kind)),
             capability="push",
             resolved_path=ctx.root,
+            # No artifacts: the adapter owns its payload, so `plan_digest`
+            # returns None and this destination is never skipped on a stale
+            # ledger entry.
             changes=("<adapter-managed>",),
         )
 
     def publish(self, ctx: ProjectContext, plan: Any) -> PublishResult:
-        return self._entry_point(ctx)
+        """Invoke the entry point with its configuration and credentials.
+
+        An earlier version called the entry point with the context alone, so a
+        credentialed adapter received nothing it had declared and could only
+        have worked by reading the environment itself — which is precisely
+        what the credential model exists to prevent.
+        """
+        return self._entry_point(ctx, self._cfg, self.credentials)
 
 
 __all__ = [

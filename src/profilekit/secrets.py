@@ -44,7 +44,8 @@ class Secret:
     """A credential value that does not appear in any string conversion.
 
     ``__slots__`` keeps the value out of an instance ``__dict__``, which some
-    debuggers and serializers walk indiscriminately.
+    debuggers and serializers walk indiscriminately. Serialisation is refused
+    outright — see ``__reduce__``.
     """
 
     __slots__ = ("_value",)
@@ -81,6 +82,24 @@ class Secret:
 
     def __bool__(self) -> bool:
         return bool(self._value)
+
+    def __reduce__(self) -> tuple:  # type: ignore[type-arg]
+        """Refuse to serialise.
+
+        Pickle reads `__slots__` directly, so the default behaviour writes the
+        raw value into the blob — and pickling happens implicitly in
+        `multiprocessing`, in some caching layers, and in crash dumps. A
+        credential that silently lands on disk that way is exactly the leak
+        this class exists to prevent.
+
+        Nothing has a legitimate reason to pickle a credential: a process that
+        needs one resolves it from the environment itself. So this fails loudly
+        rather than succeeding quietly.
+        """
+        raise TypeError(
+            "Secret cannot be serialised: pickling would write the credential "
+            "in clear text. Resolve it from the environment where it is needed."
+        )
 
 
 class CredentialSet(dict[str, Secret]):

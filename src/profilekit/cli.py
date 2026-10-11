@@ -183,6 +183,56 @@ def _manifest_is_valid(ctx: ProjectContext) -> int:
     return 0
 
 
+#: Published artifact filename -> its packaged schema. `projects.json` is an
+#: array and so carries no inline version, but its item shape is still a
+#: contract a consumer depends on.
+PUBLISHED_SCHEMAS = {
+    "about.json": "published-about.schema.json",
+    "social.json": "published-social.schema.json",
+    "skills.json": "published-skills.schema.json",
+    "projects.json": "published-projects.schema.json",
+}
+
+
+def _published_artifacts_are_valid(ctx: ProjectContext) -> int:
+    """Validate each filesystem destination against the published schemas.
+
+    The canonical schemas under `data/` validate the *input*. These validate
+    the *output* — the shapes third parties actually read. Without them the
+    published files were only ever checked against input schemas that happen
+    to allow additional properties, so a transform could drop a required field
+    and nothing would notice.
+    """
+    import jsonschema  # noqa: PLC0415 — only needed on this path
+
+    for cfg in filesystem_destinations(ctx):
+        destination = ctx.root / str(cfg.get("destination", ""))
+        if not destination.is_dir():
+            continue
+
+        for filename, schema_name in PUBLISHED_SCHEMAS.items():
+            artifact = destination / filename
+            if not artifact.is_file():
+                continue
+
+            schema = json.loads(
+                (validate.schemas_dir(ctx) / schema_name).read_text(encoding="utf-8")
+            )
+            payload = json.loads(artifact.read_text(encoding="utf-8"))
+
+            errors = sorted(jsonschema.Draft7Validator(schema).iter_errors(payload), key=str)
+            for error in errors:
+                location = ".".join(str(part) for part in error.absolute_path) or "<root>"
+                print(
+                    f"error: published {filename}: {location}: {error.message}",
+                    file=sys.stderr,
+                )
+            if errors:
+                return 1
+
+    return 0
+
+
 def cmd_check(ctx: ProjectContext) -> int:
     """Local CI-parity gate: validate, regenerate, then verify nothing is stale."""
     rc = cmd_validate(ctx)
@@ -224,6 +274,10 @@ def cmd_check(ctx: ProjectContext) -> int:
         return 1
 
     rc = _manifest_is_valid(ctx)
+    if rc != 0:
+        return rc
+
+    rc = _published_artifacts_are_valid(ctx)
     if rc != 0:
         return rc
 

@@ -38,7 +38,7 @@ The change `add-platform-specific-data-variety` has been successfully implemente
 
 ## Archive Contents
 
-All change artifacts moved intact to: `/home/johny/Projects/personal/profile-data/openspec/changes/archive/2026-09-04-add-platform-specific-data-variety/`
+All change artifacts moved intact to: `openspec/changes/archive/2026-09-04-add-platform-specific-data-variety/`
 
 Archived structure:
 ```

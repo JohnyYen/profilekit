@@ -300,3 +300,87 @@ def test_core_declares_zero_network_dependencies() -> None:
     assert not offenders, (
         f"the core must stay network-free; credentialed adapters ship separately: {offenders}"
     )
+
+
+# ---------------------------------------------------------------------------
+# Regression: an adapter must never be skipped on a stale ledger entry
+# ---------------------------------------------------------------------------
+
+
+def test_a_plan_with_no_artifacts_has_no_digest() -> None:
+    """An unknowable payload must yield None, not the hash of nothing.
+
+    The empty hash is a constant. Returning it meant that after one publish
+    the ledger matched forever and an out-of-tree adapter reported `unchanged`
+    no matter how much its data had changed — a silent, permanent skip that
+    looked like success.
+    """
+    from pathlib import Path as _Path
+
+    from profilekit.publishers import PublishPlan
+
+    empty = PublishPlan(
+        destination="d",
+        capability="push",
+        resolved_path=_Path("/tmp"),
+        changes=("<adapter-managed>",),
+    )
+    assert publish.plan_digest(empty) is None
+
+
+def test_an_adapter_destination_republishes_every_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A destination whose content cannot be compared must always publish."""
+    calls: list[int] = []
+
+    def adapter(ctx, cfg=None, credentials=None):
+        calls.append(1)
+        from profilekit.publishers import PublishResult as _R
+
+        return _R(destination="acme", status="published", detail="sent")
+
+    shutil.copytree(FIXTURE_PROJECT, tmp_path / "p")
+    (tmp_path / "p" / "profile.toml").write_text(
+        '[project]\nconfig_version = 1\n\n[publishers.acme]\nkind = "acme-cdn"\n',
+        encoding="utf-8",
+    )
+    monkeypatch.setattr("profilekit.registry.publishers", lambda: {"acme-cdn": adapter})
+
+    for _ in range(2):
+        assert cli.main(["--project", str(tmp_path / "p"), "publish", "--execute"]) == 0
+
+    assert len(calls) == 2, "the adapter was skipped on its second run"
+
+
+def test_an_adapter_receives_its_config_and_credentials(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Calling an adapter with the context alone defeats the credential model.
+
+    An adapter that is handed nothing it declared could only work by reading
+    the environment itself, which is exactly what injection exists to prevent.
+    """
+    seen: dict[str, object] = {}
+
+    def adapter(ctx, cfg=None, credentials=None):
+        seen["cfg"] = cfg
+        seen["credentials"] = credentials
+        from profilekit.publishers import PublishResult as _R
+
+        return _R(destination="acme", status="published", detail="sent")
+
+    shutil.copytree(FIXTURE_PROJECT, tmp_path / "p")
+    (tmp_path / "p" / "profile.toml").write_text(
+        "[project]\nconfig_version = 1\n\n"
+        '[publishers.acme]\nkind = "acme-cdn"\nregion = "eu"\n\n'
+        '[publishers.acme.credential]\ntoken = "ACME_TOKEN"\n',
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("ACME_TOKEN", "s3cret")
+    monkeypatch.setattr("profilekit.registry.publishers", lambda: {"acme-cdn": adapter})
+
+    cli.main(["--project", str(tmp_path / "p"), "publish", "--execute"])
+
+    assert seen["cfg"]["region"] == "eu"  # type: ignore[index]
+    assert seen["credentials"]["token"].reveal() == "s3cret"  # type: ignore[index]

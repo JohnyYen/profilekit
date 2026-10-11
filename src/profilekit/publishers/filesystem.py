@@ -192,7 +192,9 @@ class FilesystemPublisher:
 
 
 def publish_entry_point(
-    ctx: ProjectContext, cfg: Mapping[str, object] | None = None
+    ctx: ProjectContext,
+    cfg: Mapping[str, object] | None = None,
+    credentials: Mapping[str, object] | None = None,
 ) -> PublishResult:
     """Registry entry point: plan and publish in one call.
 

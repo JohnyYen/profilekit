@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "published social.json",
+  "description": "Social links as published. A passthrough of the canonical shape plus the contract version; additional properties are allowed so adding a link type stays backward compatible.",
+  "type": "object",
+  "required": ["schemaVersion", "github", "linkedin", "email"],
+  "additionalProperties": true,
+  "properties": {
+    "schemaVersion": { "type": "integer", "minimum": 1 },
+    "github": { "type": "string", "format": "uri" },
+    "linkedin": { "type": "string", "format": "uri" },
+    "email": { "type": "string" },
+    "cvUrl": { "type": "string" },
+    "website": { "type": "string" }
+  }
+}
