@@ -41,27 +41,45 @@ GENERATORS: dict[str, Callable[..., object]] = {
 }
 
 
-def _git_output_is_clean(ctx: ProjectContext) -> bool:
-    """Return True when the output directory has no uncommitted drift.
+def _git_output_is_clean(ctx: ProjectContext) -> bool | None:
+    """Report whether the output directory has uncommitted drift.
 
-    Mirrors the CI freshness gate. The repository is selected with ``git -C``
-    against the resolved project root rather than inherited from the process
-    working directory, so the command cannot accidentally interrogate whatever
-    repository the user happened to be standing in. Argument vector only —
-    never ``shell=True``.
+    Returns True when clean, False when drifted, and ``None`` when the
+    question could not be answered — there is no repository, or no ``git`` on
+    PATH.
+
+    Two hazards are handled deliberately. **Selection**: the repository is
+    chosen with ``git -C`` against the resolved project root instead of being
+    inherited from the process working directory, so the probe cannot be
+    pointed at whatever repository the caller's shell happens to be sitting
+    in. **Availability**: an installed CLI gets run in directories that are
+    not repositories, by people who may not have git at all. Hard-failing
+    there would make the gate unusable for exactly the audience this package
+    is published for.
+
+    Read-only by construction: ``diff`` only. It never stages, commits,
+    amends, or initialises anything, and it never claims the tree is clean
+    when it could not look.
     """
-    result = subprocess.run(
-        [
-            "git",
-            "-C",
-            str(ctx.root),
-            "diff",
-            "--exit-code",
-            "--",
-            str(ctx.output_dir),
-        ],
-        check=False,
-    )
+    if not (ctx.root / ".git").exists():
+        return None
+
+    try:
+        result = subprocess.run(
+            [
+                "git",
+                "-C",
+                str(ctx.root),
+                "diff",
+                "--exit-code",
+                "--",
+                str(ctx.output_dir),
+            ],
+            check=False,
+        )
+    except (FileNotFoundError, OSError):
+        return None
+
     return result.returncode == 0
 
 
@@ -127,7 +145,16 @@ def cmd_check(ctx: ProjectContext) -> int:
     if rc != 0:
         return rc
 
-    if not _git_output_is_clean(ctx):
+    git_state = _git_output_is_clean(ctx)
+    if git_state is None:
+        # No repository, or no git binary. Say so rather than reporting a
+        # result that was never measured. R3's output manifest will give this
+        # branch a content reference to compare against.
+        print(
+            "notice: git freshness check skipped — "
+            f"{ctx.root} is not a git repository, or git is unavailable"
+        )
+    elif not git_state:
         print(
             "error: output/ is stale — regenerated content differs from the "
             "committed tree (run `git diff -- output/`)",
@@ -148,7 +175,8 @@ def cmd_check(ctx: ProjectContext) -> int:
         )
         return 1
 
-    print("check passed: data valid, output/ up to date, destinations current")
+    freshness = "output/ up to date" if git_state else "output/ freshness skipped"
+    print(f"check passed: data valid, {freshness}, destinations current")
     return 0
 
 
