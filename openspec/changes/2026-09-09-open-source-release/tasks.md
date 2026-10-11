@@ -130,12 +130,12 @@ no task — no git-push publisher or PR automation is introduced.
 
 ## Phase 7 (R3): Output Data Contract
 
-- [ ] 7.1 RED: `test_json_artifacts_carry_schema_version` — every generated JSON artifact has top-level `schemaVersion`; fails today.
-- [ ] 7.2 GREEN: add `manifest.py` (sha256 + `schemaVersion` per D6); inject the field into JSON-artifact generators; write `output/manifest.json` after a full run.
-- [ ] 7.3 RED: `test_schema_resolves_and_validates` — a packaged schema file exists per `schemaVersion`; every artifact validates against it.
-- [ ] 7.4 GREEN: add per-artifact JSON Schema files under `src/profilekit/schemas/`; wire validation into `profile check`.
-- [ ] 7.5 RED: `test_additive_field_is_backward_compatible` and `test_breaking_change_bumps_major`.
-- [ ] 7.6 GREEN: encode the D6 additive-vs-breaking rule as a reusable schema-diff test helper; stub `docs/data-contract.md` (expanded in R10).
+- [x] 7.1 RED: `test_json_artifacts_carry_schema_version` — every generated JSON artifact has top-level `schemaVersion`; fails today.
+- [x] 7.2 GREEN: add `manifest.py` (sha256 + `schemaVersion` per D6); inject the field into JSON-artifact generators; write `output/manifest.json` after a full run.
+- [x] 7.3 RED: `test_schema_resolves_and_validates` — a packaged schema file exists per `schemaVersion`; every artifact validates against it.
+- [x] 7.4 GREEN: add per-artifact JSON Schema files under `src/profilekit/schemas/`; wire validation into `profile check`.
+- [x] 7.5 RED: `test_additive_field_is_backward_compatible` and `test_breaking_change_bumps_major`.
+- [x] 7.6 GREEN: encode the D6 additive-vs-breaking rule as a reusable schema-diff test helper; stub `docs/data-contract.md` (expanded in R10).
 
 ## Phase 8 (R4): Publication Layer
 

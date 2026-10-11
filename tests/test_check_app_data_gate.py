@@ -21,8 +21,8 @@ from pathlib import Path
 
 import pytest
 
-from profilekit import cli
-from profilekit.context import ProjectContext
+from profilekit import cli, manifest
+from profilekit.context import ProjectContext, discover_project
 from profilekit.publishers.filesystem import FilesystemPublisher
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -44,7 +44,10 @@ def sandbox(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     (tmp_path / "profile.toml").write_text(PROJECT_CONFIG, encoding="utf-8")
 
     # Validation and generation are exercised by their own suites; this gate is
-    # about destinations, so hold those two steps constant.
+    # about destinations, so hold those two steps constant. The sandbox still
+    # carries a valid manifest, because a project that has never generated is a
+    # different failure and not the one under test here.
+    manifest.write(discover_project(explicit=tmp_path))
     monkeypatch.setattr(cli.validate, "main", lambda ctx: 0)
     monkeypatch.setattr(cli, "_git_output_is_clean", lambda ctx: True)
     monkeypatch.setattr(cli, "cmd_generate", lambda target, ctx: 0)
@@ -109,6 +112,7 @@ def test_check_ignores_manual_destinations(tmp_path: Path, monkeypatch: pytest.M
         '[project]\nconfig_version = 1\n\n[publishers.linkedin]\nkind = "manual"\n',
         encoding="utf-8",
     )
+    manifest.write(discover_project(explicit=tmp_path))
     monkeypatch.setattr(cli.validate, "main", lambda ctx: 0)
     monkeypatch.setattr(cli, "_git_output_is_clean", lambda ctx: True)
     monkeypatch.setattr(cli, "cmd_generate", lambda target, ctx: 0)

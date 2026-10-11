@@ -1,0 +1,52 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "profilekit output manifest",
+  "description": "Authoritative index of every generated artifact. Markdown and YAML artifacts cannot carry a schemaVersion of their own, so this file is the contract reference for all of them. Carries no timestamp: it is a committed artifact, so it must be byte-identical across runs over identical data.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "artifacts"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Output-contract version. Bumped only by a breaking change: a removed field, a retyped field, or a newly required field."
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "generator",
+          "schemaVersion",
+          "sha256",
+          "bytes"
+        ],
+        "additionalProperties": true,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "generator": {
+            "type": "string"
+          },
+          "schemaVersion": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    }
+  }
+}

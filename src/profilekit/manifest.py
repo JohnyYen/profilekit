@@ -1,0 +1,184 @@
+"""The versioned output contract.
+
+A consumer writing a frontend against these artifacts needs two things: a way
+to know the shape it is reading, and a promise about when that shape changes.
+Without both, every consumer is coupled to whatever the generators happened to
+emit on the day they integrated — and the maintainer cannot change anything
+without silently breaking strangers.
+
+Two mechanisms, because one is not enough:
+
+JSON artifacts carry a top-level ``schemaVersion``, which is the natural place
+for it — a consumer reading the file already has the number in hand.
+
+Markdown and YAML artifacts cannot carry a field, so ``output/manifest.json``
+is the authoritative index for **all** artifacts. It also carries a content
+digest per artifact, which gives the publish layer an idempotency reference
+and gives ``profile check`` something to compare against when git is not
+available.
+
+**No timestamp.** Design decision D6 specified a ``generatedAt`` field. It is
+deliberately omitted: the manifest is a committed artifact, and a wall-clock
+value inside a file that is version-controlled and diffed destroys the
+byte-identical freshness guarantee R6 established — every regeneration would
+report drift while telling nobody anything about content. Provenance belongs
+to the publish layer, which records when it published, not to a generated
+file. The digests already answer "is this the same output?" precisely.
+
+Compatibility policy
+--------------------
+
+``schemaVersion`` is a single integer per artifact — not a semver triple —
+because the only question a consumer asks is "can I still read this?".
+
+Adding an **optional** field does not bump it. That preserves the
+use-if-present-else-fallback rule this project already follows, and a version
+that bumps on every addition trains consumers to ignore the number, which is
+worse than having no number at all.
+
+Removing a field, retyping one, or newly requiring an existing one does bump
+it. Each of those breaks a consumer that was reading the previous shape.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+from collections.abc import Mapping
+from pathlib import Path
+from typing import Any
+
+#: The current output-contract version. One integer, bumped only by a
+#: breaking change as defined in this module's docstring.
+SCHEMA_VERSION = 1
+
+MANIFEST_FILENAME = "manifest.json"
+
+#: Which generator produces which artifact, for the manifest index.
+ARTIFACT_GENERATORS = {
+    "github-readme.md": "github-readme",
+    "linkedin.md": "linkedin",
+    "portfolio.md": "portfolio",
+    "cv.yml": "cv",
+    "cv.md": "cv",
+}
+
+
+def digest_file(path: Path) -> str:
+    """Return the sha256 of *path*'s bytes."""
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def digest_text(text: str) -> str:
+    """Return the sha256 of *text* encoded as UTF-8."""
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def build(output_dir: Path) -> dict[str, Any]:
+    """Build the manifest index for every artifact in *output_dir*.
+
+    The manifest never indexes itself: its own digest would change every time
+    it was written, which makes it useless as a comparison reference.
+
+    Artifact entries are sorted by name, and the manifest carries no
+    timestamp, so two runs over identical data produce a byte-identical file.
+    """
+    artifacts: list[dict[str, Any]] = []
+    if not output_dir.is_dir():
+        return {"schemaVersion": SCHEMA_VERSION, "artifacts": artifacts}
+
+    for path in sorted(output_dir.glob("*")):
+        if not path.is_file() or path.name == MANIFEST_FILENAME:
+            continue
+        artifacts.append(
+            {
+                "name": path.name,
+                "generator": ARTIFACT_GENERATORS.get(path.name, "unknown"),
+                "schemaVersion": SCHEMA_VERSION,
+                "sha256": digest_file(path),
+                "bytes": path.stat().st_size,
+            }
+        )
+
+    return {"schemaVersion": SCHEMA_VERSION, "artifacts": artifacts}
+
+
+def write(ctx: Any) -> Path:
+    """Write ``manifest.json`` into the context's output directory."""
+    index = build(ctx.output_dir)
+    ctx.output_dir.mkdir(parents=True, exist_ok=True)
+    path = ctx.output_dir / MANIFEST_FILENAME
+    path.write_text(
+        json.dumps(index, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    return path
+
+
+def read(output_dir: Path) -> dict[str, Any] | None:
+    """Read the manifest from *output_dir*, or ``None`` when absent."""
+    path = output_dir / MANIFEST_FILENAME
+    if not path.is_file():
+        return None
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def stamp(payload: Mapping[str, Any]) -> dict[str, Any]:
+    """Return *payload* with the contract version as its first key.
+
+    First so the field is visible at the top of the file. A consumer opening
+    the artifact should not have to scroll to learn what it is reading.
+    """
+    return {"schemaVersion": SCHEMA_VERSION, **payload}
+
+
+# ---------------------------------------------------------------------------
+# Compatibility checking
+# ---------------------------------------------------------------------------
+
+
+def _properties(schema: Mapping[str, Any]) -> dict[str, Any]:
+    props = schema.get("properties")
+    return dict(props) if isinstance(props, dict) else {}
+
+
+def _required(schema: Mapping[str, Any]) -> set[str]:
+    required = schema.get("required")
+    return set(required) if isinstance(required, list) else set()
+
+
+def is_backward_compatible(before: Mapping[str, Any], after: Mapping[str, Any]) -> bool:
+    """Report whether *after* can still be read by a consumer of *before*.
+
+    Compatible: adding an optional property.
+
+    Breaking: removing a property, changing its declared type, newly requiring
+    a property that was optional, or requiring a property that did not exist.
+    Each of those breaks a consumer that was reading the previous shape — and
+    the last one is the subtle case, because the property itself is additive
+    while the requirement is not.
+    """
+    before_props, after_props = _properties(before), _properties(after)
+
+    for name, spec in before_props.items():
+        if name not in after_props:
+            return False
+        if spec.get("type") != after_props[name].get("type"):
+            return False
+
+    newly_required = _required(after) - _required(before)
+    return not newly_required
+
+
+__all__ = [
+    "ARTIFACT_GENERATORS",
+    "MANIFEST_FILENAME",
+    "SCHEMA_VERSION",
+    "build",
+    "digest_file",
+    "digest_text",
+    "is_backward_compatible",
+    "read",
+    "stamp",
+    "write",
+]

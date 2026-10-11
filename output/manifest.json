@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "artifacts": [
+    {
+      "name": "cv.md",
+      "generator": "cv",
+      "schemaVersion": 1,
+      "sha256": "6dbb686c7b184df08e07aa9d113d548b3d02456ca1ddcc9ab334369c3bc8b3cd",
+      "bytes": 2431
+    },
+    {
+      "name": "cv.yml",
+      "generator": "cv",
+      "schemaVersion": 1,
+      "sha256": "57c0c6f4eff27f49bf0808485bcf1b98cdf1ea4ae2ebafa60b06d03c0fa0dd55",
+      "bytes": 8228
+    },
+    {
+      "name": "github-readme.md",
+      "generator": "github-readme",
+      "schemaVersion": 1,
+      "sha256": "084455d1291fa0a0b2363670d5a7bafb8efdc38b809e3b53519d40aa944caa5f",
+      "bytes": 4015
+    },
+    {
+      "name": "linkedin.md",
+      "generator": "linkedin",
+      "schemaVersion": 1,
+      "sha256": "c397ee5c5838f5bfd27ac724ea74aee9977f0f28f5786adfc78b35ada89eda35",
+      "bytes": 2788
+    },
+    {
+      "name": "portfolio.md",
+      "generator": "portfolio",
+      "schemaVersion": 1,
+      "sha256": "89c89144b7b9f29b612f7751626196d0c100b2ee7549471f2289dfb62c3bdb1b",
+      "bytes": 3701
+    }
+  ]
+}

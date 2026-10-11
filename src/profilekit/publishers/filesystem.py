@@ -23,6 +23,7 @@ import json
 from collections.abc import Mapping
 from pathlib import Path
 
+from profilekit.manifest import stamp
 from profilekit.publishers import (
     Artifact,
     Capability,
@@ -119,10 +120,14 @@ def build_artifacts(ctx: ProjectContext) -> list[Artifact]:
     skills = load_json("skills.json", ctx.data_dir)
     projects = load_json("projects.json", ctx.data_dir)
 
+    # Every published JSON object declares the contract version it satisfies,
+    # so a consumer knows the shape it is reading without consulting the
+    # manifest. `projects.json` is an array, so its version lives only in the
+    # manifest — a list has nowhere to put a top-level field.
     return [
-        Artifact("about.json", _serialize(build_about(about))),
-        Artifact("social.json", _serialize(build_social(social))),
-        Artifact("skills.json", _serialize(build_skills(skills))),
+        Artifact("about.json", _serialize(stamp(build_about(about)))),
+        Artifact("social.json", _serialize(stamp(build_social(social)))),
+        Artifact("skills.json", _serialize(stamp(build_skills(skills)))),
         Artifact("projects.json", _serialize(build_projects(projects))),
     ]
 

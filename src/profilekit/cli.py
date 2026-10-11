@@ -15,12 +15,13 @@ rather than on its own installation directory.
 from __future__ import annotations
 
 import argparse
+import json
 import subprocess
 import sys
 from collections.abc import Mapping
 from pathlib import Path
 
-from profilekit import registry, validate
+from profilekit import manifest, registry, validate
 from profilekit.config import ConfigError
 from profilekit.context import ProjectContext, ProjectNotFoundError, discover_project
 from profilekit.publishers.filesystem import FilesystemPublisher
@@ -124,12 +125,63 @@ def cmd_generate(target: str, ctx: ProjectContext) -> int:
         except Exception as exc:  # noqa: BLE001 — surface which target failed
             print(f"error: generator '{name}' failed: {exc}", file=sys.stderr)
             return 1
+
+    if target == "all":
+        # The manifest indexes the whole output set, so it is only meaningful
+        # after every generator has run. Writing it after a single target
+        # would index a partially regenerated tree.
+        path = manifest.write(ctx)
+        print(f"Wrote {path}")
     return 0
 
 
 def cmd_validate(ctx: ProjectContext) -> int:
     """Delegate to ``profilekit.validate.main()`` and return its exit code."""
     return validate.main(ctx)
+
+
+def _manifest_is_valid(ctx: ProjectContext) -> int:
+    """Validate the output manifest against its packaged schema.
+
+    The manifest is the contract third parties read, so a malformed one is a
+    broken promise rather than a cosmetic problem. Checked here so it cannot
+    be published in that state.
+    """
+    import jsonschema  # noqa: PLC0415 — only needed on this path
+
+    index = manifest.read(ctx.output_dir)
+    if index is None:
+        print(
+            "error: output/manifest.json is missing — run `profile generate`",
+            file=sys.stderr,
+        )
+        return 1
+
+    schema_source = validate.schemas_dir(ctx) / "manifest.schema.json"
+    schema = json.loads(schema_source.read_text(encoding="utf-8"))
+
+    errors = sorted(jsonschema.Draft7Validator(schema).iter_errors(index), key=str)
+    if errors:
+        for error in errors:
+            path = ".".join(str(part) for part in error.absolute_path) or "<root>"
+            print(f"error: manifest.json: {path}: {error.message}", file=sys.stderr)
+        return 1
+
+    # Digests are the publish layer's idempotency reference, so a stale one
+    # would make `publish` skip a destination that actually needs writing.
+    for entry in index["artifacts"]:
+        artifact = ctx.output_dir / entry["name"]
+        if not artifact.is_file():
+            print(f"error: manifest.json lists missing artifact {entry['name']}", file=sys.stderr)
+            return 1
+        if manifest.digest_file(artifact) != entry["sha256"]:
+            print(
+                f"error: manifest.json digest for {entry['name']} does not match its content",
+                file=sys.stderr,
+            )
+            return 1
+
+    return 0
 
 
 def cmd_check(ctx: ProjectContext) -> int:
@@ -171,6 +223,10 @@ def cmd_check(ctx: ProjectContext) -> int:
             file=sys.stderr,
         )
         return 1
+
+    rc = _manifest_is_valid(ctx)
+    if rc != 0:
+        return rc
 
     freshness = "output/ up to date" if git_state else "output/ freshness skipped"
     print(f"check passed: data valid, {freshness}, destinations current")

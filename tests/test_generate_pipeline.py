@@ -25,7 +25,14 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parent.parent
 FIXTURE_PROJECT = REPO_ROOT / "tests" / "fixtures" / "project"
 
-EXPECTED_ARTIFACTS = ["cv.md", "cv.yml", "github-readme.md", "linkedin.md", "portfolio.md"]
+EXPECTED_ARTIFACTS = [
+    "cv.md",
+    "cv.yml",
+    "github-readme.md",
+    "linkedin.md",
+    "manifest.json",
+    "portfolio.md",
+]
 
 #: Directories the suite must never write into.
 PROTECTED = (
