@@ -225,3 +225,7 @@ __marimo__/
 
 # Vendored cv/ subtree: agent-skill session scaffolding, not CV content
 cv/.agents/
+
+# Local publish ledger: records what THIS machine last published. Local by
+# design — a shared ledger would claim knowledge of other people' runs.
+.profilekit/

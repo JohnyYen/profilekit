@@ -139,19 +139,19 @@ no task — no git-push publisher or PR automation is introduced.
 
 ## Phase 8 (R4): Publication Layer
 
-- [ ] 8.1 RED: `test_secret_never_leaks` — `repr`/`str`/f-string/traceback of `Secret` never yield the value.
-- [ ] 8.2 GREEN: add `secrets.py` (`Secret`, `CredentialSet`); core reads `[publishers.X.credential] env=NAME`, injects `Secret`s — publishers never call `os.environ`.
-- [ ] 8.3 RED: `test_dry_run_default_no_writes` and `test_live_flag_required`.
-- [ ] 8.4 GREEN: add `profile publish [dest|all]`; `Publisher` protocol (D7); dry-run default, `publish()` not called unless live.
-- [ ] 8.5 RED: `test_manual_never_reports_success` — `manual` returns `pending-manual` with non-null `action_required`, never `published`.
-- [ ] 8.6 GREEN: add `publishers/manual.py` and `publishers/base.py`.
-- [ ] 8.7 RED: `test_unchanged_hash_skips_write` and `test_changed_hash_republishes`.
-- [ ] 8.8 GREEN: idempotency ledger `.profilekit/publish-state.json` (gitignored) compared against manifest sha256 in `plan()`.
-- [ ] 8.9 RED: `test_one_failure_does_not_abort_others`.
-- [ ] 8.10 GREEN: wrap each destination's `plan()`/`publish()` in its own `try/except`; aggregate results; exit 1 iff any `failed`.
-- [ ] 8.11 RED: `test_no_credentials_completes_without_fatal_error`.
-- [ ] 8.12 GREEN: missing credential → `skipped` (exit 0) default; `--require-credentials` escalates to `failed`.
-- [ ] 8.13 REFACTOR: verify core declares zero network dependencies in `pyproject.toml`; `filesystem`/`manual` remain stdlib-only.
+- [x] 8.1 RED: `test_secret_never_leaks` — `repr`/`str`/f-string/traceback of `Secret` never yield the value.
+- [x] 8.2 GREEN: add `secrets.py` (`Secret`, `CredentialSet`); core reads `[publishers.X.credential] env=NAME`, injects `Secret`s — publishers never call `os.environ`.
+- [x] 8.3 RED: `test_dry_run_default_no_writes` and `test_live_flag_required`.
+- [x] 8.4 GREEN: add `profile publish [dest|all]`; `Publisher` protocol (D7); dry-run default, `publish()` not called unless live.
+- [x] 8.5 RED: `test_manual_never_reports_success` — `manual` returns `pending-manual` with non-null `action_required`, never `published`.
+- [x] 8.6 GREEN: add `publishers/manual.py` and `publishers/base.py`.
+- [x] 8.7 RED: `test_unchanged_hash_skips_write` and `test_changed_hash_republishes`.
+- [x] 8.8 GREEN: idempotency ledger `.profilekit/publish-state.json` (gitignored) compared against manifest sha256 in `plan()`.
+- [x] 8.9 RED: `test_one_failure_does_not_abort_others`.
+- [x] 8.10 GREEN: wrap each destination's `plan()`/`publish()` in its own `try/except`; aggregate results; exit 1 iff any `failed`.
+- [x] 8.11 RED: `test_no_credentials_completes_without_fatal_error`.
+- [x] 8.12 GREEN: missing credential → `skipped` (exit 0) default; `--require-credentials` escalates to `failed`.
+- [x] 8.13 REFACTOR: verify core declares zero network dependencies in `pyproject.toml`; `filesystem`/`manual` remain stdlib-only.
 
 ## Phase 9 (R5): CI Automation
 

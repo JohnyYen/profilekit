@@ -137,6 +137,7 @@ class FilesystemPublisher:
 
     kind: str = "filesystem"
     capability: Capability = "push"
+    reads_destination: bool = True
 
     def plan(self, ctx: ProjectContext, cfg: Mapping[str, object]) -> PublishPlan:
         """Compute the artifacts and the drift against the destination.

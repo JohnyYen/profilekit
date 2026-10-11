@@ -158,9 +158,17 @@ def test_divergence_regression_generate_and_publish_share_one_source() -> None:
     generators = registry.generators()
     publishers = registry.publishers()
 
-    assert set(generators).isdisjoint(publishers), (
-        "a component must be a generator or a publisher, never both"
-    )
+    # Names may legitimately coincide across the two groups: `linkedin` is a
+    # generator that produces linkedin.md and a destination that publishes it.
+    # Those are different namespaces — what is produced versus where it goes —
+    # and naming the destination after its artifact is clear, not a collision.
+    #
+    # The invariant that matters is that no single implementation is registered
+    # in both groups. That would be a genuine duplicate, and whichever command
+    # ran it would be doing the other one's job.
+    shared = set(generators.values()) & set(publishers.values())
+    assert not shared, f"the same implementation is registered in both groups: {shared}"
+
     assert "portfolio-data" in publishers
     assert "portfolio-data" not in generators
 

@@ -87,6 +87,15 @@ class Publisher(Protocol):
     kind: str
     capability: Capability
 
+    #: Whether ``plan()`` can read the destination's current state.
+    #:
+    #: True for a local directory. False for anything this tool cannot
+    #: inspect — a platform with no read API, or a human-updated page. The
+    #: distinction decides which staleness signal is authoritative: a
+    #: publisher that can read back trusts its own plan, and one that cannot
+    #: falls back to the local ledger of what it last published.
+    reads_destination: bool
+
     def plan(self, ctx: ProjectContext, cfg: Mapping[str, object]) -> PublishPlan:
         """Compute what publishing would do. MUST NOT write anything."""
         ...

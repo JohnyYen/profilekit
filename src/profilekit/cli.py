@@ -21,7 +21,7 @@ import sys
 from collections.abc import Mapping
 from pathlib import Path
 
-from profilekit import manifest, registry, validate
+from profilekit import manifest, publish, registry, validate
 from profilekit.config import ConfigError
 from profilekit.context import ProjectContext, ProjectNotFoundError, discover_project
 from profilekit.publishers.filesystem import FilesystemPublisher
@@ -233,6 +233,69 @@ def cmd_check(ctx: ProjectContext) -> int:
     return 0
 
 
+def cmd_publish(
+    ctx: ProjectContext, *, execute: bool, target: str, require_credentials: bool
+) -> int:
+    """Publish one destination or all of them.
+
+    Dry run unless ``execute`` is set: publishing is outward-facing and not
+    reliably reversible, so writing is opt-in.
+
+    Each destination is isolated — one failure must not stop the others, since
+    they are independent and aborting would turn one platform's outage into a
+    total failure. The exit code is non-zero if any destination failed, so CI
+    still notices.
+    """
+    declared = publish.destinations(ctx)
+    if not declared:
+        print("no publish destinations declared in profile.toml")
+        return 0
+
+    if target != "all":
+        declared = [d for d in declared if d.name == target]
+        if not declared:
+            names = ", ".join(d.name for d in publish.destinations(ctx))
+            print(f"error: unknown destination '{target}' (declared: {names})", file=sys.stderr)
+            return 2
+
+    state = publish.read_state(ctx)
+    results = []
+
+    for destination in declared:
+        try:
+            result = publish.publish_destination(
+                ctx,
+                destination,
+                execute=execute,
+                state=state,
+                require_credentials=require_credentials,
+            )
+        except Exception as exc:  # noqa: BLE001 — isolate, record, keep going
+            from profilekit.publishers import PublishResult
+
+            result = PublishResult(
+                destination=destination.name,
+                status="failed",
+                detail=f"{type(exc).__name__}: {exc}",
+            )
+        results.append(result)
+
+    if execute:
+        publish.write_state(ctx, state)
+
+    width = max((len(r.destination) for r in results), default=11)
+    print(f"{'DESTINATION':<{width + 2}}{'STATUS':<16}DETAIL")
+    for result in results:
+        print(f"{result.destination:<{width + 2}}{result.status:<16}{result.detail}")
+        if result.action_required:
+            print(f"{'':<{width + 2}}{'':<16}-> {result.action_required}")
+
+    if not execute:
+        print("\ndry run: nothing was published. Re-run with --execute to publish.")
+
+    return 1 if any(r.status == "failed" for r in results) else 0
+
+
 def cmd_init(target: Path) -> int:
     """Scaffold a new project at *target*.
 
@@ -312,6 +375,32 @@ def build_parser() -> argparse.ArgumentParser:
 
     lst = sub.add_parser("list", help="List available generation targets.")
     lst.set_defaults(func=lambda args, ctx: cmd_list(ctx))
+
+    pub = sub.add_parser("publish", help="Publish artifacts to configured destinations.")
+    pub.add_argument(
+        "target",
+        nargs="?",
+        default="all",
+        help="Destination to publish: 'all' (default) or a declared name.",
+    )
+    pub.add_argument(
+        "--execute",
+        action="store_true",
+        help="Actually publish. Without this, publish performs a dry run.",
+    )
+    pub.add_argument(
+        "--require-credentials",
+        action="store_true",
+        help="Treat a missing credential as a failure instead of skipping the destination.",
+    )
+    pub.set_defaults(
+        func=lambda args, ctx: cmd_publish(
+            ctx,
+            execute=args.execute,
+            target=args.target,
+            require_credentials=args.require_credentials,
+        )
+    )
 
     ini = sub.add_parser("init", help="Scaffold a new project with example data.")
     ini.add_argument(

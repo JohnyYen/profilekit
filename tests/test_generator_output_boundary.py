@@ -71,4 +71,6 @@ def test_generate_path_contains_no_publishers() -> None:
             f"generate target {name!r} resolves to publisher module {module_name!r}"
         )
 
-    assert set(registry.generators()).isdisjoint(registry.publishers())
+    # Names may coincide across groups (`linkedin` is both an artifact and a
+    # destination); what must not coincide is the implementation behind them.
+    assert not set(registry.generators().values()) & set(registry.publishers().values())
