@@ -1,0 +1,185 @@
+"""Filesystem publisher — canonical data to a directory inside the project.
+
+This is the publisher that carries canonical profile data into a frontend's
+data directory. The in-repo portfolio app under ``apps/portfolio/app/data/`` is
+one such destination, and the reference one, but the destination is
+configuration: any consumer that reads the same four JSON shapes is a valid
+target.
+
+It needs no credentials and no network, which is why it ships in the package
+rather than as an opt-in adapter.
+
+Security note: the destination is the one value here that an edit to project
+configuration can turn into an arbitrary-write primitive. It is resolved
+against ``ctx.root`` and rejected *before* any content is produced — absolute
+paths, parent-directory escapes, and symlinks pointing out of the project all
+fail closed.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+from collections.abc import Mapping
+from pathlib import Path
+
+from profilekit.publishers import (
+    Artifact,
+    Capability,
+    PublisherContext,
+    PublishPlan,
+    PublishResult,
+)
+from profilekit.utils import load_json
+
+DEFAULT_DESTINATION = "apps/portfolio/app/data"
+
+_ABOUT_KEYS = (
+    "username",
+    "tagline",
+    "description",
+    "currentFocus",
+    "whatIBuild",
+    "learningJourney",
+)
+
+
+class UnsafeDestinationError(ValueError):
+    """Raised when a configured destination resolves outside the project root."""
+
+
+def resolve_destination(root: Path, destination: str) -> Path:
+    """Resolve *destination* against *root*, refusing anything that escapes it.
+
+    Rejects absolute paths and any relative path that — after following
+    symlinks — lands outside *root*. Resolution happens first so that a
+    symlinked directory inside the project cannot be used as a tunnel.
+    """
+    candidate = Path(destination)
+    if candidate.is_absolute():
+        raise UnsafeDestinationError(
+            f"destination must be relative to the project root, got absolute path: {destination}"
+        )
+
+    resolved_root = root.resolve()
+    resolved = (resolved_root / candidate).resolve()
+
+    if resolved != resolved_root and resolved_root not in resolved.parents:
+        raise UnsafeDestinationError(
+            f"destination escapes the project root: {destination} -> {resolved}"
+        )
+    return resolved
+
+
+def build_about(about: Mapping[str, object]) -> dict[str, object]:
+    """Return the 6-key subset of canonical about data consumed by a frontend."""
+    return {key: about[key] for key in _ABOUT_KEYS}
+
+
+def build_social(social: Mapping[str, object]) -> dict[str, object]:
+    """Return a full passthrough copy of canonical social data."""
+    return dict(social)
+
+
+def build_skills(skills: Mapping[str, object]) -> dict[str, object]:
+    """Return a full passthrough copy of canonical skills data."""
+    return dict(skills)
+
+
+def build_projects(projects: list[Mapping[str, object]]) -> list[dict[str, object]]:
+    """Map canonical projects to a frontend's GitHub-fallback shape.
+
+    Each entry is reduced to ``{name, description, tech, url}``; optional fields
+    default to ``""`` when absent. Canonical-only fields (``start_date``,
+    ``end_date``, ``highlights``) are dropped. Source order is preserved.
+    """
+    return [
+        {
+            "name": project["name"],
+            "description": project.get("description", ""),
+            "tech": project.get("tech", ""),
+            "url": project.get("url", ""),
+        }
+        for project in projects
+    ]
+
+
+def _serialize(payload: object) -> str:
+    return json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+
+
+def _digest(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def build_artifacts(ctx: PublisherContext) -> list[Artifact]:
+    """Transform canonical data into the four JSON artifacts a frontend reads."""
+    about = load_json("about.json", ctx.data_dir)
+    social = load_json("social.json", ctx.data_dir)
+    skills = load_json("skills.json", ctx.data_dir)
+    projects = load_json("projects.json", ctx.data_dir)
+
+    return [
+        Artifact("about.json", _serialize(build_about(about))),
+        Artifact("social.json", _serialize(build_social(social))),
+        Artifact("skills.json", _serialize(build_skills(skills))),
+        Artifact("projects.json", _serialize(build_projects(projects))),
+    ]
+
+
+class FilesystemPublisher:
+    """Writes canonical profile data into a directory inside the project."""
+
+    kind: str = "filesystem"
+    capability: Capability = "push"
+
+    def plan(self, ctx: PublisherContext, cfg: Mapping[str, object]) -> PublishPlan:
+        """Compute the artifacts and the drift against the destination.
+
+        Writes nothing. Path safety is enforced here, before any content is
+        produced, so an unsafe destination cannot reach ``publish()`` at all.
+        """
+        destination = str(cfg.get("destination", DEFAULT_DESTINATION))
+        resolved = resolve_destination(ctx.root, destination)
+
+        artifacts = build_artifacts(ctx)
+        changes = [
+            artifact.name
+            for artifact in artifacts
+            if self._differs(resolved / artifact.name, artifact.content)
+        ]
+
+        return PublishPlan(
+            destination=destination,
+            capability=self.capability,
+            resolved_path=resolved,
+            artifacts=tuple(artifacts),
+            changes=tuple(changes),
+        )
+
+    def publish(self, ctx: PublisherContext, plan: PublishPlan) -> PublishResult:
+        """Write every changed artifact into the planned destination."""
+        if not plan.changes:
+            return PublishResult(
+                destination=plan.destination,
+                status="unchanged",
+                detail="destination already matches canonical data",
+            )
+
+        plan.resolved_path.mkdir(parents=True, exist_ok=True)
+        for artifact in plan.artifacts:
+            if artifact.name in plan.changes:
+                (plan.resolved_path / artifact.name).write_text(artifact.content, encoding="utf-8")
+
+        written = ", ".join(plan.changes)
+        return PublishResult(
+            destination=plan.destination,
+            status="published",
+            detail=f"wrote {len(plan.changes)} file(s) to {plan.destination}: {written}",
+        )
+
+    @staticmethod
+    def _differs(path: Path, content: str) -> bool:
+        if not path.is_file():
+            return True
+        return _digest(path.read_text(encoding="utf-8")) != _digest(content)

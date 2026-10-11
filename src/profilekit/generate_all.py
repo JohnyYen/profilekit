@@ -24,12 +24,10 @@ import profilekit.generate_cv as cv
 import profilekit.generate_github_readme as github_readme
 import profilekit.generate_linkedin as linkedin
 import profilekit.generate_portfolio as portfolio
-import profilekit.generate_portfolio_data as portfolio_data
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 ROOT_DIR = SCRIPT_DIR.parent.parent
 OUTPUT_DIR = ROOT_DIR / "output"
-APP_DATA_DIR = ROOT_DIR / "apps" / "portfolio" / "app" / "data"
 
 
 def main():
@@ -37,7 +35,6 @@ def main():
     linkedin.main()
     portfolio.main()
     cv.main()
-    portfolio_data.main()
 
     output_files = [
         OUTPUT_DIR / "github-readme.md",
@@ -50,15 +47,10 @@ def main():
     for f in output_files:
         print(f"  {f}")
 
-    app_data_files = [
-        APP_DATA_DIR / "about.json",
-        APP_DATA_DIR / "social.json",
-        APP_DATA_DIR / "skills.json",
-        APP_DATA_DIR / "projects.json",
-    ]
-    print("\nGenerated portfolio app data files:")
-    for f in app_data_files:
-        print(f"  {f}")
+    print(
+        "\nPortfolio app data is published, not generated: "
+        "run `profile publish` (gated by `profile check`)."
+    )
 
 
 if __name__ == "__main__":

@@ -1,7 +1,8 @@
-"""TDD tests for profilekit's generate_portfolio_data module.
+"""Transform correctness for the filesystem publisher.
 
-RED phase: these tests are written before the implementation module exists.
-They cover builder correctness, output path isolation, and main() integration.
+These cover the pure data shaping — canonical JSON in, frontend JSON out.
+The publisher's path safety, planning, idempotency, and write behavior live
+in tests/test_publisher_filesystem.py.
 """
 
 import json
@@ -66,7 +67,7 @@ def projects_golden():
 
 def test_build_about_returns_six_key_subset(about_input):
     """build_about() output must have exactly the 6 expected keys; no extras."""
-    from profilekit.generate_portfolio_data import build_about
+    from profilekit.publishers.filesystem import build_about
 
     result = build_about(about_input)
     expected_keys = {
@@ -87,7 +88,7 @@ def test_build_about_returns_six_key_subset(about_input):
 
 def test_build_about_values_match_golden(about_input, about_golden):
     """build_about(about_input) must match about_golden.json byte-for-byte."""
-    from profilekit.generate_portfolio_data import build_about
+    from profilekit.publishers.filesystem import build_about
 
     result = build_about(about_input)
     assert result == about_golden, (
@@ -100,7 +101,7 @@ def test_build_about_values_match_golden(about_input, about_golden):
 
 def test_build_social_passthrough(social_input, social_golden):
     """build_social() must return input unchanged (full passthrough)."""
-    from profilekit.generate_portfolio_data import build_social
+    from profilekit.publishers.filesystem import build_social
 
     result = build_social(social_input)
     assert result == social_golden
@@ -111,7 +112,7 @@ def test_build_social_passthrough(social_input, social_golden):
 
 def test_build_skills_passthrough_preserves_categories(skills_input, skills_golden):
     """build_skills() must preserve all N categories in order, all M details per category."""
-    from profilekit.generate_portfolio_data import build_skills
+    from profilekit.publishers.filesystem import build_skills
 
     result = build_skills(skills_input)
     assert result == skills_golden
@@ -131,7 +132,7 @@ def test_build_skills_passthrough_preserves_categories(skills_input, skills_gold
 
 def test_build_projects_maps_to_four_fields(projects_input):
     """Each output entry must have exactly {name, description, tech, url}."""
-    from profilekit.generate_portfolio_data import build_projects
+    from profilekit.publishers.filesystem import build_projects
 
     result = build_projects(projects_input)
     assert isinstance(result, list)
@@ -150,7 +151,7 @@ def test_build_projects_maps_to_four_fields(projects_input):
 
 def test_build_projects_defaults_missing_tech_and_url_to_empty_string():
     """An input entry without 'tech' or 'url' must produce tech="" and url=""."""
-    from profilekit.generate_portfolio_data import build_projects
+    from profilekit.publishers.filesystem import build_projects
 
     input_data = [{"name": "NoTechNoUrl", "description": "desc"}]
     result = build_projects(input_data)
@@ -163,7 +164,7 @@ def test_build_projects_defaults_missing_tech_and_url_to_empty_string():
 
 def test_build_projects_preserves_source_order(projects_input):
     """Output order must match input order."""
-    from profilekit.generate_portfolio_data import build_projects
+    from profilekit.publishers.filesystem import build_projects
 
     result = build_projects(projects_input)
     for i, (inp, out) in enumerate(zip(projects_input, result, strict=True)):
@@ -172,82 +173,22 @@ def test_build_projects_preserves_source_order(projects_input):
         )
 
 
-# ── Task 1.3.8 — main() writes four files to PORTFOLIO_DATA_DIR ───────────────
+# ── A missing canonical file must fail loudly, not publish a partial set ──────
 
 
-def test_main_writes_four_files_to_portfolio_data_dir(tmp_path, monkeypatch):
-    """main() monkeypatched to write to tmp_path; asserts 4 JSON files with correct content."""
-    import profilekit.generate_portfolio_data as gpd
-
-    monkeypatch.setattr(gpd, "PORTFOLIO_DATA_DIR", tmp_path)
-
-    gpd.main()
-
-    expected_files = {"about.json", "social.json", "skills.json", "projects.json"}
-    written = {f.name for f in tmp_path.iterdir() if f.suffix == ".json"}
-    assert written == expected_files, f"Expected {expected_files!r}, got {written!r}"
-
-    # Spot-check about.json content
-    about = json.loads((tmp_path / "about.json").read_text(encoding="utf-8"))
-    assert "username" in about
-    assert set(about.keys()) == {
-        "username",
-        "tagline",
-        "description",
-        "currentFocus",
-        "whatIBuild",
-        "learningJourney",
-    }
-
-
-# ── Task 1.3.9 — main() exits nonzero on missing canonical file ───────────────
-
-
-def test_main_exits_nonzero_on_missing_canonical_file(tmp_path, monkeypatch, capsys):
-    """Removing a source file causes main() to exit with code 1 and write to stderr."""
+def test_build_artifacts_exits_nonzero_on_missing_canonical_file(tmp_path):
+    """Dropping one canonical file must abort before any artifact is produced."""
     import shutil
 
-    import profilekit.generate_portfolio_data as gpd
+    from profilekit.publishers import PublisherContext
+    from profilekit.publishers.filesystem import build_artifacts
 
-    # Copy canonical data to a temp data dir and remove one file
-    fake_data_dir = tmp_path / "data"
-    shutil.copytree(ROOT_DIR / "data", fake_data_dir)
-    (fake_data_dir / "about.json").unlink()
+    data_dir = tmp_path / "data"
+    shutil.copytree(ROOT_DIR / "data", data_dir)
+    (data_dir / "about.json").unlink()
 
-    monkeypatch.setattr(gpd, "DATA_DIR", fake_data_dir)
-    monkeypatch.setattr(gpd, "PORTFOLIO_DATA_DIR", tmp_path / "app_data")
-
+    ctx = PublisherContext(root=tmp_path, data_dir=data_dir)
     with pytest.raises(SystemExit) as exc_info:
-        gpd.main()
+        build_artifacts(ctx)
 
     assert exc_info.value.code == 1
-    captured = capsys.readouterr()
-    assert captured.err.strip(), "Expected a descriptive stderr message on missing file."
-
-
-# ── Task 1.3.10 — threat boundary: no writes outside PORTFOLIO_DATA_DIR ───────
-
-
-def test_generator_writes_only_to_portfolio_data_dir(tmp_path, monkeypatch):
-    """main() must not write any file outside PORTFOLIO_DATA_DIR during execution."""
-    import profilekit.generate_portfolio_data as gpd
-
-    app_data_dir = tmp_path / "app_data"
-    monkeypatch.setattr(gpd, "PORTFOLIO_DATA_DIR", app_data_dir)
-
-    written_paths: list[Path] = []
-    original_write_output = gpd.write_output
-
-    def spy_write_output(content: str, output_dir: Path, filename: str) -> Path:
-        path = original_write_output(content, output_dir, filename)
-        written_paths.append(path.resolve())
-        return path
-
-    monkeypatch.setattr(gpd, "write_output", spy_write_output)
-    gpd.main()
-
-    app_data_resolved = app_data_dir.resolve()
-    for written in written_paths:
-        assert written.is_relative_to(app_data_resolved), (
-            f"File written outside PORTFOLIO_DATA_DIR: {written}"
-        )
