@@ -1,6 +1,17 @@
+# Native post-install build scripts are explicitly declined.
+#
+# `sharp` provides optional image optimisation and `unrs-resolver` backs an
+# ESLint import resolver. Neither is needed for `next build` here, and both
+# compile native code, which makes installs slow and platform-dependent.
+#
+# These values were previously the literal placeholder text "set this to true
+# or false" — not valid booleans. pnpm rejected the ambiguity with
+# ERR_PNPM_IGNORED_BUILDS on every install, which is why the CI workflow
+# carried a workaround to build at all. pnpm rewrites this block when the
+# decision is missing, so deleting it does not help: it has to be answered.
 allowBuilds:
-  sharp: set this to true or false
-  unrs-resolver: set this to true or false
+  sharp: false
+  unrs-resolver: false
 ignoredBuiltDependencies:
   - sharp
   - unrs-resolver

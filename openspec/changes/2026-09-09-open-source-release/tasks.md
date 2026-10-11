@@ -165,11 +165,11 @@ no task — no git-push publisher or PR automation is introduced.
 
 ## Phase 10 (R9): Portfolio Reference Consumer
 
-- [ ] 10.1 RED: `test_readme_describes_reference_role` — `apps/portfolio/README.md` states its reference-consumer role, not shipped with the package, no create-next-app boilerplate; fails today.
-- [ ] 10.2 GREEN: rewrite `apps/portfolio/README.md`.
-- [ ] 10.3 Verification: portfolio's existing build command still succeeds after 10.2 and the R0 hygiene pass.
-- [ ] 10.4 RED: `test_no_stray_executable_bits` — assert no tracked file whose type cannot be executed (`.md`, `.txt`, `.json`, `.ts`, `.tsx`, `.css`, `.mjs`, `.svg`, `.yaml`, `.yml`, `.ico`, `.gitignore`) is mode `100755`. Fails today: 34 such files, all under `apps/portfolio/` and `cv/`.
-- [ ] 10.5 GREEN: `git update-index --chmod=-x` those 34 paths. **Found during the R6 review gate**, not by the R0 hygiene sweep, which only removed untracked noise and never inspected file modes. RDD flagged the symptom repeatedly as "an executable permission change in apps/portfolio/.agents/skills/frontend-design/LICENSE.txt" — that file was one instance of a repo-wide pattern, not a one-off. A spurious exec bit on a published package's files is a real signal problem: it tells readers and tools that a document is a program.
+- [x] 10.1 RED: `test_readme_describes_reference_role` — `apps/portfolio/README.md` states its reference-consumer role, not shipped with the package, no create-next-app boilerplate; fails today.
+- [x] 10.2 GREEN: rewrite `apps/portfolio/README.md`.
+- [x] 10.3 Verification: portfolio's existing build command still succeeds after 10.2 and the R0 hygiene pass.
+- [x] 10.4 RED: `test_no_stray_executable_bits` — assert no tracked file whose type cannot be executed (`.md`, `.txt`, `.json`, `.ts`, `.tsx`, `.css`, `.mjs`, `.svg`, `.yaml`, `.yml`, `.ico`, `.gitignore`) is mode `100755`. Fails today: 34 such files, all under `apps/portfolio/` and `cv/`.
+- [x] 10.5 GREEN: `git update-index --chmod=-x` those 34 paths. **Found during the R6 review gate**, not by the R0 hygiene sweep, which only removed untracked noise and never inspected file modes. RDD flagged the symptom repeatedly as "an executable permission change in apps/portfolio/.agents/skills/frontend-design/LICENSE.txt" — that file was one instance of a repo-wide pattern, not a one-off. A spurious exec bit on a published package's files is a real signal problem: it tells readers and tools that a document is a program.
 
 ## Phase 11 (R10): Docs, DX, Release
 

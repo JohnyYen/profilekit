@@ -36,9 +36,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # Invoke next directly instead of `pnpm build`: pnpm's pre-run
-      # dependency check aborts on ERR_PNPM_IGNORED_BUILDS for the native
-      # deps (sharp, unrs-resolver) that pnpm-workspace.yaml intentionally
-      # ignores. `pnpm exec` skips that gate and produces an identical build.
+      # `pnpm build` works again now that pnpm-workspace.yaml answers the
+      # native-build question with real booleans instead of the placeholder
+      # text it used to carry. The previous workaround invoked next directly
+      # to dodge ERR_PNPM_IGNORED_BUILDS; the cause is fixed, so the
+      # workaround is gone.
       - name: Build
-        run: pnpm exec next build
+        run: pnpm build
