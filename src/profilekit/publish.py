@@ -251,44 +251,49 @@ class _AdapterPublisher:
         )
 
     def publish(self, ctx: ProjectContext, plan: Any) -> PublishResult:
-        """Invoke the entry point with as much as its signature accepts.
+        """Invoke the entry point, passing what its signature actually names.
 
-        An earlier version called the entry point with the context alone, so a
-        credentialed adapter received nothing it had declared and could only
-        have worked by reading the environment itself — which is precisely
-        what the credential model exists to prevent.
+        Widening the call from ``(ctx)`` to ``(ctx, cfg, credentials)`` is a
+        contract change for anything already written to the narrower form, so
+        the extras are passed **by keyword** and only when the callable
+        declares them.
 
-        Widening the call is a contract change for anything already written to
-        the one-argument form, so the arity is inspected rather than assumed.
-        Calling an older adapter with three arguments would raise an uncaught
-        TypeError and abort the whole run, destroying the per-destination
-        failure isolation this layer exists to provide.
+        Counting positional parameters — the obvious approach, and the one
+        tried first — is wrong in both directions. An adapter written as
+        ``def push(ctx, timeout=30)`` counts as two positionals and would have
+        received the config mapping in its ``timeout`` slot: wrong data,
+        silently. One written as ``def push(ctx, *, cfg=None)`` counts as one
+        and would never have received the config at all. Keyword passing has
+        neither failure: a parameter named ``timeout`` cannot be mistaken for
+        ``cfg``.
+
+        A genuine mismatch still raises, and ``cmd_publish`` records it as
+        this destination's own failure rather than aborting the run — the
+        per-destination isolation holds.
         """
         import inspect
+
+        extras: dict[str, Any] = {"cfg": self._cfg, "credentials": self.credentials}
 
         try:
             parameters = inspect.signature(self._entry_point).parameters
         except (TypeError, ValueError):
             # A builtin or C-implemented callable exposes no signature. Assume
-            # the current contract and let a genuine mismatch surface as this
-            # destination's own failure.
-            return self._entry_point(ctx, self._cfg, self.credentials)
+            # the current contract; a mismatch surfaces as this destination's
+            # failure, which is caught per destination.
+            return self._entry_point(ctx, **extras)
 
-        accepts_varargs = any(
-            p.kind is inspect.Parameter.VAR_POSITIONAL for p in parameters.values()
-        )
-        positional = [
-            p
-            for p in parameters.values()
-            if p.kind
-            in (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD)
-        ]
+        if any(p.kind is inspect.Parameter.VAR_KEYWORD for p in parameters.values()):
+            accepted = extras
+        else:
+            accepted = {
+                name: value
+                for name, value in extras.items()
+                if name in parameters
+                and parameters[name].kind is not inspect.Parameter.POSITIONAL_ONLY
+            }
 
-        if accepts_varargs or len(positional) >= 3:
-            return self._entry_point(ctx, self._cfg, self.credentials)
-        if len(positional) == 2:
-            return self._entry_point(ctx, self._cfg)
-        return self._entry_point(ctx)
+        return self._entry_point(ctx, **accepted)
 
 
 __all__ = [

@@ -157,7 +157,11 @@ def _manifest_is_valid(ctx: ProjectContext) -> int:
         )
         return 1
 
-    schema_source = validate.schemas_dir(ctx) / "manifest.schema.json"
+    # From the package, not `schemas_dir(ctx)`. The manifest schema describes
+    # this tool's own output, so a project's `[paths] schemas` override — which
+    # applies to its *input* data — must not be consulted. Reading it there
+    # raised FileNotFoundError for any project that set one.
+    schema_source = validate.packaged_schemas() / "manifest.schema.json"
     schema = json.loads(schema_source.read_text(encoding="utf-8"))
 
     errors = sorted(jsonschema.Draft7Validator(schema).iter_errors(index), key=str)

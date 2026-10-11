@@ -436,3 +436,106 @@ def test_a_two_argument_adapter_receives_its_config(
 
     assert cli.main(["--project", str(tmp_path / "p"), "publish", "--execute"]) == 0
     assert seen["cfg"]["region"] == "eu"  # type: ignore[index]
+
+
+def test_a_legacy_adapter_with_a_defaulted_parameter_keeps_its_default(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Extras are passed by keyword, so an unrelated parameter is never hijacked.
+
+    Counting positional parameters — the first approach — classified
+    `def push(ctx, timeout=30)` as the two-argument form and handed the config
+    mapping to `timeout`. Wrong data, silently, which is worse than failing.
+    """
+    seen: dict[str, object] = {}
+
+    def legacy_with_default(ctx, timeout=30):
+        seen["timeout"] = timeout
+        from profilekit.publishers import PublishResult as _R
+
+        return _R(destination="acme", status="published", detail="sent")
+
+    shutil.copytree(FIXTURE_PROJECT, tmp_path / "p")
+    (tmp_path / "p" / "profile.toml").write_text(
+        '[project]\nconfig_version = 1\n\n[publishers.acme]\nkind = "acme-cdn"\nregion = "eu"\n',
+        encoding="utf-8",
+    )
+    monkeypatch.setattr("profilekit.registry.publishers", lambda: {"acme-cdn": legacy_with_default})
+
+    assert cli.main(["--project", str(tmp_path / "p"), "publish", "--execute"]) == 0
+    assert seen["timeout"] == 30, "an unrelated parameter received the config mapping"
+
+
+def test_a_keyword_only_adapter_still_receives_its_config(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The other direction of the same bug: data silently withheld.
+
+    Counting positionals classified `def push(ctx, *, cfg=None)` as the
+    one-argument form, so it never received the config at all.
+    """
+    seen: dict[str, object] = {}
+
+    def keyword_only(ctx, *, cfg=None, credentials=None):
+        seen["cfg"] = cfg
+        seen["credentials"] = credentials
+        from profilekit.publishers import PublishResult as _R
+
+        return _R(destination="acme", status="published", detail="sent")
+
+    shutil.copytree(FIXTURE_PROJECT, tmp_path / "p")
+    (tmp_path / "p" / "profile.toml").write_text(
+        '[project]\nconfig_version = 1\n\n[publishers.acme]\nkind = "acme-cdn"\nregion = "eu"\n',
+        encoding="utf-8",
+    )
+    monkeypatch.setattr("profilekit.registry.publishers", lambda: {"acme-cdn": keyword_only})
+
+    assert cli.main(["--project", str(tmp_path / "p"), "publish", "--execute"]) == 0
+    assert seen["cfg"]["region"] == "eu"  # type: ignore[index]
+
+
+def test_an_adapter_taking_var_keywords_receives_everything(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen: dict[str, object] = {}
+
+    def var_keywords(ctx, **kwargs):
+        seen.update(kwargs)
+        from profilekit.publishers import PublishResult as _R
+
+        return _R(destination="acme", status="published", detail="sent")
+
+    shutil.copytree(FIXTURE_PROJECT, tmp_path / "p")
+    (tmp_path / "p" / "profile.toml").write_text(
+        '[project]\nconfig_version = 1\n\n[publishers.acme]\nkind = "acme-cdn"\n',
+        encoding="utf-8",
+    )
+    monkeypatch.setattr("profilekit.registry.publishers", lambda: {"acme-cdn": var_keywords})
+
+    cli.main(["--project", str(tmp_path / "p"), "publish", "--execute"])
+    assert sorted(seen) == ["cfg", "credentials"]
+
+
+def test_a_signature_mismatch_fails_only_its_own_destination(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+) -> None:
+    """Per-destination isolation must survive a broken adapter contract."""
+
+    def broken(ctx, required_extra):
+        raise AssertionError("should not be reached")
+
+    shutil.copytree(FIXTURE_PROJECT, tmp_path / "p")
+    (tmp_path / "p" / "profile.toml").write_text(
+        "[project]\nconfig_version = 1\n\n"
+        '[publishers.acme]\nkind = "acme-cdn"\n\n'
+        '[publishers.linkedin]\nkind = "manual"\nartifacts = []\n',
+        encoding="utf-8",
+    )
+    monkeypatch.setattr("profilekit.registry.publishers", lambda: {"acme-cdn": broken})
+
+    rc = cli.main(["--project", str(tmp_path / "p"), "publish", "--execute"])
+    out = capsys.readouterr().out
+
+    assert rc == 1
+    assert "failed" in out
+    assert "linkedin" in out, "the healthy destination must still be processed"

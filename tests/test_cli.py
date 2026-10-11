@@ -165,3 +165,36 @@ def test_no_path_override_flags(sub, capsys):
     help_text = capsys.readouterr().out
     assert "--data-dir" not in help_text
     assert "--output-dir" not in help_text
+
+
+# --- offline flag ------------------------------------------------------------
+
+
+def test_offline_flag_sets_the_skip_variables(project, monkeypatch, spies):
+    """The flag must have an observable effect, not just appear in a hook entry.
+
+    The only assertion covering `--offline` was that the literal string
+    appeared in the pre-commit config, which proves nothing about behaviour.
+    """
+    import os
+
+    monkeypatch.delenv("SKIP_ICON_CHECK", raising=False)
+    monkeypatch.delenv("SKIP_LINK_CHECK", raising=False)
+
+    cli.main(["--project", str(project), "--offline", "list"])
+
+    assert os.environ.get("SKIP_ICON_CHECK") == "1"
+    assert os.environ.get("SKIP_LINK_CHECK") == "1"
+
+
+def test_without_the_offline_flag_nothing_is_set(project, monkeypatch, spies):
+    """The flag must be the only thing that sets them, or it proves nothing."""
+    import os
+
+    monkeypatch.delenv("SKIP_ICON_CHECK", raising=False)
+    monkeypatch.delenv("SKIP_LINK_CHECK", raising=False)
+
+    cli.main(["--project", str(project), "list"])
+
+    assert os.environ.get("SKIP_ICON_CHECK") is None
+    assert os.environ.get("SKIP_LINK_CHECK") is None

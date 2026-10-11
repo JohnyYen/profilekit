@@ -175,9 +175,16 @@ def test_hooks_do_not_depend_on_the_network_for_data_checks() -> None:
     )
 
     # The pytest hook needs no flag: conftest pins the whole suite offline.
-    conftest = (REPO_ROOT / "tests" / "conftest.py").read_text(encoding="utf-8")
-    assert "SKIP_ICON_CHECK" in conftest and "SKIP_LINK_CHECK" in conftest, (
-        "the suite must pin itself offline, since the pytest hook sets nothing"
+    # Asserted against the live environment, not the conftest source — a
+    # substring scan would pass on a comment or a deleted assignment that left
+    # the names behind, which is the same vacuity this file keeps finding.
+    import os
+
+    assert os.environ.get("SKIP_ICON_CHECK") == "1", (
+        "the suite must pin itself offline; the pytest hook sets nothing"
+    )
+    assert os.environ.get("SKIP_LINK_CHECK") == "1", (
+        "the suite must pin itself offline; the pytest hook sets nothing"
     )
 
 

@@ -347,3 +347,43 @@ def test_check_fails_when_a_published_artifact_breaks_its_schema(
     monkeypatch.setattr(cli, "cmd_generate", lambda target, ctx: 0)
 
     assert cli.main(["--project", str(project), "check"]) != 0
+
+
+def test_published_schemas_resolve_even_with_a_project_schemas_override(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A project may point `[paths] schemas` at its own directory.
+
+    Published schemas describe this tool's output, so they must come from the
+    package regardless. Reading them through the project override raised an
+    unhandled FileNotFoundError for any project that set one — the schemas
+    only ever exist inside the distribution.
+    """
+    import shutil as _shutil
+
+    from profilekit import cli
+
+    target = tmp_path / "p"
+    _shutil.copytree(FIXTURE_PROJECT, target)
+    (target / "my-schemas").mkdir()
+    (target / "profile.toml").write_text(
+        "[project]\nconfig_version = 1\n\n"
+        '[paths]\nschemas = "my-schemas"\n\n'
+        '[generators.cv]\ncurrent_date = "2000-01-01"\n\n'
+        '[publishers.site]\nkind = "filesystem"\ndestination = "app/data"\n',
+        encoding="utf-8",
+    )
+
+    _generate_all(target)
+    ctx = discover_project(explicit=target)
+    assert ctx.schemas_dir is not None, "the override must be in effect for this test"
+
+    manifest.write(ctx)
+    publisher = FilesystemPublisher()
+    publisher.publish(ctx, publisher.plan(ctx, {"destination": "app/data"}))
+
+    monkeypatch.setattr(cli.validate, "main", lambda ctx: 0)
+    monkeypatch.setattr(cli, "_git_output_is_clean", lambda ctx: True)
+    monkeypatch.setattr(cli, "cmd_generate", lambda target, ctx: 0)
+
+    assert cli.main(["--project", str(target), "check"]) == 0

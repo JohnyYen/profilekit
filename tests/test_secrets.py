@@ -176,19 +176,31 @@ def test_a_credential_set_cannot_be_pickled_either() -> None:
 def test_deepcopy_is_refused_rather_than_leaking() -> None:
     """`copy` falls back to `__reduce__`, so deep-copying a Secret is refused.
 
-    This is a deliberate trade, stated plainly because it is a real
-    limitation: a structure holding a Secret cannot be copied at all, shallow
-    or deep. Refusing is better than the alternative — a copy whose value is
-    exposed through the same reduce path. Code that needs a second reference
-    passes the same Secret; code that needs the value calls `.reveal()`.
+    A deliberate trade, and stated narrowly: copying a **Secret itself** is
+    refused, shallow or deep. A shallow copy of a *container* holding one
+    succeeds, because it copies the container and not its members — the
+    Secret is shared, which is the supported way to carry it. Only a deep copy
+    of such a container reaches the reduce path and fails.
+
+    Refusing beats the alternative: a copy whose value is exposed through that
+    same path. Code needing a second reference shares the Secret; code needing
+    the value calls `.reveal()`.
     """
     import copy
 
     with pytest.raises(TypeError):
         copy.deepcopy(Secret(TOKEN))
 
-    # Shallow copy goes through the same reduce path, so it is refused too.
-    # Carrying a credential into another structure means passing the same
-    # object; there is no supported way to duplicate one.
+    # Shallow copy of the Secret itself goes through the same reduce path.
     with pytest.raises(TypeError):
         copy.copy(Secret(TOKEN))
+
+    # But a shallow copy of a container holding one works, because it does not
+    # copy the members. This is the supported way to pass a credential along.
+    secret = Secret(TOKEN)
+    shallow = copy.copy({"token": secret})
+    assert shallow["token"] is secret
+
+    # A deep copy of that container does reach the refusal.
+    with pytest.raises(TypeError):
+        copy.deepcopy({"token": secret})
