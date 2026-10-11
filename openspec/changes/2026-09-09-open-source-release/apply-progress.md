@@ -270,3 +270,63 @@ refactor.
 ### Status
 7/7 Phase 3 tasks complete, all gates green. Next: Phase 4 (R6 — path
 decoupling, `profile.toml`, `profile init`), 13 tasks.
+
+---
+
+## Phases 4-11: complete
+
+All 96 tasks across 11 phases are implemented. Phases 1-3 are recorded above;
+this entry covers the rest.
+
+### Execution note
+Phases 4-11 were executed inline by the orchestrator rather than delegated.
+Three consecutive delegated attempts at Phase 3 had produced zero commits —
+two `HTTP 403 authentication_failed`, one host-process exit — each dying after
+doing work but before committing. Inline execution in small committed
+increments removed that failure mode entirely.
+
+### What shipped, by phase
+
+| Phase | Requirement | Outcome |
+|---|---|---|
+| 4 | R6 — path decoupling | `ProjectContext` + `discover_project()`; every `__file__`-derived constant deleted across 8 modules; `profile.toml`; `profile init`; author taste externalised; git gate degrades honestly |
+| 5 | R8 — test neutrality | Fictional fixture project; zero real PII in test material; session guard against repository mutation |
+| 6 | R7 — single registry | Entry-point discovery; both parallel lists deleted; `generate_all.py` removed; divergence structurally impossible |
+| 7 | R3 — output contract | `schemaVersion`, `output/manifest.json`, compatibility rule encoded, `docs/data-contract.md` |
+| 8 | R4 — publication layer | `profile publish`; dry-run default; `Secret`; manual capability; idempotency ledger; failure isolation |
+| 9 | R5 — CI automation | Gated `publish.yml`; tag-only `release.yml` with TestPyPI rehearsal and trusted publishing |
+| 10 | R9 — portfolio reference | README rewritten; 34 exec bits cleared; `pnpm-workspace.yaml` placeholder fixed |
+| 11 | R10 — docs, DX, release | Root README reframed; authoring guides; `uv`-free pre-commit; clean-install verification |
+
+### Final gate evidence
+- `uv run pytest -q`: 334 passed, 92.88% coverage (gate 80%), 1.03s
+- `uv run ruff check .` / `ruff format --check .`: clean, 75 files
+- `uv run mypy`: no issues in 21 source files
+- `profile check`: data valid, `output/` up to date, destinations current
+- Tracked files with a stray executable bit: 0
+- `apps/portfolio`: `pnpm install --frozen-lockfile` clean, `pnpm build` produces all 5 routes
+- Clean-install smoke outside any checkout: `pip install` the wheel, then
+  `init` -> `validate` -> `generate` -> `check` (exit 0) -> `publish`, six artifacts produced
+
+### Defects found and fixed that were not in the task list
+1. `Traversable` is not a `Path` — `validate.py` called `.exists()` on it and passed it to a `Path`-typed loader. Would have failed on any wheel install.
+2. Two stale `*.egg-info` directories at the repository root (one under the pre-rename name) shadowed distribution metadata, so entry-point discovery saw nothing. Gitignored, which is why it was invisible.
+3. The publish ledger was consulted for publishers that can read their own destination, so a destination that drifted after a successful publish reported `unchanged` — skipping the republish it needed.
+4. Publish results were labelled with a config-derived name, so a destination without a `destination` key reported as its kind.
+5. `pnpm-workspace.yaml` carried the literal text "set this to true or false" instead of booleans; `pnpm install` had been failing, and `portfolio.yml` carried a workaround because of it.
+6. 34 tracked files carried executable bits. `git update-index --chmod=-x` fixes only the index and is undone by the next `git add`; the modes had to be changed on disk.
+7. The suite reached third-party hosts on every run (17s, and someone else's 403 could fail a local commit). Now pinned offline by default: 1s.
+8. `pyyaml` was undeclared, so the CI-workflow tests would have silently skipped in CI — a green that proved nothing.
+
+### Deliberate deviations from design
+- **D6's `generatedAt`** is omitted from the manifest. A wall-clock value in a committed, diffed artifact destroys the byte-identical freshness guarantee R6 established, and says nothing about content. Provenance belongs to the publish layer.
+- **`projects.json` stays a JSON array.** Wrapping it to carry `schemaVersion` would break every consumer indexing it as a list; its version lives in the manifest.
+- **Registry order is the sorted entry-point name**, not the former hand-maintained sequence. The generators are independent, so nothing observable changed, and determinism beats an arbitrary order.
+
+### Known state, carried forward
+- `data/social.json`'s `cvUrl` returns HTTP 404. That is the owner's data, not code, and was left for the owner to decide.
+- The full-branch RDD candidate exceeds the lens context budget and cannot be reviewed as one unit; review runs per phase slice.
+- `openspec/changes/2026-09-05-add-generator-cli` remains applied but unarchived. Out of scope throughout.
+
+### Status
+96/96 tasks complete. All gates green.
