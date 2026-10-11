@@ -28,6 +28,7 @@ from profilekit import validate
 from profilekit.config import ConfigError
 from profilekit.context import ProjectContext, ProjectNotFoundError, discover_project
 from profilekit.publishers.filesystem import FilesystemPublisher
+from profilekit.scaffold import ScaffoldError, init_project
 
 # Generation targets and their run order. Publishers are deliberately absent:
 # ``generate`` only invokes generators. R7 replaces this literal and the
@@ -151,6 +152,27 @@ def cmd_check(ctx: ProjectContext) -> int:
     return 0
 
 
+def cmd_init(target: Path) -> int:
+    """Scaffold a new project at *target*.
+
+    Runs before project discovery, because its job is to create the project
+    that discovery looks for.
+    """
+    try:
+        written = init_project(target)
+    except ScaffoldError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return exc.exit_code
+    except OSError as exc:
+        print(f"error: cannot scaffold {target}: {exc}", file=sys.stderr)
+        return 1
+
+    for path in written:
+        print(f"created {path}")
+    print("\nNext: edit data/*.json, then run `profile validate` and `profile generate`.")
+    return 0
+
+
 def cmd_list(ctx: ProjectContext) -> int:
     """Print the available generation targets."""
     for name in GENERATORS:
@@ -206,6 +228,18 @@ def build_parser() -> argparse.ArgumentParser:
     lst = sub.add_parser("list", help="List available generation targets.")
     lst.set_defaults(func=lambda args, ctx: cmd_list(ctx))
 
+    ini = sub.add_parser("init", help="Scaffold a new project with example data.")
+    ini.add_argument(
+        "directory",
+        nargs="?",
+        type=Path,
+        default=None,
+        help="Where to create the project (default: the working directory).",
+    )
+    # `init` creates the project that discovery looks for, so it must not
+    # require one to already exist.
+    ini.set_defaults(func=None, init=True)
+
     return parser
 
 
@@ -213,6 +247,10 @@ def main(argv: list[str] | None = None) -> int:
     """Parse *argv*, resolve the project, and dispatch to the subcommand."""
     parser = build_parser()
     args = parser.parse_args(argv)
+
+    if getattr(args, "init", False):
+        return cmd_init(args.directory or args.project or Path.cwd())
+
     if args.func is None:
         parser.print_help(sys.stderr)
         return 2

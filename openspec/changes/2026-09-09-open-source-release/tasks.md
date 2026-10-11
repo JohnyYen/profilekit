@@ -96,8 +96,8 @@ no task — no git-push publisher or PR automation is introduced.
 - [x] 4.3 RED: `test_profile_toml_overrides_paths` — custom `output_dir` honored; unknown top-level key → `ConfigError`; unknown `[generators.X]` key passes through.
 - [x] 4.4 GREEN: add `config.py` parsing the D3 four-section `profile.toml`.
 - [x] 4.5 REFACTOR (mechanical, one commit): thread `ctx: ProjectContext` through `utils.py`, `cli.py`, `validate.py`, `generate_cv.py`, `generate_github_readme.py`, `generate_linkedin.py`, `generate_portfolio.py`; delete the `SCRIPT_DIR`/`ROOT_DIR`/`OUTPUT_DIR`/`DATA_DIR`/`SCHEMAS_DIR` constants (D2 table); switch monkeypatch tests to `ProjectContext`-over-`tmp_path`.
-- [ ] 4.6 RED: `test_init_in_empty_directory` — `profile init` creates `profile.toml` + example `data/` with no maintainer name/email/handle.
-- [ ] 4.7 GREEN: implement `profile init`.
+- [x] 4.6 RED: `test_init_in_empty_directory` — `profile init` creates `profile.toml` + example `data/` with no maintainer name/email/handle.
+- [x] 4.7 GREEN: implement `profile init`.
 - [ ] 4.8 RED: `test_externalized_opinions` — custom greeting renders; unset override reproduces today's exact default text.
 - [ ] 4.9 GREEN: externalize `generate_github_readme.py:38,78,180` and `generate_cv.py:180,216-238` into `[generators.github-readme]`/`[generators.cv]`; replace frozen `current_date` with `"auto"` default; goldens pin it explicitly.
 - [ ] 4.10 RED (threat matrix rows 2–3 — git repository selection, commit state): `test_check_degrades_without_git` — non-git tmp dir completes with the git check reported skipped, not failed; dirty/clean worktree still gates as before.
