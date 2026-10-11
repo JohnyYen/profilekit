@@ -26,6 +26,8 @@ from pathlib import Path
 
 import pytest
 
+from tests.e2e.conftest import REPO_ROOT
+
 # Reachability probes talk to skillicons.dev and every project URL. They are a
 # real feature but not what this file tests, and depending on third-party
 # uptime would turn a packaging test into a flake.
@@ -61,59 +63,46 @@ def test_the_package_is_importable_without_the_checkout(
     assert "generate" in result.stdout
 
 
-def test_the_packaged_schemas_resolve_from_the_install(installed: Path) -> None:
+def test_the_packaged_schemas_resolve_from_the_install(venv_python, empty_project: Path) -> None:
     """The defect this catches: schemas that only exist in the repository.
 
     An installed CLI has no checkout to read `schemas/` from, so they must
     travel inside the distribution.
-    """
-    import os
-    import subprocess
 
-    python = installed / ("python.exe" if os.name == "nt" else "python")
-    result = subprocess.run(
-        [
-            str(python),
-            "-c",
-            "import importlib.resources as r;"
-            "d = r.files('profilekit.schemas');"
-            "names = sorted(p.name for p in d.iterdir() if p.name.endswith('.json'));"
-            "print(len(names));"
-            "print((d / 'manifest.schema.json').read_text()[:1])",
-        ],
-        capture_output=True,
-        text=True,
-        check=False,
+    Run through the isolated interpreter rather than a bare subprocess. The
+    first version inherited the caller's environment, and with `PYTHONPATH`
+    pointing at `src/` it passed while the schemas were missing from the
+    wheel — passing for the exact defect it exists to catch. Verified by
+    mutation.
+    """
+    expected = sorted(p.name for p in (REPO_ROOT / "src/profilekit/schemas").glob("*.schema.json"))
+
+    result = venv_python(
+        "import importlib.resources as r;"
+        "d = r.files('profilekit.schemas');"
+        "print(' '.join(sorted(p.name for p in d.iterdir() if p.name.endswith('.json'))))",
+        cwd=empty_project,
     )
 
     assert result.returncode == 0, f"schemas unreachable from the install:\n{result.stderr}"
-    count = int(result.stdout.splitlines()[0])
-    assert count >= 10, f"expected the full schema set, found {count}"
+    shipped = result.stdout.split()
+    # Compared against the real set rather than a magic threshold, so dropping
+    # one schema fails instead of staying under an arbitrary bar.
+    assert shipped == expected, f"wheel ships {shipped}, source has {expected}"
 
 
-def test_entry_points_are_discovered_from_the_install(installed: Path, empty_project: Path) -> None:
+def test_entry_points_are_discovered_from_the_install(venv_python, empty_project: Path) -> None:
     """The defect this catches: metadata that resolves only in the checkout.
 
     A stale `*.egg-info` at the repository root once shadowed the real
     distribution, so `entry_points()` returned the first match and found no
     component groups at all. An installed package has no such file to shadow it.
     """
-    import os
-    import subprocess
-
-    python = installed / ("python.exe" if os.name == "nt" else "python")
-    result = subprocess.run(
-        [
-            str(python),
-            "-c",
-            "from profilekit import registry;"
-            "print(','.join(sorted(registry.generators())));"
-            "print(','.join(sorted(registry.publishers())))",
-        ],
-        cwd=str(empty_project),
-        capture_output=True,
-        text=True,
-        check=False,
+    result = venv_python(
+        "from profilekit import registry;"
+        "print(','.join(sorted(registry.generators())));"
+        "print(','.join(sorted(registry.publishers())))",
+        cwd=empty_project,
     )
 
     assert result.returncode == 0, f"registry unreachable:\n{result.stderr}"
@@ -137,10 +126,11 @@ def test_a_command_outside_a_project_exits_two(empty_project: Path, profile) -> 
 
 
 def test_nothing_resolves_to_the_installed_package_directory(
-    empty_project: Path, profile, installed: Path
+    empty_project: Path, profile, installed: Path, run_profile
 ) -> None:
     """The regression the whole discovery mechanism exists to prevent."""
-    result = profile("generate", cwd=empty_project, env_extra=OFFLINE)
+    # Unchecked on purpose: exiting non-zero is the expected outcome.
+    result = profile("generate", cwd=empty_project)
 
     assert result.returncode == 2
     assert "site-packages" not in result.stdout + result.stderr
@@ -152,26 +142,28 @@ def test_nothing_resolves_to_the_installed_package_directory(
 # ---------------------------------------------------------------------------
 
 
-def test_init_then_validate_then_generate(empty_project: Path, profile) -> None:
+def test_init_then_validate_then_generate(empty_project: Path, profile, run_profile) -> None:
     """The three commands the quick start names, in order, from nothing."""
-    init = profile("init", cwd=empty_project, env_extra=OFFLINE)
+    init = run_profile("init", cwd=empty_project)
     assert init.returncode == 0, f"init failed:\n{init.stderr}"
     assert (empty_project / "profile.toml").is_file()
 
     validate = profile("validate", cwd=empty_project, env_extra=OFFLINE)
     assert validate.returncode == 0, f"the scaffold failed its own validator:\n{validate.stdout}"
 
-    generate = profile("generate", cwd=empty_project, env_extra=OFFLINE)
+    generate = run_profile("generate", cwd=empty_project)
     assert generate.returncode == 0, f"generate failed:\n{generate.stderr}"
 
     produced = sorted(p.name for p in (empty_project / "output").glob("*"))
     assert produced == EXPECTED_ARTIFACTS
 
 
-def test_the_scaffold_carries_no_maintainer_identity(empty_project: Path, profile) -> None:
+def test_the_scaffold_carries_no_maintainer_identity(
+    empty_project: Path, profile, run_profile
+) -> None:
     """A new project must not arrive with somebody else's name in it."""
-    profile("init", cwd=empty_project, env_extra=OFFLINE)
-    profile("generate", cwd=empty_project, env_extra=OFFLINE)
+    run_profile("init", cwd=empty_project)
+    run_profile("generate", cwd=empty_project)
 
     # Imported rather than repeated: the deny-list lives in one place so the
     # guards cannot drift, and so this file does not itself become a hit for
@@ -188,19 +180,19 @@ def test_the_scaffold_carries_no_maintainer_identity(empty_project: Path, profil
     assert not offenders, f"scaffold leaks maintainer identity: {offenders}"
 
 
-def test_check_passes_on_a_fresh_project(empty_project: Path, profile) -> None:
+def test_check_passes_on_a_fresh_project(empty_project: Path, profile, run_profile) -> None:
     """`check` must be satisfiable immediately, not only after manual work."""
-    profile("init", cwd=empty_project, env_extra=OFFLINE)
-    profile("generate", cwd=empty_project, env_extra=OFFLINE)
+    run_profile("init", cwd=empty_project)
+    run_profile("generate", cwd=empty_project)
 
     result = profile("check", cwd=empty_project, env_extra=OFFLINE)
     assert result.returncode == 0, f"check failed on a fresh project:\n{result.stdout}"
 
 
-def test_check_degrades_without_git(empty_project: Path, profile) -> None:
+def test_check_degrades_without_git(empty_project: Path, profile, run_profile) -> None:
     """A fresh project is not a repository, and must not need to be."""
-    profile("init", cwd=empty_project, env_extra=OFFLINE)
-    profile("generate", cwd=empty_project, env_extra=OFFLINE)
+    run_profile("init", cwd=empty_project)
+    run_profile("generate", cwd=empty_project)
 
     result = profile("check", cwd=empty_project, env_extra=OFFLINE)
     combined = result.stdout + result.stderr
@@ -210,24 +202,26 @@ def test_check_degrades_without_git(empty_project: Path, profile) -> None:
     assert not (empty_project / ".git").exists(), "check must not create a repository"
 
 
-def test_generation_is_byte_identical_across_runs(empty_project: Path, profile) -> None:
+def test_generation_is_byte_identical_across_runs(
+    empty_project: Path, profile, run_profile
+) -> None:
     """Committed artifacts are only useful if regenerating them is stable."""
-    profile("init", cwd=empty_project, env_extra=OFFLINE)
-    profile("generate", cwd=empty_project, env_extra=OFFLINE)
+    run_profile("init", cwd=empty_project)
+    run_profile("generate", cwd=empty_project)
 
     first = {p.name: p.read_bytes() for p in (empty_project / "output").glob("*")}
-    profile("generate", cwd=empty_project, env_extra=OFFLINE)
+    run_profile("generate", cwd=empty_project)
     second = {p.name: p.read_bytes() for p in (empty_project / "output").glob("*")}
 
     assert first == second
 
 
 def test_generation_writes_nothing_outside_the_output_directory(
-    empty_project: Path, profile
+    empty_project: Path, profile, run_profile
 ) -> None:
     """The generator/publisher boundary, observed from outside the process."""
-    profile("init", cwd=empty_project, env_extra=OFFLINE)
-    profile("generate", cwd=empty_project, env_extra=OFFLINE)
+    run_profile("init", cwd=empty_project)
+    run_profile("generate", cwd=empty_project)
 
     output = empty_project / "output"
     escaped = [
@@ -258,10 +252,10 @@ artifacts = ["linkedin.md"]
 
 
 @pytest.fixture
-def project_with_destinations(empty_project: Path, profile) -> Path:
-    profile("init", cwd=empty_project, env_extra=OFFLINE)
+def project_with_destinations(empty_project: Path, profile, run_profile) -> Path:
+    run_profile("init", cwd=empty_project)
     (empty_project / "profile.toml").write_text(DESTINATION_CONFIG, encoding="utf-8")
-    profile("generate", cwd=empty_project, env_extra=OFFLINE)
+    run_profile("generate", cwd=empty_project)
     return empty_project
 
 
@@ -274,8 +268,10 @@ def test_publish_is_a_dry_run_by_default(project_with_destinations: Path, profil
     assert not (project_with_destinations / "site").exists()
 
 
-def test_execute_writes_the_destination(project_with_destinations: Path, profile) -> None:
-    result = profile("publish", "--execute", cwd=project_with_destinations, env_extra=OFFLINE)
+def test_execute_writes_the_destination(
+    project_with_destinations: Path, profile, run_profile
+) -> None:
+    result = run_profile("publish", "--execute", cwd=project_with_destinations)
     assert result.returncode == 0, f"publish failed:\n{result.stderr}"
 
     written = sorted(p.name for p in (project_with_destinations / "site" / "data").glob("*.json"))
@@ -283,10 +279,10 @@ def test_execute_writes_the_destination(project_with_destinations: Path, profile
 
 
 def test_a_manual_destination_never_reports_published(
-    project_with_destinations: Path, profile
+    project_with_destinations: Path, profile, run_profile
 ) -> None:
     """A tool claiming a publish it did not perform lets a profile go stale."""
-    result = profile("publish", "--execute", cwd=project_with_destinations, env_extra=OFFLINE)
+    result = run_profile("publish", "--execute", cwd=project_with_destinations)
 
     manual_line = next(line for line in result.stdout.splitlines() if line.startswith("linkedin"))
     assert "pending-manual" in manual_line
@@ -295,18 +291,20 @@ def test_a_manual_destination_never_reports_published(
 
 
 def test_republishing_unchanged_content_reports_unchanged(
-    project_with_destinations: Path, profile
+    project_with_destinations: Path, profile, run_profile
 ) -> None:
-    profile("publish", "--execute", cwd=project_with_destinations, env_extra=OFFLINE)
-    result = profile("publish", "--execute", cwd=project_with_destinations, env_extra=OFFLINE)
+    run_profile("publish", "--execute", cwd=project_with_destinations)
+    result = run_profile("publish", "--execute", cwd=project_with_destinations)
 
     site_line = next(line for line in result.stdout.splitlines() if line.startswith("site"))
     assert "unchanged" in site_line
 
 
-def test_check_detects_a_drifted_destination(project_with_destinations: Path, profile) -> None:
+def test_check_detects_a_drifted_destination(
+    project_with_destinations: Path, profile, run_profile
+) -> None:
     """The gate that is the only thing covering a published destination."""
-    profile("publish", "--execute", cwd=project_with_destinations, env_extra=OFFLINE)
+    run_profile("publish", "--execute", cwd=project_with_destinations)
 
     stale = project_with_destinations / "site" / "data" / "about.json"
     stale.write_text(json.dumps({"schemaVersion": 1, "username": "drifted"}) + "\n")
@@ -317,10 +315,10 @@ def test_check_detects_a_drifted_destination(project_with_destinations: Path, pr
 
 
 def test_check_does_not_repair_a_drifted_destination(
-    project_with_destinations: Path, profile
+    project_with_destinations: Path, profile, run_profile
 ) -> None:
     """A gate that silently fixes what it finds hides the problem it exists for."""
-    profile("publish", "--execute", cwd=project_with_destinations, env_extra=OFFLINE)
+    run_profile("publish", "--execute", cwd=project_with_destinations)
 
     stale = project_with_destinations / "site" / "data" / "about.json"
     content = json.dumps({"schemaVersion": 1, "username": "drifted"}) + "\n"
@@ -336,15 +334,11 @@ def test_check_does_not_repair_a_drifted_destination(
 
 
 def test_published_artifacts_validate_against_the_packaged_schemas(
-    project_with_destinations: Path, profile, installed: Path
+    project_with_destinations: Path, run_profile, venv_python
 ) -> None:
     """A consumer must be able to validate without a checkout of this project."""
-    import os
-    import subprocess
+    run_profile("publish", "--execute", cwd=project_with_destinations)
 
-    profile("publish", "--execute", cwd=project_with_destinations, env_extra=OFFLINE)
-
-    python = installed / ("python.exe" if os.name == "nt" else "python")
     script = """
 import json, sys
 import importlib.resources as r
@@ -365,23 +359,22 @@ for artifact, schema_name in pairs.items():
     jsonschema.Draft7Validator(schema).validate(payload)
 print("ok")
 """
-    result = subprocess.run(
-        [str(python), "-c", script, str(project_with_destinations / "site" / "data")],
-        capture_output=True,
-        text=True,
-        check=False,
+    result = venv_python(
+        script,
+        str(project_with_destinations / "site" / "data"),
+        cwd=project_with_destinations,
     )
     assert result.returncode == 0, f"published artifacts failed their schemas:\n{result.stderr}"
 
 
 def test_the_manifest_indexes_every_artifact_with_a_matching_digest(
-    empty_project: Path, profile
+    empty_project: Path, profile, run_profile
 ) -> None:
     """The manifest is the contract reference for artifacts that carry no version."""
     import hashlib
 
-    profile("init", cwd=empty_project, env_extra=OFFLINE)
-    profile("generate", cwd=empty_project, env_extra=OFFLINE)
+    run_profile("init", cwd=empty_project)
+    run_profile("generate", cwd=empty_project)
 
     output = empty_project / "output"
     index = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
@@ -399,9 +392,11 @@ def test_the_manifest_indexes_every_artifact_with_a_matching_digest(
         assert entry["bytes"] == artifact.stat().st_size
 
 
-def test_projects_json_stays_an_array(project_with_destinations: Path, profile) -> None:
+def test_projects_json_stays_an_array(
+    project_with_destinations: Path, profile, run_profile
+) -> None:
     """Consumers index into it; wrapping it to carry a version would break them."""
-    profile("publish", "--execute", cwd=project_with_destinations, env_extra=OFFLINE)
+    run_profile("publish", "--execute", cwd=project_with_destinations)
 
     payload = json.loads(
         (project_with_destinations / "site" / "data" / "projects.json").read_text(encoding="utf-8")
@@ -414,35 +409,36 @@ def test_projects_json_stays_an_array(project_with_destinations: Path, profile) 
 # ---------------------------------------------------------------------------
 
 
-def test_a_custom_output_directory_is_honored(empty_project: Path, profile) -> None:
-    profile("init", cwd=empty_project, env_extra=OFFLINE)
+def test_a_custom_output_directory_is_honored(empty_project: Path, profile, run_profile) -> None:
+    run_profile("init", cwd=empty_project)
     (empty_project / "profile.toml").write_text(
         '[project]\nconfig_version = 1\n\n[paths]\noutput = "dist"\n', encoding="utf-8"
     )
 
-    result = profile("generate", cwd=empty_project, env_extra=OFFLINE)
+    result = run_profile("generate", cwd=empty_project)
     assert result.returncode == 0, result.stderr
     assert (empty_project / "dist" / "github-readme.md").is_file()
     assert not (empty_project / "output").exists()
 
 
-def test_an_unknown_config_section_fails_loudly(empty_project: Path, profile) -> None:
+def test_an_unknown_config_section_fails_loudly(empty_project: Path, profile, run_profile) -> None:
     """Silence is the worst failure mode for configuration."""
-    profile("init", cwd=empty_project, env_extra=OFFLINE)
+    run_profile("init", cwd=empty_project)
     (empty_project / "profile.toml").write_text(
         '[project]\nconfig_version = 1\n\n[pathz]\noutput = "dist"\n', encoding="utf-8"
     )
 
-    result = profile("generate", cwd=empty_project, env_extra=OFFLINE)
+    # Unchecked on purpose: rejecting the typo is what is under test.
+    result = profile("generate", cwd=empty_project)
     assert result.returncode == 2
     assert "pathz" in result.stderr
 
 
 def test_the_project_env_var_selects_the_project(
-    empty_project: Path, profile, tmp_path: Path
+    empty_project: Path, profile, tmp_path: Path, run_profile
 ) -> None:
     """CI needs to point the tool at a project without changing directory."""
-    profile("init", cwd=empty_project, env_extra=OFFLINE)
+    run_profile("init", cwd=empty_project)
 
     elsewhere = tmp_path / "elsewhere"
     elsewhere.mkdir()
@@ -456,14 +452,17 @@ def test_the_project_env_var_selects_the_project(
     assert (empty_project / "output" / "github-readme.md").is_file()
 
 
-def test_init_refuses_to_overwrite_an_existing_project(empty_project: Path, profile) -> None:
+def test_init_refuses_to_overwrite_an_existing_project(
+    empty_project: Path, profile, run_profile
+) -> None:
     """Losing a user's configuration is worse than an error message."""
-    profile("init", cwd=empty_project, env_extra=OFFLINE)
+    run_profile("init", cwd=empty_project)
     (empty_project / "profile.toml").write_text(
         '[project]\nconfig_version = 1\n\n[paths]\noutput = "mine"\n', encoding="utf-8"
     )
 
-    result = profile("init", cwd=empty_project, env_extra=OFFLINE)
+    # Unchecked on purpose: this call failing *is* the assertion.
+    result = profile("init", cwd=empty_project)
 
     assert result.returncode != 0
     assert "mine" in (empty_project / "profile.toml").read_text(), "init clobbered the config"

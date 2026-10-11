@@ -50,14 +50,27 @@ jobs:
 
       - name: Publish canonical data into the app
         working-directory: ${{ github.workspace }}
+        # `--locked` so the job fails on a lockfile that disagrees with the
+        # project metadata instead of silently re-resolving and building the
+        # app against dependencies nobody committed.
         run: |
-          uv sync --extra dev
+          uv sync --locked --extra dev
           uv run profile --offline generate
           uv run profile --offline publish portfolio-data --execute
 
       - name: Fail if the committed app data differed from a fresh publish
         working-directory: ${{ github.workspace }}
-        run: git diff --exit-code -- apps/portfolio/app/data/
+        # `git status --porcelain` rather than `git diff --exit-code`: diff
+        # compares tracked files only, so a publish that emits a *new*
+        # artifact nobody committed would exit 0 and the app would build on
+        # data that exists only in CI.
+        run: |
+          drift=$(git status --porcelain -- apps/portfolio/app/data/)
+          if [ -n "$drift" ]; then
+            echo "committed app data differs from a fresh publish:" >&2
+            echo "$drift" >&2
+            exit 1
+          fi
 
       # `pnpm build` works again now that pnpm-workspace.yaml answers the
       # native-build question with real booleans instead of the placeholder
