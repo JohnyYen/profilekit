@@ -46,11 +46,18 @@ canonical `data/`.
 ### Requirement: Publisher is registered in the single component registry and is golden-tested
 
 `portfolio_data` MUST be registered in the single component registry as a
-`publisher`-kind component of kind `filesystem`, and MUST be invoked by
+**publisher** — the entry-point group that decides which command may reach it —
+declaring the **kind** `filesystem`, which selects its implementation. The two
+words name different axes and are easy to conflate. It MUST be invoked by
 `profile publish` — never by `profile generate`, which invokes only
 `generator`-kind components. It MUST be covered by golden/unit tests
 (RED-GREEN-REFACTOR). The generated app data files MUST be committed to the
-repository as artifacts.
+repository as artifacts. Registration is an entry point declared in
+`pyproject.toml`; the registry is the only enumeration source.
+
+> Merged during review of the archive. Two requirements stated the same
+> registration rule — one from the delta spec, one from the base — which left
+> the capability asserting it twice and in slightly different words.
 
 #### Scenario: profile publish invokes the portfolio data sync
 
@@ -91,6 +98,28 @@ repository as artifacts.
 - THEN golden files for each of the four generated app data files SHALL
   match byte-for-byte
 - AND any deviation SHALL cause the test to fail with a diff
+
+#### Scenario: Registry discovers the portfolio_data publisher
+
+- GIVEN the component registry is queried for publisher entry points
+- WHEN the query completes
+- THEN `portfolio_data` SHALL be enumerated as a registered publisher
+- AND it SHALL NOT appear in the generator list
+
+#### Scenario: Publisher fails fast on missing canonical input
+
+- GIVEN one of the required canonical source files is absent
+- WHEN the publisher runs
+- THEN it SHALL exit with a non-zero status code and a descriptive error
+  message
+- AND no partial output files SHALL be left in the configured destination
+
+> Restored during review of the archive merge. This was the capability's only
+> failure-path scenario and the merge dropped it, leaving the requirement
+> asserting registration and golden coverage but nothing about behaviour on
+> bad input. The wording is updated from the original — which named
+> `generate_portfolio_data.py` and a hardcoded destination — to the publisher
+> and its configured destination.
 
 ### Requirement: Skills passthrough preserves canonical shape
 
@@ -192,16 +221,3 @@ they MUST NOT be fabricated or hard-coded as silent assumptions.
 - GIVEN CV file size or date is not present in canonical data
 - WHEN `CvSection` renders
 - THEN the value SHALL come from a documented constant or derivation, not a silent fabrication
-
-### Requirement: Publisher integrates into the single component registry
-
-`portfolio_data` MUST be registered as a `filesystem`-kind publisher entry point
-in `pyproject.toml` and discovered via the single component registry. It is not
-invoked by the generate path; only the publish command path runs it.
-
-#### Scenario: Registry discovers the portfolio_data publisher
-
-- GIVEN the component registry is queried for `publisher`-kind components
-- WHEN the query completes
-- THEN `portfolio_data` SHALL be enumerated as a registered publisher
-- AND it SHALL NOT appear in the generator list

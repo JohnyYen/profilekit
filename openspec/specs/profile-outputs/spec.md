@@ -36,7 +36,7 @@ by any generator run.
 - AND `README.md` in the repository root SHALL NOT be created, overwritten,
   or truncated
 
-#### Scenario: Custom output_dir is honored
+#### Scenario: A custom output directory is honored
 
 - GIVEN `profile.toml` sets `output_dir = "dist/generated"`
 - WHEN any generator runs

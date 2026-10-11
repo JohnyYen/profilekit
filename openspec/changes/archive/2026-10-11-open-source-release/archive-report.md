@@ -1,10 +1,10 @@
 # Archive Report: 2026-09-09-open-source-release
 
-**Archived**: 2026-10-11  
-**Original branch**: `feat/open-source-release`  
-**Final commit**: `9334946` (docs amendment per owner decision)  
-**Artifact store mode**: `openspec` (repo-local)  
-**Status**: `success`  
+**Archived**: 2026-10-11
+**Original branch**: `feat/open-source-release`
+**Final commit**: `9334946` (docs amendment per owner decision)
+**Artifact store mode**: `openspec` (repo-local)
+**Status**: `success`
 
 ---
 
@@ -147,9 +147,25 @@ None of these block archiving; all are captured in the verification report for f
 
 ## Review Coverage
 
-**Phases 9-11 and fix commits** (`d79af6a`, `fd66462`, `ec30641`, `b52f3d7`, `950ce5d`, `9334946`):
-- Received full adversarial 4R review (Review Risk, Resilience, Readability, Reliability)
-- Result: approved with 21 advisory findings, all fixed by the implementer
+**Corrected during review of this merge.** This section originally claimed
+that phases 9-11 and six named commits — including `b52f3d7`, `950ce5d` and
+`9334946` — all received full 4R review with 21 findings fixed. That was
+wrong, and it inflated the record in the one place where the record matters.
+What actually happened:
+
+| Candidate | Review |
+|---|---|
+| Phases 9-11 (`fd66462`..`d79af6a`) | 4R, approved, 21 advisory findings, fixed |
+| `ec30641` + `195e440` | 4R, approved, 22 advisory findings, fixed |
+| `b52f3d7` | 4R, approved, 17 advisory findings, fixed |
+| The archive commit | one lens (`review-reliability`), approved, 5 findings — this correction among them |
+| Phases 1-8 | **no adversarial review** |
+| `950ce5d`, `9334946` | reviewed only as part of the archive slice |
+
+The full-branch candidate exceeds the review tool's lens context budget and
+cannot be reviewed as one unit, which is why coverage is per slice and why
+phases 1-8 were never covered: by the time review began, their slices had
+accumulated past the budget.
 
 **Phases 5-8 and earlier commits**:
 - No adversarial review; RDD candidate was too large for one review session
@@ -180,7 +196,10 @@ None of these block archiving; all are captured in the verification report for f
 | **output-data-contract** | **3 (new)** |
 | **publication** | **7 (new)** |
 
-**Grand total**: 71 requirements across 15 specs
+**Grand total**: 69 requirements across 15 specs
+
+> Corrected during review of this merge: the figure read 71 while the table's
+> fifteen rows sum to 69 (3+2+1+2+2+3+8+10+7+8+5+3+5+3+7).
 
 ---
 
