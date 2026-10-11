@@ -2,39 +2,95 @@
 
 ## Purpose
 
-Defines the contract for `generators/generate_portfolio_data.py`, which materializes
+Defines the contract for the `portfolio_data` publisher, which materializes
 canonical `data/*.json` into the Next.js portfolio app's consumed JSON shapes under
 `apps/portfolio/app/data/`. This is a distinct capability from `portfolio-generation`
-(which writes `output/portfolio.md`); unlike that generator, this one legitimately
-writes outside `output/` and into the app tree. The `portfolio-generation` output-only
-rule is NOT violated — both generators coexist with non-overlapping output paths.
+(which writes `output/portfolio.md`). The publisher is registered as a `filesystem`-kind
+publisher and is invoked by `profile publish`, not by `profile generate`.
 
 ## Requirements
 
-### Requirement: Canonical data is the source of truth for the portfolio
+### Requirement: Canonical data is the source of truth for the portfolio destination
 
-The system SHALL derive `apps/portfolio/app/data/{about,social,skills,projects}.json`
-exclusively from canonical `data/*.json`. The app MUST NOT maintain hand-authored copies
-of profile data. After the generator runs, the files under `apps/portfolio/app/data/`
-MUST reflect the current state of canonical `data/`.
+The system SHALL derive the portfolio app's consumed JSON shapes exclusively
+from canonical `data/*.json`, and SHALL write them to a configurable
+destination path (defaulting to `apps/portfolio/app/data/`) declared as a
+`publisher` destination in `profile.toml`. The app MUST NOT maintain
+hand-authored copies of profile data. After the publisher runs, the files
+under the configured destination MUST reflect the current state of
+canonical `data/`.
 
-#### Scenario: Generator writes all four app data files
+#### Scenario: Publisher writes all four app data files
 
-- GIVEN canonical `data/about.json`, `data/social.json`, `data/skills.json`, and
-  `data/projects.json` are valid
-- WHEN `generate_portfolio_data.py` is executed
-- THEN `apps/portfolio/app/data/about.json`, `apps/portfolio/app/data/social.json`,
-  `apps/portfolio/app/data/skills.json`, and `apps/portfolio/app/data/projects.json`
-  SHALL be created or overwritten with canonical-derived content
-- AND no other file paths SHALL be written by this generator
+- GIVEN canonical `data/about.json`, `data/social.json`, `data/skills.json`,
+  and `data/projects.json` are valid
+- WHEN the `portfolio_data` publisher runs
+- THEN `about.json`, `social.json`, `skills.json`, and `projects.json` SHALL
+  be created or overwritten at the configured destination
+- AND no other file paths SHALL be written by this publisher
 
 #### Scenario: App data matches canonical source after regeneration
 
 - GIVEN canonical `data/about.json` has been updated with a new field value
-- WHEN `generate_portfolio_data.py` is executed
-- THEN `apps/portfolio/app/data/about.json` SHALL reflect the updated value
+- WHEN the `portfolio_data` publisher runs
+- THEN the destination's `about.json` SHALL reflect the updated value
 
----
+#### Scenario: Destination path is configurable
+
+- GIVEN `profile.toml` declares a custom destination path for
+  `portfolio_data`
+- WHEN the publisher runs
+- THEN it SHALL write to the configured path, not the default
+  `apps/portfolio/app/data/`
+
+### Requirement: Publisher is registered in the single component registry and is golden-tested
+
+`portfolio_data` MUST be registered in the single component registry as a
+`publisher`-kind component of kind `filesystem`, and MUST be invoked by
+`profile publish` — never by `profile generate`, which invokes only
+`generator`-kind components. It MUST be covered by golden/unit tests
+(RED-GREEN-REFACTOR). The generated app data files MUST be committed to the
+repository as artifacts.
+
+#### Scenario: profile publish invokes the portfolio data sync
+
+- GIVEN `portfolio_data` is registered as a `publisher`-kind component
+- WHEN `profile publish all` runs
+- THEN `apps/portfolio/app/data/*.json` (or the configured destination)
+  SHALL have been written
+- AND the portfolio data sync step SHALL appear in the run log
+
+#### Scenario: profile generate does not write app data
+
+- GIVEN `portfolio_data` is registered as a `publisher`-kind component
+- WHEN `profile generate all` runs
+- THEN it SHALL NOT invoke `portfolio_data`
+- AND no file outside the configured `output_dir` SHALL be written
+
+#### Scenario: App data freshness stays gated by profile check
+
+- GIVEN committed `apps/portfolio/app/data/*.json` differs from what
+  `portfolio_data` would write for the current canonical data
+- WHEN `profile check` runs
+- THEN it SHALL run `publish --dry-run` for `filesystem`-kind destinations
+- AND it SHALL exit non-zero reporting the stale destination
+
+#### Scenario: Regression — divergence bug does not recur
+
+- GIVEN the single component registry is the only enumeration source for
+  every command that resolves components
+- WHEN `profile publish all` and any standalone publish entry point are
+  invoked against the same data
+- THEN both SHALL produce identical `apps/portfolio/app/data/*.json` output
+- AND neither invocation path SHALL omit `portfolio_data`
+
+#### Scenario: Golden tests validate transform output
+
+- GIVEN a known set of canonical input fixtures
+- WHEN the test suite runs
+- THEN golden files for each of the four generated app data files SHALL
+  match byte-for-byte
+- AND any deviation SHALL cause the test to fail with a diff
 
 ### Requirement: Skills passthrough preserves canonical shape
 
@@ -60,11 +116,9 @@ present, and plain text otherwise.
 #### Scenario: Generated skills file preserves category structure
 
 - GIVEN `data/skills.json` has N categories each with M details
-- WHEN `generate_portfolio_data.py` is executed
+- WHEN `portfolio_data` is executed
 - THEN `apps/portfolio/app/data/skills.json` SHALL contain the same N categories
   in source order, with all M details preserved per category
-
----
 
 ### Requirement: About and social fields map to app-consumed shapes
 
@@ -76,16 +130,14 @@ divergent hand-authored copy of these values SHALL exist in the app tree.
 #### Scenario: About fields present in generated file
 
 - GIVEN `data/about.json` contains `name`, `title`, and `summary` fields
-- WHEN `generate_portfolio_data.py` is executed
+- WHEN `portfolio_data` is executed
 - THEN `apps/portfolio/app/data/about.json` SHALL include those fields with identical values
 
 #### Scenario: Social fields present in generated file
 
 - GIVEN `data/social.json` contains platform URLs consumed by the portfolio
-- WHEN `generate_portfolio_data.py` is executed
+- WHEN `portfolio_data` is executed
 - THEN `apps/portfolio/app/data/social.json` SHALL include those URLs
-
----
 
 ### Requirement: Projects fallback matches app GitHub-fallback contract
 
@@ -97,7 +149,7 @@ removed or altered. The generator provides the committed fallback only.
 #### Scenario: Generated projects file satisfies fallback contract shape
 
 - GIVEN `data/projects.json` contains valid project entries
-- WHEN `generate_portfolio_data.py` is executed
+- WHEN `portfolio_data` is executed
 - THEN `apps/portfolio/app/data/projects.json` SHALL contain entries that conform
   to the app's GitHub-fallback shape (required fields: `name`, `description`, `url`,
   `language`, `topics`)
@@ -108,8 +160,6 @@ removed or altered. The generator provides the committed fallback only.
 - GIVEN `apps/portfolio/app/data/projects.json` contains generated fallback data
 - WHEN the portfolio app loads and the GitHub API responds successfully
 - THEN the app SHALL display live GitHub data, not the fallback data
-
----
 
 ### Requirement: Layout metadata and CvSection source from canonical data
 
@@ -143,49 +193,15 @@ they MUST NOT be fabricated or hard-coded as silent assumptions.
 - WHEN `CvSection` renders
 - THEN the value SHALL come from a documented constant or derivation, not a silent fabrication
 
----
+### Requirement: Publisher integrates into the single component registry
 
-### Requirement: Generator integrates into generate_all and is golden-tested
+`portfolio_data` MUST be registered as a `filesystem`-kind publisher entry point
+in `pyproject.toml` and discovered via the single component registry. It is not
+invoked by the generate path; only the publish command path runs it.
 
-`generate_portfolio_data.py` MUST be registered in `generate_all` so it executes
-as part of the standard pipeline run. It MUST be covered by golden/unit tests
-(RED-GREEN-REFACTOR). The generated app data files MUST be committed to the
-repository as artifacts (equivalent treatment to `output/`).
+#### Scenario: Registry discovers the portfolio_data publisher
 
-#### Scenario: generate_all includes portfolio data sync step
-
-- GIVEN `generate_all` is invoked
-- WHEN the run completes
-- THEN `apps/portfolio/app/data/*.json` SHALL have been written by the pipeline
-- AND the portfolio data sync step SHALL appear in the run log
-
-#### Scenario: Golden tests validate transform output
-
-- GIVEN a known set of canonical input fixtures
-- WHEN the test suite runs
-- THEN golden files for each of the four generated app data files SHALL match byte-for-byte
-- AND any deviation SHALL cause the test to fail with a diff
-
-#### Scenario: Generator fails fast on missing canonical input
-
-- GIVEN one of the required canonical source files is absent
-- WHEN `generate_portfolio_data.py` is executed
-- THEN it SHALL exit with a non-zero status code and a descriptive error message
-- AND no partial output files SHALL be silently left in `apps/portfolio/app/data/`
-
----
-
-### Requirement: Output path non-conflict with portfolio-generation capability
-
-`generate_portfolio_data.py` writes exclusively to `apps/portfolio/app/data/`
-and MUST NOT write to `output/`. The existing `portfolio-generation` capability
-(`generate_portfolio.py`) writes exclusively to `output/` and MUST NOT be modified
-by this change. Both generators MUST coexist without output path overlap.
-
-#### Scenario: Separate generators write to non-overlapping paths
-
-- GIVEN both `generate_portfolio.py` and `generate_portfolio_data.py` are executed
-- WHEN each completes
-- THEN `generate_portfolio.py` SHALL have written only to `output/`
-- AND `generate_portfolio_data.py` SHALL have written only to `apps/portfolio/app/data/`
-- AND no file SHALL be written to both paths by either generator
+- GIVEN the component registry is queried for `publisher`-kind components
+- WHEN the query completes
+- THEN `portfolio_data` SHALL be enumerated as a registered publisher
+- AND it SHALL NOT appear in the generator list
