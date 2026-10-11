@@ -1,0 +1,33 @@
+# profilekit project configuration.
+#
+# This repository is the reference project: it is both the tool's own
+# development checkout and the first consumer of the tool. The values below
+# reproduce exactly the paths that were previously derived from each module's
+# __file__ location, so the cutover to working-directory discovery is a
+# behavior-preserving change.
+
+[project]
+config_version = 1
+
+[paths]
+data = "data"
+output = "output"
+assets = "assets"
+# schemas is intentionally omitted: the JSON Schemas ship as package data
+# inside the distribution, so an installed CLI resolves them without needing
+# a checkout. Set it only to validate against project-local schemas instead.
+
+[publishers.portfolio-data]
+# The in-repo Next.js portfolio is a reference *consumer* of this data, not
+# part of the distributed package. Any frontend reading the same four JSON
+# shapes is an equally valid destination.
+kind = "filesystem"
+destination = "apps/portfolio/app/data"
+
+[publishers.linkedin]
+# LinkedIn exposes no write access to profile fields without partner-level
+# API approval, so this destination is manual by capability, not by choice:
+# it emits the artifact and reports the pending action. It never reports a
+# publish it did not perform.
+kind = "manual"
+artifacts = ["linkedin.md"]

@@ -102,7 +102,7 @@ no task — no git-push publisher or PR automation is introduced.
 - [ ] 4.9 GREEN: externalize `generate_github_readme.py:38,78,180` and `generate_cv.py:180,216-238` into `[generators.github-readme]`/`[generators.cv]`; replace frozen `current_date` with `"auto"` default; goldens pin it explicitly.
 - [ ] 4.10 RED (threat matrix rows 2–3 — git repository selection, commit state): `test_check_degrades_without_git` — non-git tmp dir completes with the git check reported skipped, not failed; dirty/clean worktree still gates as before.
 - [ ] 4.11 GREEN: rewrite the git invocation as `git -C <project_root> diff --exit-code -- <output_dir>` (argv list, never `shell=True`); degrade to manifest-hash comparison with a notice when `.git`/`git` is absent; read-only — no stage/commit/amend.
-- [ ] 4.12 Commit a root `profile.toml` declaring `[paths]` and `[publishers.portfolio-data] destination = "apps/portfolio/app/data"` reproducing today's `__file__`-derived paths exactly.
+- [x] 4.12 Commit a root `profile.toml` declaring `[paths]` and `[publishers.portfolio-data] destination = "apps/portfolio/app/data"` reproducing today's `__file__`-derived paths exactly.
 - [ ] 4.13 Verification: hash `output/` before/after this phase's cutover; assert byte-identical; existing freshness gate stays green.
 
 ## Phase 5 (R8): Test Neutrality
