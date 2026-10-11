@@ -139,13 +139,33 @@ trade worth making for one field you can read elsewhere.
 
 ## Validating against the contract
 
-The JSON Schemas ship inside the package, so you do not need a checkout:
+Every shape above has a JSON Schema, and they ship inside the package — you do
+not need a checkout to validate against them:
 
 ```python
 import importlib.resources as resources
 
-schema = resources.files("profilekit.schemas") / "manifest.schema.json"
+schemas = resources.files("profilekit.schemas")
 ```
 
-`profile check` validates the manifest against that schema and verifies every
-digest matches its file, so a malformed contract cannot be published.
+| File | Schema |
+|---|---|
+| `output/manifest.json` | `manifest.schema.json` |
+| `about.json` | `published-about.schema.json` |
+| `social.json` | `published-social.schema.json` |
+| `skills.json` | `published-skills.schema.json` |
+| `projects.json` | `published-projects.schema.json` |
+
+These are distinct from the schemas that validate a project's **input** data
+(`about.schema.json` and friends). The input schemas are deliberately permissive
+about extra keys, so validating published output against them would let a
+transform drop a required field unnoticed. Validate output against the
+`published-*` schemas.
+
+A project may point `[paths] schemas` at its own directory to validate its
+input data. That override does not apply here: these schemas describe
+profilekit's own output, so they always come from the package.
+
+`profile check` validates the manifest and all four published artifacts against
+these schemas, and verifies every manifest digest matches its file — so a
+malformed contract cannot be published.

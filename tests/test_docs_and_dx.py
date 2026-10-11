@@ -191,3 +191,27 @@ def test_hooks_do_not_depend_on_the_network_for_data_checks() -> None:
 def test_contributing_documents_the_hook_install() -> None:
     contributing = (REPO_ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8")
     assert "pre-commit install" in contributing
+
+
+def test_the_contract_doc_covers_every_published_schema() -> None:
+    """A schema nobody is told about is not part of a contract.
+
+    The doc previously named only the manifest schema, so a consumer had no
+    way to know the four published shapes could be validated at all.
+    """
+    from profilekit import cli
+
+    text = (DOCS / "data-contract.md").read_text(encoding="utf-8")
+
+    for schema_name in cli.PUBLISHED_SCHEMAS.values():
+        assert schema_name in text, f"{schema_name} is undocumented"
+    assert "manifest.schema.json" in text
+
+
+def test_the_contract_doc_distinguishes_input_from_output_schemas() -> None:
+    """Validating published output against the input schemas hides dropped fields."""
+    text = (DOCS / "data-contract.md").read_text(encoding="utf-8").lower()
+
+    assert "input" in text and "permissive" in text, (
+        "the doc must explain why the input schemas are the wrong ones to use"
+    )

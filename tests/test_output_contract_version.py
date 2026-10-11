@@ -322,31 +322,92 @@ def test_published_artifacts_validate_against_their_schemas(project: Path) -> No
 def test_check_fails_when_a_published_artifact_breaks_its_schema(
     project: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Dropping a required field from a published shape must fail the gate."""
+    """Isolate the schema gate from the destination-drift gate.
+
+    Breaking a published shape necessarily makes it differ from what the
+    publisher would write, so the earlier drift gate fires first and an
+    exit-code assertion proves nothing about the schema check — this test
+    passed twice while the schema gate could have been deleted. The drift
+    probe is therefore stubbed out, leaving only the schema gate to fail.
+    """
     from profilekit import cli
 
     ctx = discover_project(explicit=project)
-    (project / "profile.toml").write_text(
-        "[project]\nconfig_version = 1\n\n"
-        '[generators.cv]\ncurrent_date = "2000-01-01"\n\n'
-        '[publishers.site]\nkind = "filesystem"\ndestination = "app/data"\n',
-        encoding="utf-8",
-    )
-    _generate_all(project)
-    manifest.write(discover_project(explicit=project))
-
     publisher = FilesystemPublisher()
-    ctx = discover_project(explicit=project)
     publisher.publish(ctx, publisher.plan(ctx, {"destination": "app/data"}))
-
-    broken = project / "app" / "data" / "about.json"
-    broken.write_text('{"schemaVersion": 1}\n', encoding="utf-8")
+    _generate_all(project)
+    manifest.write(ctx)
 
     monkeypatch.setattr(cli.validate, "main", lambda ctx: 0)
     monkeypatch.setattr(cli, "_git_output_is_clean", lambda ctx: True)
     monkeypatch.setattr(cli, "cmd_generate", lambda target, ctx: 0)
+    # The gate under test is the only one left that can fail.
+    monkeypatch.setattr(cli, "_stale_published_destinations", lambda ctx: [])
+    monkeypatch.setattr(
+        cli,
+        "filesystem_destinations",
+        lambda ctx: [{"kind": "filesystem", "destination": "app/data"}],
+    )
 
-    assert cli.main(["--project", str(project), "check"]) != 0
+    broken = project / "app" / "data" / "about.json"
+    broken.write_text('{"schemaVersion": 1}\n', encoding="utf-8")
+
+    rc = cli.main(["--project", str(project), "check"])
+    assert rc != 0, "the schema gate did not fire"
+
+
+def test_the_schema_gate_is_the_only_thing_failing_in_that_test(
+    project: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+) -> None:
+    """Prove the isolation holds: with a valid shape and drift stubbed, check passes."""
+    from profilekit import cli
+
+    ctx = discover_project(explicit=project)
+    publisher = FilesystemPublisher()
+    publisher.publish(ctx, publisher.plan(ctx, {"destination": "app/data"}))
+    _generate_all(project)
+    manifest.write(ctx)
+
+    monkeypatch.setattr(cli.validate, "main", lambda ctx: 0)
+    monkeypatch.setattr(cli, "_git_output_is_clean", lambda ctx: True)
+    monkeypatch.setattr(cli, "cmd_generate", lambda target, ctx: 0)
+    monkeypatch.setattr(cli, "_stale_published_destinations", lambda ctx: [])
+    monkeypatch.setattr(
+        cli,
+        "filesystem_destinations",
+        lambda ctx: [{"kind": "filesystem", "destination": "app/data"}],
+    )
+
+    assert cli.main(["--project", str(project), "check"]) == 0
+
+
+def test_the_schema_gate_names_the_offending_field(
+    project: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+) -> None:
+    """A gate that fails without saying what broke is barely a gate."""
+    from profilekit import cli
+
+    ctx = discover_project(explicit=project)
+    publisher = FilesystemPublisher()
+    publisher.publish(ctx, publisher.plan(ctx, {"destination": "app/data"}))
+    _generate_all(project)
+    manifest.write(ctx)
+
+    monkeypatch.setattr(cli.validate, "main", lambda ctx: 0)
+    monkeypatch.setattr(cli, "_git_output_is_clean", lambda ctx: True)
+    monkeypatch.setattr(cli, "cmd_generate", lambda target, ctx: 0)
+    monkeypatch.setattr(cli, "_stale_published_destinations", lambda ctx: [])
+    monkeypatch.setattr(
+        cli,
+        "filesystem_destinations",
+        lambda ctx: [{"kind": "filesystem", "destination": "app/data"}],
+    )
+
+    (project / "app" / "data" / "about.json").write_text('{"schemaVersion": 1}\n', encoding="utf-8")
+    cli.main(["--project", str(project), "check"])
+
+    err = capsys.readouterr().err
+    assert "about.json" in err
 
 
 def test_published_schemas_resolve_even_with_a_project_schemas_override(

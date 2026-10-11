@@ -125,3 +125,152 @@ Requirements fully satisfied with observed evidence: 28 of 34. Not satisfied (5)
 
 ## Next step
 Return to `sdd-apply` for C1-C5 (C1/C3/W1/W2 may be resolved by spec amendment by the owner). Do not archive.
+
+---
+
+# Second-round verification (re-verify at `b52f3d7`)
+
+**Branch / commit**: `feat/open-source-release` @ `b52f3d7`, tree clean before and after.
+**Mode**: Strict TDD, runner `uv run pytest -q`, threshold 80%, artifact store `openspec`.
+**Verdict**: **PASS WITH WARNINGS on code; NOT ARCHIVABLE yet.** 1 CRITICAL (open
+owner decision), 6 WARNING, 4 SUGGESTION. Status: `partial`.
+
+The first-round verdict above is unchanged and remains the historical record.
+Nothing here relies on commit messages; every claim was re-run or reproduced.
+
+## Command evidence (observed this run)
+
+| Command | Result |
+|---|---|
+| `uv run pytest -q --cov` | 355 passed in 1.44s; total coverage 96.66% (gate 80%) |
+| `uv run ruff check .` | All checks passed |
+| `uv run ruff format --check .` | 75 files already formatted |
+| `uv run mypy` | Success, 21 source files |
+| `uv run python -m profilekit.cli check` | "check passed ..." exit 0; tree stayed clean |
+| `uv run pre-commit run --all-files` | all hooks passed (pytest and `profile check` hooks included) |
+| `uv build` | sdist and wheel built; wheel carries 11 `*.schema.json` |
+| Clean wheel in a fresh venv, outside any checkout | `init` -> `validate` -> `generate` -> `check` -> `publish` all exit 0 (see below) |
+
+## Status of the five first-round CRITICAL findings
+
+| Finding | Result | Evidence |
+|---|---|---|
+| C1 no-config fallback | **Closed** | Spec scenario now says exit 2 / no CWD fallback, with the D2 rationale inline. Wheel run from an empty directory previously exited 2 (first round); behaviour unchanged. |
+| C2 adapter never republishes | **Closed** | Probe with six registered adapters: changed content republished; `plan_digest` returns `None` for an artifact-less plan; ledger stays `{}` for adapters (a `None` digest is never recorded and never treated as unchanged). Credentials reach an adapter that names `credentials` (`s3cret` resolved and received). |
+| C3 published schemas | **Closed for the schema gate; one literal MUST still open (NEW-C1)** | See below. |
+| C4 home path in tracked content | **Closed** | `git ls-files \| rg '/home/[A-Za-z0-9_.-]+/'` matches only two lines, both the quoted pattern `/home/johny/...` (apply-progress.md:36, monorepo-structure spec:30); no `/Users/` or `C:\Users`. The exemption list is four individually named files, not a directory, and none of them contains a real path. |
+| C5 TDD evidence | **Closed, with a caveat (W-A)** | The table exists with 16 rows; all 15 distinct commit hashes resolve and each touches `tests/`. |
+
+S1 (`Secret` pickling): **Closed.** `pickle.dumps` at protocols 0, default and 5, `copy.copy`
+and `copy.deepcopy` all raise `TypeError`.
+
+## Items introduced while fixing
+
+- **Adapter call arity: verified.** `def push(ctx, timeout=30)` kept `30`;
+  `def push(ctx, *, cfg=None)` received the project config; `**kwargs` received
+  both `cfg` and `credentials`; `def push(ctx, a, b, c)` failed only its own
+  destination (`TypeError: ... missing 3 required positional arguments`), the
+  other five destinations still published, exit code 1.
+- **Schema lookups: verified.** `manifest.schema.json` and the four published
+  schemas resolve from the package. A scaffolded project with
+  `[paths] schemas = "my-schemas"` (containing only the six input schemas, none
+  of the manifest or published ones) passes `check` with exit 0.
+- **`--offline`: verified.** It is the only code in `src/` that sets
+  `SKIP_ICON_CHECK` / `SKIP_LINK_CHECK`; `test_cli.py` asserts the effect with
+  both variables cleared first. Other setters are `tests/conftest.py` (suite
+  pin) and workflow `env:` blocks. The known in-process `os.environ` mutation
+  remains a carried follow-up.
+- **`publish.yml`: matches the stated intent.** Push runs `profile check` and a
+  dry-run `profile publish all`; `--execute` is reachable only through
+  `workflow_dispatch` with `execute: true`. No push path writes.
+
+## C3 isolation test (the specific thing asked)
+
+The existing test `test_check_fails_when_a_published_artifact_breaks_its_schema`
+**still does not isolate the schema gate.** It corrupts `about.json` in the
+destination, which the earlier stale-destination gate also catches; I
+reproduced `check` failing with "published destination is stale" and *no*
+schema error for that exact setup. So that test would pass even if the schema
+gate were deleted (W-B).
+
+The gate itself does work. With the stale gate neutralised, so only the schema
+gate can fail: a published `about.json` of `{"schemaVersion": 1}` fails with
+three "is a required property" errors (`username`, `tagline`, `description`),
+and a document with an extra top-level key fails with "Additional properties
+are not allowed". The unbroken control passes. The new schemas use
+`additionalProperties: false`, which the input schemas did not.
+
+## CRITICAL
+
+**NEW-C1. `output-data-contract` "schemaVersion on emitted artifacts" is still literally unmet.**
+`apps/portfolio/app/data/projects.json` is a bare JSON array and carries no
+`schemaVersion`, against "Every JSON artifact emitted ... MUST include a
+`schemaVersion` field". This was escalated to the owner, not resolved, and
+that is the correct handling, but a MUST that is neither met nor amended blocks
+archive. Resolution is the owner's: wrap the array (and update the one in-repo
+consumer), or amend the requirement to exempt array artifacts and point them at
+`manifest.json`.
+
+## WARNING
+
+- **W-A. TDD evidence is retroactive and self-attested.** The table says the
+  RED output "is in the session record"; nothing in the repository proves it,
+  and implementation and tests share a commit in each row. Accepted as the best
+  available record, not as independent proof.
+- **W-B. Schema-gate test does not isolate the gate** (above). A test that
+  neutralises the stale gate, or breaks the shape through the generator, is
+  needed.
+- **W-C. Published schemas are not documented.** `docs/data-contract.md` names
+  only `manifest.schema.json`; none of the four `published-*.schema.json` is
+  mentioned in `docs/` or the README. "Documented, stable location" and "the
+  documented shape MUST match the schema" are therefore only partly met for
+  those four.
+- **W-D. Push idempotency holds only for destinations that expose artifacts.**
+  A registry adapter now always republishes (ledger stays empty), by design and
+  the safer failure. "Unchanged content is not republished" is therefore not
+  satisfied for adapters, and no built-in kind is `push`, so the scenario has no
+  production path. Say so in the spec or give adapters a way to supply a digest.
+- **W-E. Publish-on-push requirement is still unamended.** The spec says CI
+  MUST run `profile publish` on push, gated on output changes. The workflow runs
+  a dry run plus `check` and its path filter also includes `data/**`,
+  `profile.toml` and the workflow file. The rationale (a runner's filesystem
+  write is discarded) is sound and verified against the code. **Flag to the
+  owner**: amend the requirement, otherwise the spec and CI disagree on the
+  record. Not a defect in the code.
+- **W-F. `profile publish` table header runs together** ("DESTINATIONSTATUS")
+  when every destination name is shorter than 11 characters; the width is
+  computed from names only. Cosmetic.
+
+## SUGGESTION
+
+- S-A. Scaffolded `init` still lacks `assets/pixel-mario.gif`; `generate` warns (first-round S2).
+- S-B. Archived history still contains the maintainer's absolute path in earlier
+  commits; the tree is clean, history is not, which is only relevant if history
+  is published unrewritten.
+- S-C. `cvUrl` 404 in `data/social.json` was not re-checked (no network used);
+  owner data, left untouched as instructed.
+- S-D. Phases 5-8 and `b52f3d7` still lack adversarial review; my probes of the
+  arity change cover the behaviours listed above but are not a substitute.
+
+## Carried / out of scope (confirmed, not rediscovered)
+
+Hardcoded `verify` job name in one workflow test; `--offline` mutating
+`os.environ`; duplicated exclude regex in pre-commit; `2026-09-05-add-generator-cli`
+unarchived.
+
+## Clean-wheel flow (outside any checkout)
+
+`init` scaffolded a project; `validate` passed; `generate` wrote six artifacts
+(warning S-A only); dry-run `publish` wrote nothing (`skipped` / `pending-manual`);
+`publish --execute` wrote four files to the `filesystem` destination and reported
+the `manual` one as `pending-manual`; a second `--execute` reported `unchanged`;
+drifting the destination made `check` exit 1; republishing restored a passing `check`.
+
+## Verdict
+
+Code is sound: all five first-round CRITICAL defects and S1 are closed on
+observed evidence, and the full toolchain is green. **The change is not yet
+archivable** because one spec MUST (NEW-C1) is neither met nor amended, and two
+spec/CI divergences (W-E, W-D) are awaiting owner decisions. Once the owner
+resolves NEW-C1 and W-E, ideally with W-B and W-C fixed, it is archivable
+without further code changes to the verified paths.
