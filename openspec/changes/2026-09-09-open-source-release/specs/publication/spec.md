@@ -112,11 +112,25 @@ be skipped with a log message, not treated as a fatal error.
 
 ### Requirement: CI publish workflow gated and isolated from validation
 
-A CI workflow MUST run `profile publish` on pushes to `main`, gated so it
-proceeds only when the configured output directory changed in that push.
-Absent per-destination secrets MUST cause that destination to be skipped
-with a log entry, not a failed run. This workflow MUST be separate from the
+A CI workflow MUST run `profile check` and a `profile publish` dry run on
+pushes to `main`, gated so it proceeds only when the configured output
+directory changed in that push. It MUST NOT write to a destination on a push;
+an explicit manual dispatch MUST be required for that.
+
+Absent per-destination secrets MUST cause that destination to be skipped with
+a log entry, not a failed run. This workflow MUST be separate from the
 validation workflow, and the validation workflow MUST NOT publish.
+
+> Amended by owner decision after verification. The original wording required
+> publishing on push. Both destination kinds that ship with the package write
+> locally — `filesystem` into a directory inside the project, `manual` by
+> handing work to a human — and on a runner the project directory is a
+> throwaway checkout discarded when the job ends. Publishing on push would
+> therefore report destinations as published while nothing durable changed,
+> which is the precise failure the `manual` capability exists to avoid. CI's
+> answerable question is whether the committed destinations are current, which
+> `profile check` decides; publishing a filesystem destination happens locally
+> and is then committed.
 
 #### Scenario: Push without output changes does not publish
 

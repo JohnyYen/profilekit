@@ -10,17 +10,35 @@ synced to external consumers (starting with the portfolio app's JSON files)
 
 ### Requirement: schemaVersion on emitted artifacts
 
-Every JSON artifact emitted for external consumption MUST include a
-`schemaVersion` field identifying the contract version it conforms to. A
-consumer MUST be able to detect a version mismatch without parsing the rest
-of the payload.
+Every JSON artifact emitted for external consumption MUST declare the
+contract version it conforms to. A consumer MUST be able to detect a version
+mismatch without parsing the rest of the payload.
 
-#### Scenario: Artifact carries its version
+An **object-shaped** artifact MUST carry a top-level `schemaVersion` field.
+An **array-shaped** artifact has nowhere to put one, and MUST declare its
+version through `output/manifest.json` instead.
 
-- GIVEN a publisher emits a JSON artifact for an external consumer
+#### Scenario: An object artifact carries its version inline
+
+- GIVEN a publisher emits a JSON object for an external consumer
 - WHEN the artifact is inspected
 - THEN it SHALL include a top-level `schemaVersion` field with the current
   contract version
+
+#### Scenario: An array artifact declares its version in the manifest
+
+- GIVEN a publisher emits a JSON array for an external consumer
+- WHEN the artifact is inspected
+- THEN it SHALL remain an array
+- AND `output/manifest.json` SHALL carry the contract version for it
+
+> Amended by owner decision after verification. The original wording required
+> every JSON artifact to carry the field inline, which `projects.json` cannot
+> satisfy without being wrapped in an object. Wrapping it would break every
+> consumer that indexes into it as a list — including this repository's own
+> portfolio app — to gain a field already readable from the manifest. The
+> manifest exists precisely because Markdown and YAML artifacts cannot carry a
+> version either; an array is the same case.
 
 #### Scenario: Version bump on breaking change
 
