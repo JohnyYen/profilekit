@@ -176,3 +176,97 @@ intentionally do not name the package — neither document type does.
 10/10 Phase 2 tasks complete, all gates green. Next: Phase 3 (R2 — the
 generator/publisher boundary), blocked pending authentication recovery before
 sub-agent delegation resumes.
+
+---
+
+## Phase 3 (R2): Generator/Publisher Boundary
+
+### Completion
+7/7 tasks complete (3.1–3.7).
+
+### Execution Note
+Three consecutive delegated attempts at this phase produced nothing: two died
+on `HTTP 403 authentication_failed` and one when the host process exited, each
+time before any commit. Disk verification after each death confirmed zero
+commits past the phase baseline and all seven tasks still unchecked.
+
+The fourth attempt was executed inline by the orchestrator in three committed
+increments rather than delegated a fourth time. Long-lived sub-agents are the
+failure mode here, so the work was sized to survive one.
+
+### What Changed
+
+**3.1–3.2 (`35c357d`) — the output directory is caller-owned.**
+Every generator's `main()` now takes an explicit `output_dir`, defaulting to
+the module-level `OUTPUT_DIR`. A generator writing to a fixed module constant
+cannot be redirected, which makes the boundary unenforceable and the write
+path untestable without monkeypatching private state.
+`tests/test_generator_output_boundary.py` asserts each generator accepts the
+argument, that running all four leaves no file outside the directory they were
+given, and that no publisher module is reachable from the generate path.
+
+**3.3–3.4 (`fe7a848`) — the filesystem publisher is extracted.**
+Added `profilekit.publishers` with design D7's capability model (`push` vs
+`manual`, where `manual` reports `pending-manual` and may never report
+`published`) and a plan/publish split so a dry run computes drift without
+writing. Added `FilesystemPublisher`, carrying the four canonical JSON shapes
+to a configurable destination, with `resolve_destination()` rejecting absolute
+paths, parent-directory escapes, and symlink escapes *before* any content is
+produced. Re-publishing identical content reports `unchanged`.
+Deleted `generate_portfolio_data` and unwired it from `generate_all`; its
+transform tests moved to `tests/test_publisher_transforms.py`, keeping the
+missing-canonical-file case that must abort before producing a partial set.
+
+**3.5–3.6 — `profile check` now gates published destinations.**
+`cmd_check` runs `_stale_published_destinations()`, which calls each
+filesystem destination's `plan()` and fails naming what drifted. It is a dry
+run by construction: repairing the destination here would hide the exact
+problem the gate exists to surface, and a test asserts it does not.
+
+**3.7 — the constraint is recorded where R7 will read it.**
+Task 6.7 in `tasks.md` now carries a blocking constraint spelling out that
+this gate is the only thing covering `apps/portfolio/app/data/`, and that
+replacing `cli.FILESYSTEM_DESTINATIONS` with registry discovery must carry
+`_stale_published_destinations()` forward.
+
+### Why 3.6 Was Load-Bearing
+Reclassifying `portfolio_data` as a publisher removes it from the generate
+path. `.github/workflows/validate.yml:64` only diffs `output/`, and never
+invoked `portfolio_data` even before this change — that was the shipped
+divergence bug. So after the reclassification, `profile check` is the only
+thing that looks at the destination at all. Had 3.6 been deferred to a later
+phase, destination drift would have ended up *less* protected than before the
+refactor.
+
+### Exit Gate Evidence
+- `uv run pytest -q`: 176 passed, coverage 87.92% (gate 80%).
+- Coverage reports 14 modules under `src/profilekit/`; both new publisher
+  modules at 100%.
+- `uv run ruff check .`: All checks passed.
+- `uv run ruff format --check .`: 51 files already formatted.
+- `uv run mypy`: Success, no issues in 14 source files.
+- `uv build`: wheel contains `profilekit/publishers/{__init__,filesystem}.py`
+  and no longer contains `generate_portfolio_data`.
+- `python -m profilekit.cli check` against the live repo: exit 0 —
+  "data valid, output/ up to date, destinations current". The real
+  `apps/portfolio/app/data/` is current, and the gate now verifies it.
+
+### Carried Forward (not Phase 3 scope)
+- Path resolution is still repo-relative (`parent.parent.parent`). R6 (Phase 4).
+- `cli.FILESYSTEM_DESTINATIONS` is a literal interim, as task 3.6 specifies,
+  because R7 finalizes discovery. The `cli.GENERATORS` comment was narrowed to
+  say what it actually covers instead of claiming to be the single source of
+  truth while `generate_all` keeps a parallel list. R7 (Phase 6) collapses both.
+- `generate_all.py` retains its `sys.path` bootstrap; deleted in R7.
+- `tests/test_generate_all.py` still writes to the real `output/`. R8 (Phase 5).
+- `profile publish` does not exist yet; `FilesystemPublisher` is reachable from
+  `check` by direct call only. The CLI surface is R4 (Phase 8).
+
+### Workload / PR Boundary
+- Mode: `size:exception` (owner pre-accepted)
+- Work unit: R2 — Generator/Publisher Boundary (work unit 3 of 11)
+- Boundary: `da3799a` -> `35c357d` -> `fe7a848` -> this commit
+
+### Status
+7/7 Phase 3 tasks complete, all gates green. Next: Phase 4 (R6 — path
+decoupling, `profile.toml`, `profile init`), 13 tasks.

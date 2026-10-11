@@ -10,7 +10,7 @@ Runnable as a module (``python -m profilekit.cli``) or, once installed, as the
 import argparse
 import subprocess
 import sys
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from pathlib import Path
 
 import profilekit.generate_cv as cv
@@ -18,6 +18,8 @@ import profilekit.generate_github_readme as github_readme
 import profilekit.generate_linkedin as linkedin
 import profilekit.generate_portfolio as portfolio
 from profilekit import validate
+from profilekit.publishers import PublisherContext
+from profilekit.publishers.filesystem import FilesystemPublisher
 
 # src-layout: this file lives at <repo_root>/src/profilekit/cli.py, so three
 # parents reach the repository root. No sys.path bootstrap is needed — once
@@ -26,8 +28,9 @@ from profilekit import validate
 ROOT_DIR = Path(__file__).resolve().parent.parent.parent
 OUTPUT_DIR = ROOT_DIR / "output"
 
-# Single source of truth for generation targets and their run order.  Insertion
-# order matches ``profilekit.generate_all`` and is preserved by ``dict``.
+# Generation targets and their run order. Publishers are deliberately absent:
+# ``generate`` only invokes generators. R7 replaces this literal and the
+# parallel list in ``profilekit.generate_all`` with one entry-point registry.
 GENERATORS: dict[str, Callable[[], object]] = {
     "github-readme": github_readme.main,
     "linkedin": linkedin.main,
@@ -47,6 +50,38 @@ def _git_output_is_clean() -> bool:
         cwd=ROOT_DIR,
     )
     return result.returncode == 0
+
+
+# Filesystem-kind publish destinations gated by ``check``. R7 replaces this
+# literal with registry/config discovery; until then it is declared in one place
+# so the gate cannot silently lose a destination.
+FILESYSTEM_DESTINATIONS: tuple[Mapping[str, object], ...] = ({},)
+
+
+def _project_context() -> PublisherContext:
+    """Return the project a publisher acts within.
+
+    Repo-relative for now; R6 replaces this with working-directory discovery.
+    """
+    return PublisherContext(root=ROOT_DIR, data_dir=ROOT_DIR / "data")
+
+
+def _stale_published_destinations() -> list[str]:
+    """Return a description of every filesystem destination that has drifted.
+
+    This is a dry run: it calls ``plan()`` only, so it detects drift without
+    repairing it. Repairing here would hide exactly the problem the gate exists
+    to surface.
+    """
+    ctx = _project_context()
+    publisher = FilesystemPublisher()
+    stale: list[str] = []
+
+    for cfg in FILESYSTEM_DESTINATIONS:
+        plan = publisher.plan(ctx, cfg)
+        if plan.changes:
+            stale.append(f"{plan.destination}: {', '.join(plan.changes)}")
+    return stale
 
 
 def cmd_generate(target: str) -> int:
@@ -92,7 +127,20 @@ def cmd_check() -> int:
         )
         return 1
 
-    print("check passed: data valid and output/ up to date")
+    # Published destinations are not covered by the output/ diff: the generate
+    # path never touches them. Without this probe, destination drift would be
+    # gated by nothing at all.
+    stale = _stale_published_destinations()
+    if stale:
+        for entry in stale:
+            print(f"error: published destination is stale — {entry}", file=sys.stderr)
+        print(
+            "error: run `profile publish --execute` and commit the result",
+            file=sys.stderr,
+        )
+        return 1
+
+    print("check passed: data valid, output/ up to date, destinations current")
     return 0
 
 
