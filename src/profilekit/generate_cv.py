@@ -158,7 +158,14 @@ def render_cv_markdown(
     return "\n".join(lines)
 
 
-def main():
+def main(output_dir: Path | None = None) -> None:
+    """Compose the RenderCV YAML and the readable CV, and write both.
+
+    ``output_dir`` defaults to the module-level ``OUTPUT_DIR``. Callers pass it
+    explicitly so the write destination stays caller-owned: a generator writes
+    only where it was told, which is what keeps it a generator and not a
+    publisher.
+    """
     about = load_json("about.json", DATA_DIR)
     experience = load_json("experience.json", DATA_DIR)
     education = load_json("education.json", DATA_DIR)
@@ -239,10 +246,10 @@ def main():
     )
 
     yaml_content = "\n".join(yaml_lines) + "\n"
-    write_output(yaml_content, OUTPUT_DIR, "cv.yml")
+    write_output(yaml_content, output_dir or OUTPUT_DIR, "cv.yml")
 
     md_content = render_cv_markdown(about, experience, education, projects, skills, social)
-    write_output(md_content, OUTPUT_DIR, "cv.md")
+    write_output(md_content, output_dir or OUTPUT_DIR, "cv.md")
 
     print(f"Generated cv.yml and cv.md in {OUTPUT_DIR}")
 

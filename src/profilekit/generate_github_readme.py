@@ -183,8 +183,14 @@ def render_footer(about: dict) -> str:
     return "\n".join(lines)
 
 
-def main() -> None:
-    """Compose the GitHub profile README and write it to output/github-readme.md."""
+def main(output_dir: Path | None = None) -> None:
+    """Compose the GitHub profile README and write it to github-readme.md.
+
+    ``output_dir`` defaults to the module-level ``OUTPUT_DIR``. Callers pass it
+    explicitly so the write destination stays caller-owned: a generator writes
+    only where it was told, which is what keeps it a generator and not a
+    publisher.
+    """
     about = load_json("about.json", DATA_DIR)
     skills = load_json("skills.json", DATA_DIR)
     experience = load_json("experience.json", DATA_DIR)
@@ -201,7 +207,7 @@ def main() -> None:
     ]
 
     output = "\n".join(s for s in sections if s)
-    output_path = write_output(output, OUTPUT_DIR, "github-readme.md")
+    output_path = write_output(output, output_dir or OUTPUT_DIR, "github-readme.md")
     print(f"Generated github-readme.md at {output_path}")
 
 

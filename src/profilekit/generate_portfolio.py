@@ -79,13 +79,20 @@ def render_portfolio(about: dict, projects: list) -> str:
     return "\n".join(lines)
 
 
-def main():
+def main(output_dir: Path | None = None) -> None:
+    """Compose the portfolio highlights and write them to portfolio.md.
+
+    ``output_dir`` defaults to the module-level ``OUTPUT_DIR``. Callers pass it
+    explicitly so the write destination stays caller-owned: a generator writes
+    only where it was told, which is what keeps it a generator and not a
+    publisher.
+    """
     about = load_json("about.json", DATA_DIR)
     projects = load_json("projects.json", DATA_DIR)
 
     selected = compute_portfolio_projects(projects, about.get("portfolioHighlights"))
     output = render_portfolio(about, selected)
-    output_path = write_output(output, OUTPUT_DIR, "portfolio.md")
+    output_path = write_output(output, output_dir or OUTPUT_DIR, "portfolio.md")
     print(f"Generated portfolio.md at {output_path}")
 
 

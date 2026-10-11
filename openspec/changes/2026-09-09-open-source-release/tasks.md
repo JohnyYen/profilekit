@@ -81,8 +81,8 @@ no task — no git-push publisher or PR automation is introduced.
 
 ## Phase 3 (R2): Generator/Publisher Boundary
 
-- [ ] 3.1 RED: `test_all_generators_write_only_output_dir` — hash a sandboxed tmp tree before/after `generate all`; fails today (portfolio data writes outside it).
-- [ ] 3.2 GREEN: parameterize every true generator's write path through an explicit `output_dir` argument.
+- [x] 3.1 RED: `test_all_generators_write_only_output_dir` — hash a sandboxed tmp tree before/after `generate all`; fails today (portfolio data writes outside it).
+- [x] 3.2 GREEN: parameterize every true generator's write path through an explicit `output_dir` argument.
 - [ ] 3.3 RED (threat matrix row 1 — documentation-like paths): `test_destination_path_safety` — `../../etc`, `/tmp/x`, and a symlinked dir each rejected before any write.
 - [ ] 3.4 GREEN: create `publishers/filesystem.py` with a path-safety guard (resolve under project root, reject absolute/`..`/symlink escapes), `plan()`/`publish()` writing the four portfolio JSON files; delete `generators/generate_portfolio_data.py`.
 - [ ] 3.5 RED: `test_check_detects_app_data_drift` — mutate `data/about.json` in a fixture; `profile check` exits non-zero citing drift (fails today — `check` never runs the publisher).

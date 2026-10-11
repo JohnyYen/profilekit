@@ -114,7 +114,14 @@ def render_linkedin_skills(skills: dict) -> str:
     return "\n".join(lines)
 
 
-def main():
+def main(output_dir: Path | None = None) -> None:
+    """Compose the LinkedIn copy and write it to linkedin.md.
+
+    ``output_dir`` defaults to the module-level ``OUTPUT_DIR``. Callers pass it
+    explicitly so the write destination stays caller-owned: a generator writes
+    only where it was told, which is what keeps it a generator and not a
+    publisher.
+    """
     about = load_json("about.json", DATA_DIR)
     experience = load_json("experience.json", DATA_DIR)
     education = load_json("education.json", DATA_DIR)
@@ -136,7 +143,7 @@ def main():
         ]
     )
 
-    output_path = write_output(output, OUTPUT_DIR, "linkedin.md")
+    output_path = write_output(output, output_dir or OUTPUT_DIR, "linkedin.md")
     print(f"Generated linkedin.md at {output_path}")
 
 
