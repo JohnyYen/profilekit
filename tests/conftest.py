@@ -91,3 +91,20 @@ def _repository_is_not_modified_by_the_suite():
             "the test suite modified tracked files; tests must write only to "
             "tmp_path:\n  " + "\n  ".join(added)
         )
+
+
+@pytest.fixture(autouse=True)
+def _suite_runs_offline(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Skip network reachability probes by default, for every test.
+
+    `profile validate` probes skillicons.dev and every project URL. Those
+    probes are a feature, but a test suite that depends on third-party uptime
+    is a flake generator: a 403 from someone else's CDN should never turn a
+    local commit red.
+
+    Tests that specifically exercise the probes mock `urlopen` and override
+    these variables themselves, which works because a test body runs after
+    its fixtures.
+    """
+    monkeypatch.setenv("SKIP_ICON_CHECK", "1")
+    monkeypatch.setenv("SKIP_LINK_CHECK", "1")

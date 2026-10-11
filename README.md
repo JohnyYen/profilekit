@@ -1,101 +1,143 @@
-# Profile Data — Single Source of Truth (Monorepo)
+# profilekit
 
-Canonical structured data for Johny A. Pedraza Romero's public profiles, plus the
-Python pipeline that turns it into every published surface. Edit the data once in
-`data/*.json`; the generators produce the GitHub profile README, LinkedIn copy,
-CV, and feed the in-repo portfolio app.
+Keep your professional profile in one place, generate every published surface
+from it.
 
-## Repository layout
+You write your profile once as structured JSON. `profilekit` turns it into a
+GitHub profile README, LinkedIn copy, a CV, and JSON for whatever frontend you
+use — then optionally publishes each one to where it belongs.
 
-| Path | What it is |
-|---|---|
-| `data/` | **Canonical profile data** (JSON) — the single source of truth |
-| `schemas/` | JSON Schemas validating each `data/*.json` |
-| `generators/` | Python generation pipeline (data → artifacts) |
-| `output/` | Generated artifacts, committed: `github-readme.md`, `linkedin.md`, `portfolio.md`, `cv.md`, `cv.yml` |
-| `apps/portfolio/` | In-repo Next.js "terminal" portfolio (consumes canonical data) |
-| `cv/` | In-repo RenderCV project |
-| `tests/` | pytest suite (golden snapshots + unit tests) |
-| `openspec/` | Spec-Driven Development artifacts (specs + archived changes) |
-| `.github/workflows/` | CI (validation, tests, quality gates) |
+The problem it solves is drift. A profile lives in five places that disagree:
+the README says one thing, LinkedIn another, the CV is six months stale, and
+the portfolio was last touched when you built it. Editing five surfaces by
+hand is how they get out of sync, and nobody notices until a recruiter reads
+the wrong one.
 
-## Data flow
-
-```
-data/*.json ──▶ generators/ ──▶ output/*.{md,yml}              ──▶ GitHub profile / LinkedIn / CV
-                          └────▶ apps/portfolio/app/data/*.json ──▶ terminal portfolio app
-```
-
-`data/` is the only hand-authored source. Everything under `output/` and
-`apps/portfolio/app/data/` is **generated** and committed as a reviewable artifact.
-
-## Data files
-
-- `data/about.json` — name, headline, tagline, bio, location, contact, languages, focus, and per-platform variants
-- `data/social.json` — github, linkedin, email, cvUrl
-- `data/experience.json` — work history
-- `data/education.json` — academic background
-- `data/projects.json` — canonical project list
-- `data/skills.json` — categorized skills (with icon slugs)
-- `data/publications.json` — publications (placeholder)
-- `data/interests.json` — personal interests (placeholder)
-
-## CLI
-
-A single entry point wraps all generators. Run it as a module, or as the
-`profile` console script after `pip install -e .` (or `uv sync --extra dev`):
+## Quick start
 
 ```sh
-python -m generators.cli <command>     # no install needed
-profile <command>                      # after install
+pip install profilekit
+
+mkdir my-profile && cd my-profile
+profile init          # scaffolds profile.toml and example data
+profile validate      # checks your data against the schemas
+profile generate      # writes output/
 ```
 
-| Command | Does |
+`profile init` seeds a complete example profile so you can see the shape
+before you write your own. Edit `data/*.json`, run `profile generate` again,
+and every artifact updates together.
+
+## Commands
+
+| Command | What it does |
 |---|---|
-| `generate [target]` | Generate one target or `all` (default). Targets: `github-readme`, `linkedin`, `portfolio`, `cv` |
-| `validate` | Validate `data/*.json` against `schemas/` |
-| `check` | Validate, regenerate, and fail if committed `output/` is stale (CI-parity gate) |
-| `list` | List available generation targets |
+| `profile init [dir]` | Scaffold a new project with example data |
+| `profile generate [target]` | Generate one target or all of them |
+| `profile list` | List the registered generation targets |
+| `profile validate` | Validate your data against the JSON Schemas |
+| `profile check` | Validate, regenerate, and verify nothing is stale |
+| `profile publish [dest] [--execute]` | Publish to configured destinations |
 
-`generate all` also syncs canonical data into `apps/portfolio/app/data/` via
-`generate_portfolio_data.py`. Legacy invocations (`python -m generators.generate_all`,
-`python -m generators.validate`, individual `generate_*` modules) still work.
+Every command takes `--project DIR` to act on a project other than the one
+containing the working directory, or reads `PROFILEKIT_PROJECT`.
 
-## Editing
+## Generating
 
-1. Edit the relevant `data/*.json` file(s).
-2. `profile validate` — check against schemas.
-3. `profile generate` — regenerate `output/` and the portfolio's app data.
-4. Commit `data/` **and** the regenerated artifacts, then push.
+`data/*.json` is the only thing you hand-write. Everything under `output/` is
+produced from it:
 
-The `output/` freshness gate in CI fails the build if committed artifacts don't
-match a fresh generation, so always commit the regenerated output.
+| Artifact | Use |
+|---|---|
+| `github-readme.md` | Your GitHub profile README |
+| `linkedin.md` | Copy to paste into LinkedIn |
+| `cv.yml` | A [RenderCV](https://github.com/rendercv/rendercv) document |
+| `cv.md` | The same CV, readable |
+| `manifest.json` | Index of every artifact, with digests and version |
+
+## Publishing
+
+Generating and publishing are separate on purpose. A generator is pure — data
+in, artifacts into one directory, no network, no credentials. A publisher
+carries those artifacts somewhere the project does not own.
+
+Declare destinations in `profile.toml`:
+
+```toml
+[publishers.site-data]
+kind = "filesystem"
+destination = "site/src/data"
+
+[publishers.linkedin]
+kind = "manual"
+artifacts = ["linkedin.md"]
+```
+
+```sh
+profile publish              # dry run: shows what would happen
+profile publish --execute    # actually publish
+```
+
+**Dry run is the default.** Publishing is outward-facing and not reliably
+reversible, so writing is something you opt into.
+
+Two destination kinds ship with the package and need no credentials:
+
+- **`filesystem`** writes into a directory inside your project — point it at
+  whatever frontend reads the JSON.
+- **`manual`** is for platforms with no write API. LinkedIn is the example:
+  it offers no programmatic access to profile fields without partner-level
+  approval. A `manual` destination emits its artifact and tells you what is
+  left to do. It never reports success for something it did not do, because a
+  tool that claims a publish it did not perform is how a profile goes stale
+  without anyone noticing.
+
+Credentialed destinations install separately as plugins. The core declares no
+network dependency at all.
+
+## Consuming the output
+
+If you are writing a frontend against the generated data, read
+[`docs/data-contract.md`](docs/data-contract.md). It specifies every shape, the
+`schemaVersion` policy, and which changes are safe versus breaking — so you do
+not have to read any Python to integrate.
+
+## Extending it
+
+Generators and publishers are discovered through entry points, so adding one
+is a registration rather than a fork:
+
+```toml
+[project.entry-points."profilekit.generators"]
+my-target = "my_package.my_module:main"
+```
+
+See [`docs/authoring-generators.md`](docs/authoring-generators.md) and
+[`docs/authoring-publishers.md`](docs/authoring-publishers.md).
 
 ## Development
 
 ```sh
-uv sync --extra dev          # install runtime + dev deps into .venv
-uv run pytest -q             # tests + coverage (fails under 80%)
-uv run ruff check . && uv run ruff format --check .
-uv run mypy generators/
-uv run pre-commit install    # optional: run the gates on every commit
+git clone https://github.com/JohnyYen/profile-data
+cd profile-data
+uv sync --extra dev      # or: pip install -e '.[dev]'
+
+pytest -q                # tests, with an 80% coverage gate
+ruff check . && ruff format --check .
+mypy
+pre-commit install       # optional; no uv required
 ```
 
-CI (`.github/workflows/validate.yml`) runs ruff, mypy, pytest+coverage, data
-validation, and the `output/` freshness gate. Icon/link reachability checks are
-skippable via `SKIP_ICON_CHECK=1` / `SKIP_LINK_CHECK=1`.
+CI runs lint, types, tests, data validation, and an `output/` freshness gate.
 
-## Published destinations
+## This repository is also a project
 
-| Surface | Destination | How |
-|---|---|---|
-| GitHub profile | `JohnyYen/JohnyYen` | Deploy `output/github-readme.md` (icons via skillicons.dev) |
-| Portfolio | `apps/portfolio/` (in-repo) | Reads `apps/portfolio/app/data/` synced from `data/`; live GitHub API is primary for projects |
-| CV | `cv/` + `JohnyYen/my-cv` | `output/cv.yml` (RenderCV) → PDF release; `output/cv.md` is the readable version |
-| LinkedIn | Manual | Paste `output/linkedin.md` |
+`data/` holds the maintainer's real profile, and `apps/portfolio/` is his own
+portfolio — kept here as a worked example of consuming the output contract,
+deliberately not part of the distributed package. The package does not install
+either. Treat them as the reference implementation they are: useful to read,
+not something you inherit.
 
-## Planning workflow
+## License
 
-Non-trivial changes are planned with Spec-Driven Development under `openspec/`
-(proposal → spec → design → tasks → apply → verify → archive). Completed changes
-are archived in `openspec/changes/archive/`.
+MIT. See [LICENSE](LICENSE).

@@ -42,13 +42,6 @@ def bare_project(tmp_path: Path) -> Path:
     return tmp_path
 
 
-@pytest.fixture(autouse=True)
-def _offline(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Keep the gate off the network: reachability checks are not under test."""
-    monkeypatch.setenv("SKIP_ICON_CHECK", "1")
-    monkeypatch.setenv("SKIP_LINK_CHECK", "1")
-
-
 def test_check_completes_without_git(bare_project: Path, capsys: pytest.CaptureFixture) -> None:
     """The gate must not fail merely because there is no repository."""
     rc = cli.main(["--project", str(bare_project), "check"])

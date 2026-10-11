@@ -173,12 +173,12 @@ no task — no git-push publisher or PR automation is introduced.
 
 ## Phase 11 (R10): Docs, DX, Release
 
-- [ ] 11.1 RED: `test_hooks_run_without_uv` — simulate a `pip`-only environment; hooks run successfully; fails today (`uv run` hooks).
-- [ ] 11.2 GREEN: rewrite `.pre-commit-config.yaml` to use each tool's self-contained hook environment; add `pre-commit` as a dev dependency; document `pre-commit install`.
-- [ ] 11.3 RED: `test_readme_frames_tool_for_adopters` — root `README.md` covers install/`profile init`/`generate`/`publish` before any maintainer-personal-data mention.
-- [ ] 11.4 GREEN: reframe root `README.md`.
-- [ ] 11.5 RED: `test_docs_dir_covers_contract_and_authoring`.
-- [ ] 11.6 GREEN: write `docs/data-contract.md` (expand 7.6's stub), `docs/authoring-generators.md`, `docs/authoring-publishers.md`.
-- [ ] 11.7 RED: `test_tag_triggers_release` and `test_push_to_main_does_not_release`.
-- [ ] 11.8 GREEN: add `.github/workflows/release.yml`, tag-triggered only, TestPyPI dry-run before the real publish step. `profilekit` is confirmed available on PyPI (404 verified) — do not re-check.
-- [ ] 11.9 Final verification: `uv run pytest -q` green, 80% coverage held; `pip install .` in a clean venv + `profile init` + `profile generate all` succeeds outside any checkout.
+- [x] 11.1 RED: `test_hooks_run_without_uv` — simulate a `pip`-only environment; hooks run successfully; fails today (`uv run` hooks).
+- [x] 11.2 GREEN: rewrite `.pre-commit-config.yaml` to use each tool's self-contained hook environment; add `pre-commit` as a dev dependency; document `pre-commit install`.
+- [x] 11.3 RED: `test_readme_frames_tool_for_adopters` — root `README.md` covers install/`profile init`/`generate`/`publish` before any maintainer-personal-data mention.
+- [x] 11.4 GREEN: reframe root `README.md`.
+- [x] 11.5 RED: `test_docs_dir_covers_contract_and_authoring`.
+- [x] 11.6 GREEN: write `docs/data-contract.md` (expand 7.6's stub), `docs/authoring-generators.md`, `docs/authoring-publishers.md`.
+- [x] 11.7 RED: `test_tag_triggers_release` and `test_push_to_main_does_not_release`.
+- [x] 11.8 GREEN: add `.github/workflows/release.yml`, tag-triggered only, TestPyPI dry-run before the real publish step. `profilekit` is confirmed available on PyPI (404 verified) — do not re-check.
+- [x] 11.9 Final verification: `uv run pytest -q` green, 80% coverage held; `pip install .` in a clean venv + `profile init` + `profile generate all` succeeds outside any checkout.

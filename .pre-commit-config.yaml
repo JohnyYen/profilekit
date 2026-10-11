@@ -1,7 +1,29 @@
-# Pre-commit hooks for profile-data.
-# Install once with:  uv run pre-commit install
-# Run on all files:   uv run pre-commit run --all-files
+# Pre-commit hooks for profilekit.
+#
+#   pre-commit install          # once, after installing dev dependencies
+#   pre-commit run --all-files  # check everything
+#
+# Every hook runs in an environment pre-commit builds itself, so none of them
+# requires `uv`. The previous configuration shelled out to `uv run`, which
+# meant a contributor who installed the project with pip — a perfectly normal
+# way to work on a Python package — got a hook failure on their first commit
+# and no obvious cause.
 repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-toml
+      - id: check-yaml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-added-large-files
+      - id: check-executables-have-shebangs
+      # Catches the reverse of the hygiene problem this project already had:
+      # a file with a shebang that is not marked executable.
+      - id: check-shebang-scripts-are-executable
+
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.16.6
     hooks:
@@ -9,26 +31,41 @@ repos:
         args: [--fix]
       - id: ruff-format
 
-  - repo: local
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.18.2
     hooks:
       - id: mypy
-        name: mypy (profilekit)
-        entry: uv run mypy
-        language: system
-        pass_filenames: false
-        always_run: true
+        # pre-commit builds an isolated environment for mypy, so the project's
+        # own runtime dependencies have to be declared here for type checking
+        # to see them.
+        additional_dependencies: ["jsonschema>=4", "types-jsonschema"]
+        args: ["--config-file", "pyproject.toml"]
+        files: ^src/
 
-      - id: validate-data
-        name: validate profile data
-        # Network checks skipped locally for fast, offline-safe commits.
-        entry: env SKIP_ICON_CHECK=1 SKIP_LINK_CHECK=1 uv run python src/profilekit/validate.py
-        language: system
-        pass_filenames: false
-        always_run: true
-
+  - repo: local
+    hooks:
+      # The test suite and the data validator need the project itself
+      # installed, so these two run in whatever environment the contributor
+      # already has. `python -m` rather than a console script: the module path
+      # works from a plain checkout as well as an install.
       - id: pytest
         name: pytest
-        entry: env SKIP_ICON_CHECK=1 SKIP_LINK_CHECK=1 uv run pytest -q
+        entry: python -m pytest -q
         language: system
         pass_filenames: false
         always_run: true
+        # Reachability probes are skipped so a commit works offline and does
+        # not depend on third-party uptime.
+        env:
+          SKIP_ICON_CHECK: "1"
+          SKIP_LINK_CHECK: "1"
+
+      - id: profile-check
+        name: profile check (data, output freshness, destinations)
+        entry: python -m profilekit.cli check
+        language: system
+        pass_filenames: false
+        always_run: true
+        env:
+          SKIP_ICON_CHECK: "1"
+          SKIP_LINK_CHECK: "1"

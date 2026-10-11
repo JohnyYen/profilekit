@@ -81,7 +81,9 @@ def test_no_stray_executable_bits() -> None:
         path
         for mode, path in _tracked_modes()
         if mode == "100755"
-        and (Path(path).suffix in NON_EXECUTABLE_SUFFIXES or Path(path).name in NON_EXECUTABLE_NAMES)
+        and (
+            Path(path).suffix in NON_EXECUTABLE_SUFFIXES or Path(path).name in NON_EXECUTABLE_NAMES
+        )
     ]
 
     assert not offenders, (
