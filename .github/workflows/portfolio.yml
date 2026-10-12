@@ -69,6 +69,12 @@ jobs:
           if [ -n "$drift" ]; then
             echo "committed app data differs from a fresh publish:" >&2
             echo "$drift" >&2
+            echo >&2
+            # Porcelain names the files but not what changed in them, which is
+            # the question a reader actually has. Print the hunks too; a new
+            # untracked file shows above but has no diff, which is why
+            # porcelain remains the gate.
+            git --no-pager diff -- apps/portfolio/app/data/ >&2 || true
             exit 1
           fi
 

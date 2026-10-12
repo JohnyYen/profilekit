@@ -28,11 +28,6 @@ import pytest
 
 from tests.e2e.conftest import REPO_ROOT
 
-# Reachability probes talk to skillicons.dev and every project URL. They are a
-# real feature but not what this file tests, and depending on third-party
-# uptime would turn a packaging test into a flake.
-OFFLINE = {"SKIP_ICON_CHECK": "1", "SKIP_LINK_CHECK": "1"}
-
 EXPECTED_ARTIFACTS = [
     "cv.md",
     "cv.yml",
@@ -75,19 +70,28 @@ def test_the_packaged_schemas_resolve_from_the_install(venv_python, empty_projec
     wheel — passing for the exact defect it exists to catch. Verified by
     mutation.
     """
-    expected = sorted(p.name for p in (REPO_ROOT / "src/profilekit/schemas").glob("*.schema.json"))
+    source_dir = REPO_ROOT / "src" / "profilekit" / "schemas"
+    expected = sorted(p.name for p in source_dir.glob("*.schema.json"))
+
+    # Guard the comparison before making it. An equality between two globs
+    # passes when both are empty, so moving or renaming the schema directory
+    # would make this test green against a wheel shipping nothing. The first
+    # version of this test used a threshold of 10, which was arbitrary; the
+    # second used a bare equality, which was vacuous. This asserts the
+    # reference set is real first.
+    assert expected, f"no schemas found in {source_dir}; the comparison would be vacuous"
 
     result = venv_python(
         "import importlib.resources as r;"
         "d = r.files('profilekit.schemas');"
-        "print(' '.join(sorted(p.name for p in d.iterdir() if p.name.endswith('.json'))))",
+        # Same predicate on both sides: comparing `*.schema.json` against every
+        # `.json` would blame a missing schema for an unrelated packaged file.
+        "print(' '.join(sorted(p.name for p in d.iterdir() if p.name.endswith('.schema.json'))))",
         cwd=empty_project,
     )
 
     assert result.returncode == 0, f"schemas unreachable from the install:\n{result.stderr}"
     shipped = result.stdout.split()
-    # Compared against the real set rather than a magic threshold, so dropping
-    # one schema fails instead of staying under an arbitrary bar.
     assert shipped == expected, f"wheel ships {shipped}, source has {expected}"
 
 
@@ -118,7 +122,7 @@ def test_entry_points_are_discovered_from_the_install(venv_python, empty_project
 
 def test_a_command_outside_a_project_exits_two(empty_project: Path, profile) -> None:
     """A tool that guesses writes generated files where nobody asked."""
-    result = profile("validate", cwd=empty_project, env_extra=OFFLINE)
+    result = profile("validate", cwd=empty_project)
 
     assert result.returncode == 2
     assert "profile init" in result.stderr, "the error must say how to fix it"
@@ -144,15 +148,16 @@ def test_nothing_resolves_to_the_installed_package_directory(
 
 def test_init_then_validate_then_generate(empty_project: Path, profile, run_profile) -> None:
     """The three commands the quick start names, in order, from nothing."""
-    init = run_profile("init", cwd=empty_project)
-    assert init.returncode == 0, f"init failed:\n{init.stderr}"
+    run_profile("init", cwd=empty_project)
     assert (empty_project / "profile.toml").is_file()
 
-    validate = profile("validate", cwd=empty_project, env_extra=OFFLINE)
+    # Unchecked so the failure message can name the scaffold as the culprit:
+    # a scaffold that fails its own validator teaches a new user the tool is
+    # broken before they have changed anything.
+    validate = profile("validate", cwd=empty_project)
     assert validate.returncode == 0, f"the scaffold failed its own validator:\n{validate.stdout}"
 
-    generate = run_profile("generate", cwd=empty_project)
-    assert generate.returncode == 0, f"generate failed:\n{generate.stderr}"
+    run_profile("generate", cwd=empty_project)
 
     produced = sorted(p.name for p in (empty_project / "output").glob("*"))
     assert produced == EXPECTED_ARTIFACTS
@@ -185,7 +190,7 @@ def test_check_passes_on_a_fresh_project(empty_project: Path, profile, run_profi
     run_profile("init", cwd=empty_project)
     run_profile("generate", cwd=empty_project)
 
-    result = profile("check", cwd=empty_project, env_extra=OFFLINE)
+    result = profile("check", cwd=empty_project)
     assert result.returncode == 0, f"check failed on a fresh project:\n{result.stdout}"
 
 
@@ -194,7 +199,7 @@ def test_check_degrades_without_git(empty_project: Path, profile, run_profile) -
     run_profile("init", cwd=empty_project)
     run_profile("generate", cwd=empty_project)
 
-    result = profile("check", cwd=empty_project, env_extra=OFFLINE)
+    result = profile("check", cwd=empty_project)
     combined = result.stdout + result.stderr
 
     assert result.returncode == 0
@@ -261,7 +266,7 @@ def project_with_destinations(empty_project: Path, profile, run_profile) -> Path
 
 def test_publish_is_a_dry_run_by_default(project_with_destinations: Path, profile) -> None:
     """Writing is opt-in because publishing is not reliably reversible."""
-    result = profile("publish", cwd=project_with_destinations, env_extra=OFFLINE)
+    result = profile("publish", cwd=project_with_destinations)
 
     assert result.returncode == 0
     assert "nothing was published" in result.stdout
@@ -309,7 +314,7 @@ def test_check_detects_a_drifted_destination(
     stale = project_with_destinations / "site" / "data" / "about.json"
     stale.write_text(json.dumps({"schemaVersion": 1, "username": "drifted"}) + "\n")
 
-    result = profile("check", cwd=project_with_destinations, env_extra=OFFLINE)
+    result = profile("check", cwd=project_with_destinations)
     assert result.returncode != 0
     assert "about.json" in result.stderr
 
@@ -324,7 +329,7 @@ def test_check_does_not_repair_a_drifted_destination(
     content = json.dumps({"schemaVersion": 1, "username": "drifted"}) + "\n"
     stale.write_text(content)
 
-    profile("check", cwd=project_with_destinations, env_extra=OFFLINE)
+    profile("check", cwd=project_with_destinations)
     assert stale.read_text() == content
 
 
@@ -445,7 +450,7 @@ def test_the_project_env_var_selects_the_project(
     result = profile(
         "generate",
         cwd=elsewhere,
-        env_extra={**OFFLINE, "PROFILEKIT_PROJECT": str(empty_project)},
+        env_extra={"PROFILEKIT_PROJECT": str(empty_project)},
     )
 
     assert result.returncode == 0, result.stderr

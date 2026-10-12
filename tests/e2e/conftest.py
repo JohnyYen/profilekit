@@ -23,11 +23,16 @@ still reaches a new wheel from the previous run's stage. The first version
 deleted those directories instead, which is both destructive on someone's
 checkout and still left them recreated afterwards.
 
-**Child processes get a controlled environment, never an inherited one.** With
-`PYTHONPATH` inherited, `import profilekit` resolves from the checkout and
-every test passes for the exact defect it exists to catch. Proven: with the
-schemas removed from the package declarations and `PYTHONPATH` pointing at
-`src/`, the packaging test passed.
+**The processes under test get a controlled environment.** `venv_python` and
+`profile` build their environment from scratch, with no `PYTHONPATH` and no
+`PROFILEKIT_PROJECT`. With `PYTHONPATH` inherited, `import profilekit`
+resolves from the checkout and every test passes for the exact defect it
+exists to catch — proven: with the schemas removed from the package
+declarations and `PYTHONPATH` pointing at `src/`, the packaging test passed.
+
+The build and the install deliberately *do* inherit, because they need the
+caller's index configuration, proxy settings and certificates to work at all.
+They are setup, not the subject: nothing is asserted about their environment.
 
 **Setup commands are checked.** `init` and `generate` are setup for most tests
 here, and discarding their exit codes makes assertions pass on an empty tree —
@@ -52,6 +57,10 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 #: building in place keeps the developer's checkout untouched and guarantees no
 #: staged output from an earlier run can leak into the wheel.
 SOURCES_TO_COPY = ("src", "pyproject.toml", "MANIFEST.in", "README.md", "LICENSE")
+
+#: Of those, the ones whose absence is a defect rather than a variation. The
+#: rest are referenced by metadata and merely nice to have present.
+REQUIRED_SOURCES = ("src", "pyproject.toml")
 
 #: Reachability probes talk to third-party hosts. They are a real feature but
 #: not what this suite tests, and depending on someone else's uptime would turn
@@ -88,7 +97,17 @@ def _run(
     except FileNotFoundError as exc:
         return subprocess.CompletedProcess(argv, 127, "", f"executable not found: {exc}")
     except subprocess.TimeoutExpired as exc:
-        return subprocess.CompletedProcess(argv, 124, "", f"timed out after {exc.timeout}s")
+        # Keep whatever the process managed to emit. A build that stalls on the
+        # network reports nothing useful otherwise, and "it timed out" does not
+        # say where.
+        partial_out = exc.stdout.decode() if isinstance(exc.stdout, bytes) else (exc.stdout or "")
+        partial_err = exc.stderr.decode() if isinstance(exc.stderr, bytes) else (exc.stderr or "")
+        return subprocess.CompletedProcess(
+            argv,
+            124,
+            partial_out,
+            f"timed out after {exc.timeout}s\n{partial_err}",
+        )
 
 
 def _child_env(
@@ -124,6 +143,11 @@ def source_tree(tmp_path_factory: pytest.TempPathFactory) -> Path:
     tree = tmp_path_factory.mktemp("sources")
     for name in SOURCES_TO_COPY:
         origin = REPO_ROOT / name
+        if name in REQUIRED_SOURCES:
+            assert origin.exists(), (
+                f"{name} is required to build but is missing from the checkout; "
+                "without this the build fails later with an opaque error"
+            )
         if not origin.exists():
             continue
         target = tree / name
@@ -262,12 +286,30 @@ def _checkout_is_not_modified_by_the_e2e_suite() -> Iterator[None]:
     them — while its own docstring claimed it left no artifacts behind.
     """
     watched = ("build", "src/profilekit.egg-info", "profilekit.egg-info", "dist")
-    before = {name: (REPO_ROOT / name).exists() for name in watched}
 
+    def _fingerprint() -> dict[str, tuple[int, float] | None]:
+        """Record whether each path exists and, if so, its newest mtime.
+
+        Existence alone is not enough: a developer who already has a `build/`
+        directory from an ordinary `uv build` would get no protection, which is
+        the common case rather than the rare one.
+        """
+        state: dict[str, tuple[int, float] | None] = {}
+        for name in watched:
+            path = REPO_ROOT / name
+            if not path.exists():
+                state[name] = None
+                continue
+            files = [f for f in path.rglob("*") if f.is_file()] if path.is_dir() else [path]
+            state[name] = (len(files), max((f.stat().st_mtime for f in files), default=0.0))
+        return state
+
+    before = _fingerprint()
     yield
+    after = _fingerprint()
 
-    appeared = [name for name in watched if (REPO_ROOT / name).exists() and not before[name]]
-    assert not appeared, (
-        f"the e2e suite created build artifacts in the checkout: {appeared}. "
+    touched = [name for name in watched if before[name] != after[name]]
+    assert not touched, (
+        f"the e2e suite created or rewrote build artifacts in the checkout: {touched}. "
         "Build from a copied source tree instead of in place."
     )
