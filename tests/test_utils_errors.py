@@ -117,3 +117,38 @@ def test_run_reraises_unexpected_exception():
 
     with pytest.raises(ValueError, match="unexpected bug"):
         run(bad_main)
+
+
+# ---------------------------------------------------------------------------
+# load_json, the loader every generator uses, reports parse errors the same way
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("loader", ["load_json", "load_json_strict"])
+def test_parse_error_names_the_file_line_and_column(tmp_path, loader):
+    """generator-robustness: the message identifies the file and the location."""
+    import profilekit.utils as utils
+
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    (data_dir / "about.json").write_text('{\n  "a": 1,\n  oops\n}', encoding="utf-8")
+
+    with pytest.raises(utils.DataError) as exc_info:
+        getattr(utils, loader)("about.json", data_dir)
+
+    assert exc_info.value.file == "about.json"
+    assert str(exc_info.value).startswith("about.json: JSON parse error at line 3 column 3: ")
+
+
+def test_load_json_reports_undecodable_bytes_as_a_data_error(tmp_path):
+    """A file that is not UTF-8 is a data fault too, not an unexplained crash."""
+    from profilekit.utils import DataError, load_json
+
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    (data_dir / "about.json").write_bytes(b'{"a": "\xff"}')
+
+    with pytest.raises(DataError) as exc_info:
+        load_json("about.json", data_dir)
+
+    assert str(exc_info.value).startswith("about.json: not valid UTF-8")

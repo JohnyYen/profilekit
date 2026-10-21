@@ -32,6 +32,24 @@ class DataError(Exception):
         super().__init__(full_message)
 
 
+def _parse(path: Path, filename: str) -> Any:
+    """Parse the JSON at *path*, raising DataError that names *filename*.
+
+    A parse error carries its line and column, so the user can go straight to
+    the fault; bytes that are not UTF-8 are a data fault of the same kind.
+    """
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except json.JSONDecodeError as exc:
+        raise DataError(
+            filename,
+            message=f"JSON parse error at line {exc.lineno} column {exc.colno}: {exc.msg}",
+        ) from exc
+    except UnicodeDecodeError as exc:
+        raise DataError(filename, message=f"not valid UTF-8 ({exc.reason})") from exc
+
+
 def load_json_strict(
     filename: str,
     data_dir: Path,
@@ -50,13 +68,7 @@ def load_json_strict(
     if not path.exists():
         raise DataError(filename, message="data file not found")
 
-    try:
-        with open(path, encoding="utf-8") as f:
-            data = json.load(f)
-    except json.JSONDecodeError as exc:
-        raise DataError(
-            filename, message=f"JSON parse error at line {exc.lineno}: {exc.msg}"
-        ) from exc
+    data = _parse(path, filename)
 
     if required_fields and isinstance(data, dict):
         for field in required_fields:
@@ -100,13 +112,17 @@ def what_i_build(about: dict, platform: str) -> list[str]:
 
 
 def load_json(filename: str, data_dir: Path) -> Any:
-    """Load a JSON file from data_dir; exits with code 1 if the file is missing."""
+    """Load a JSON file from data_dir; exits with code 1 if the file is missing.
+
+    Raises:
+        DataError: if the file is not valid JSON, naming the file and the
+            line and column of the fault.
+    """
     path = data_dir / filename
     if not path.exists():
         print(f"ERROR: Missing data file: {filename}", file=sys.stderr)
         sys.exit(1)
-    with open(path, encoding="utf-8") as f:
-        return json.load(f)
+    return _parse(path, filename)
 
 
 def write_output(content: str, output_dir: Path, filename: str) -> Path:

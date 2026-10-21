@@ -168,24 +168,18 @@ def test_generate_on_malformed_json_fails_without_a_traceback(
     assert "line 1" in result.stderr, "the message must locate the parse error"
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "defect: generators read data with raw json.load, so the parse error "
-        "is reported as `generator 'cv' failed: Expecting ...` without naming "
-        "the file, which generator-robustness requires"
-    ),
-)
 def test_generate_on_malformed_json_names_the_file(
     empty_project: Path, profile, run_profile
 ) -> None:
+    """generator-robustness: the message identifies the file and the location."""
     run_profile("init", cwd=empty_project)
     (empty_project / "data" / "about.json").write_text("{not json", encoding="utf-8")
 
     result = profile("generate", cwd=empty_project)
 
     assert result.returncode == 1
-    assert "about.json" in result.stderr
+    assert "about.json: JSON parse error at line 1 column 2" in result.stderr
+    assert "Traceback" not in result.stdout + result.stderr
 
 
 def test_validate_on_malformed_skills_json_fails_without_a_traceback(
