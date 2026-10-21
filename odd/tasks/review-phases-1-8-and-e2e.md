@@ -1,0 +1,91 @@
+# Review phases 1-8 and add phase 12 e2e tests
+
+Locator: `odd/tasks/review-phases-1-8-and-e2e.md` · Engram mirror: `odd/review-phases-1-8-and-e2e/tasks`
+
+## Objective
+Close the review-coverage gap of the archived `open-source-release` change (phases 1-8 were never
+reviewed as slices, except a partial phase 4) and extend the end-to-end suite (phase 12).
+
+## Why
+Every review round that ran on this branch found real defects, including some the test suite missed.
+Unreviewed phases cannot be read as equivalent to reviewed ones.
+
+## Constraints
+- The full branch exceeds the native lens context budget; review runs per phase slice only.
+- `--base-ref` reviews base..HEAD, so each historical slice is reviewed in its own detached
+  worktree at the phase's last commit: `../profile-data-worktrees/review-pN`.
+- Findings are checked against the current `feat/open-source-release` HEAD before any fix: later fix
+  commits may already have closed them. Fixes land as forward commits on the feature branch.
+- Consent is per candidate; each medium/high slice relays its own consent envelope.
+- Push, PR and PyPI publishing stay with the owner.
+
+## Slices (base -> head, assessed risk, authored lines)
+| Phase | Base | Head | Risk | Lines |
+|-------|------|------|------|-------|
+| 1 (R0) | 230e7d8 | 15418f7 | high | 3435 |
+| 2 (R1) | 15418f7 | da3799a | high | 4326 |
+| 3 (R2) | da3799a | 09f0bad | high | 1360 |
+| 4 (R6) | 09f0bad | 914f3e5 | high | 2307 |
+| 5 (R8) | 914f3e5 | d091141 | medium (slice budget) | 1106 |
+| 6 (R7) | d091141 | 03cc786 | high | 689 |
+| 7 (R3) | 03cc786 | 4c465e9 | high | 806 |
+| 8 (R4) | 4c465e9 | fd66462 | high | 1073 |
+
+## Tasks
+Route: review tasks are inline (native lifecycle commands); fix and e2e writes route per the
+writer trigger (2+ non-trivial files -> delegated writer).
+
+- [x] T1 Review phase 1 slice — STOPPED `lens_context_budget_exceeded` (74 files, single commit
+      `e702db5` that is ~97% deletions of untracked noise; cannot be split without rewriting history).
+      Consent granted, no authority created. Not natively reviewable.
+- [x] T2 Review phase 2 slice — granted, 4 lenses, approved, burned (`review-83d5a3f612916c3f`); 10 warnings
+- [x] T3 Review phase 3 slice — granted, 4 lenses, approved, burned (`review-1f2bd81c898d28bc`); 9 warnings
+- [x] T4 Review phase 4 slice — granted, 4 lenses, 2 CRITICAL (init clobbers existing data/*.json);
+      one bounded correction (27 lines) validated, approved, burned (`review-b4eebb497babb70f`).
+      Fix ported to HEAD test-first (RED observed): commit `2db9195`.
+- [x] T5 Review phase 5 slice — granted, 1 lens (medium), approved, burned (`review-1a7b63a0b615d07e`); 3 warnings
+- [x] T6 Review phase 6 slice — granted, 4 lenses, approved, burned (`review-95387c58f5f5fa29`); 11 warnings
+- [x] T7 Review phase 7 slice — granted, 4 lenses, approved, burned (`review-f7c41bfff487cdc8`); 13 warnings
+- [x] T8 Review phase 8 slice — granted, 4 lenses, approved, burned (`review-9ffee9f2d4ffff5d`); 13 warnings
+- [ ] T9 Fix every confirmed defect, in order, one commit each (owner decision 2026-10-20: all of them).
+      Triage: 33 still present, 14 fixed, 5 obsolete, 3 disputed; plus 3 e2e strict xfails.
+  - [ ] D1 filesystem publisher accepts the project root, data/ or output/ as destination (overwrites canonical data)
+  - [ ] D2 per-file symlink escape in the filesystem publisher (`write_text` follows symlinks)
+  - [ ] D3 empty generator registry: `generate all` writes only the manifest and exits 0; `list` exits 0
+  - [ ] D4 publish ledger write: results table lost on write failure; write not atomic
+  - [ ] D5 publish ledger read: UnicodeDecodeError/OSError escape before the destination loop
+  - [ ] D6 validate crashes with a traceback on malformed skills/projects/social JSON (e2e xfail)
+  - [ ] D7 generate does not name the malformed data file (e2e xfail)
+  - [ ] D8 contract: manifest carries no version for the published projects.json (e2e xfail); resolve code vs spec
+  - [ ] D9 duplicate entry-point names silently shadow each other
+  - [ ] D10 eager plugin loading: one broken entry point breaks every generate/list
+  - [ ] D11 manifest indexes stray files (dotfiles, unknown names); unreachable digest-mismatch branch in check
+  - [ ] D12 setuptools>=61 floor with PEP 639 `license = "MIT"` (needs >=77)
+  - [ ] D13 malformed credential declaration treated as missing credential (skipped, exit 0)
+  - [ ] D14 `skipped` overloaded for dry-run and missing credential; linkedin adapter labelled capability push
+  - [ ] D15 unit-test gaps: pipeline return codes and .json coverage, per-generator file sets, manual in env guard,
+        stderr asserts in contract-version tests, generators-namespace test env dependence, conftest guard ignores untracked
+  - [ ] D16 docs/wording: SECURITY.md archive path and PyPI line, publish_destination docstring, idempotency claim,
+        projects.json version claim, "authoritative index", cmd_list docstring, `_manifest_is_valid` name,
+        dead `portfolio-data` publisher entry point
+- [x] T10 Phase 12: map e2e gaps against `tests/e2e/test_adopter_journey.py` — delegated explorer; 13 gaps
+- [x] T11 Phase 12: implement the new e2e tests — delegated writer; `bded622`: 46 passed, 3 strict xfail
+      (validate traceback on malformed skills/projects/social JSON; generate omits the malformed file name;
+      manifest has no projects.json version entry). RED not applicable: behavior pre-existed.
+      Parent spot check: `pytest tests/e2e --no-cov` 46 passed, 3 xfailed. RDD assess 4d80fa3..HEAD: high, due.
+- [ ] T12 Close: full suite, ruff, mypy, pre-commit; remove review worktrees
+
+## Acceptance criteria
+- Every slice 1-8 reaches a terminal review outcome (approved, declined, or a recorded stop reason).
+- Every candidate-caused severe finding is either fixed at HEAD with a test, or recorded as already
+  fixed with the commit that fixed it.
+- New e2e tests pass from an installed wheel, outside any checkout.
+
+## Progress
+- Worktrees created for all eight slices; all eight assessed `review_due: true`.
+- T1-T8 terminal. 55 non-blocking warnings (+34 suggestions) collected; triage against HEAD delegated
+  to a read-only explorer (T9). Phase 12 gap mapping delegated in parallel (T10).
+- `2db9195` fix(init): full suite 385 passed, coverage 93.43%, pre-commit green.
+
+## Next step
+T9 triage result -> fix STILL_PRESENT findings worth fixing; T10 gap map -> T11.
