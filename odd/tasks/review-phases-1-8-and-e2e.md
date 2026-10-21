@@ -54,9 +54,11 @@ writer trigger (2+ non-trivial files -> delegated writer).
   - [x] D3 (`f3f0790`, RED 4 failing -> GREEN) empty generator registry: `generate all` writes only the manifest and exits 0; `list` exits 0
   - [x] D4 (`c4f8ba2`, RED traceback -> GREEN) publish ledger write: results table lost on write failure; write not atomic
   - [x] D5 (`03e0202`, RED UnicodeDecodeError/PermissionError -> GREEN) publish ledger read: UnicodeDecodeError/OSError escape before the destination loop
-  - [ ] D6 validate crashes with a traceback on malformed skills/projects/social JSON (e2e xfail)
-  - [ ] D7 generate does not name the malformed data file (e2e xfail)
-  - [ ] D8 contract: manifest carries no version for the published projects.json (e2e xfail); resolve code vs spec
+  - [x] D6 (`e339b3e`, RED JSONDecodeError traceback -> GREEN, xfail removed) validate crashes with a traceback on malformed skills/projects/social JSON (e2e xfail)
+  - [x] D7 (`5809780`, RED unnamed file -> GREEN, xfail removed) generate does not name the malformed data file (e2e xfail)
+  - [ ] D8 contract: manifest carries no version for the published projects.json (e2e xfail).
+        Owner decision 2026-10-20: the filesystem publisher writes a manifest.json into the destination
+        (schemaVersion + per-file version and digest), with its own schema, validation and docs.
   - [ ] D9 duplicate entry-point names silently shadow each other
   - [ ] D10 eager plugin loading: one broken entry point breaks every generate/list
   - [ ] D11 manifest indexes stray files (dotfiles, unknown names); unreachable digest-mismatch branch in check
@@ -89,7 +91,8 @@ writer trigger (2+ non-trivial files -> delegated writer).
 - 4d80fa3..e29f1bc reviewed: medium, 1 lens, approved, burned (`review-9d56d888e00d5b6c`). Boundary -> e29f1bc.
 - Full-branch candidate (stop hook): consent granted twice, START failed `lens_context_budget_exceeded`
   (280 files / 21k lines, not_started). Third confirmation that the branch is reviewable only by slice.
-- e29f1bc..03e0202 assessed medium, `under_budget`: pending in slice. Suite 378 passed (93.76%), e2e 46 + 3 xfail.
+- e29f1bc..5809780 (D1-D7) reviewed: medium, 1 lens, approved, burned (`review-cbc99daea5be0228`). Boundary -> 5809780.
+  Suite 388 passed, e2e 48 + 1 xfail (D8).
 
 ## Next step
 T9 triage result -> fix STILL_PRESENT findings worth fixing; T10 gap map -> T11.
