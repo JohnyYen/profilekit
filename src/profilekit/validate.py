@@ -70,9 +70,14 @@ def validate_file(data_file: str, ctx: ProjectContext) -> tuple[bool, list[str]]
 
     try:
         schema = _load_json(schema_path)
+    except json.JSONDecodeError as exc:
+        return False, [f"{schema_name}: JSON parse error in schema: {exc}"]
+    try:
         data = _load_json(data_path)
     except json.JSONDecodeError as exc:
         return False, [f"{data_file}: JSON parse error: {exc}"]
+    except (OSError, UnicodeDecodeError) as exc:
+        return False, [f"{data_file}: cannot read: {exc}"]
 
     validator = jsonschema.Draft7Validator(schema)
     raw_errors = sorted(validator.iter_errors(data), key=str)
@@ -150,14 +155,21 @@ def main(ctx: ProjectContext | None = None) -> int:
 
     print()
 
+    # Everything below reads data files a second time. Only a file that
+    # passed its schema is handed on: one that failed is already reported
+    # above, and parsing it again would turn that FAIL line into a traceback
+    # (a malformed file) or feed a probe a shape it does not expect.
+    passed_files = {filename for filename, status, _ in results if status == "PASS"}
+
+    def _loaded(filename: str, default: Any) -> Any:
+        return _load_json(ctx.data_dir / filename) if filename in passed_files else default
+
     # Cross-file: validate portfolioHighlights against projects.json
-    about_path = ctx.data_dir / "about.json"
-    projects_path = ctx.data_dir / "projects.json"
-    if about_path.exists() and projects_path.exists():
+    if {"about.json", "projects.json"} <= passed_files:
         try:
-            about_data = _load_json(about_path)
-            projects_data = _load_json(projects_path)
-            highlight_warnings = validate_portfolio_highlights(about_data, projects_data)
+            highlight_warnings = validate_portfolio_highlights(
+                _loaded("about.json", {}), _loaded("projects.json", [])
+            )
             for warning in highlight_warnings:
                 print(f"WARNING: {warning}", file=sys.stderr)
         except Exception as exc:
@@ -167,10 +179,8 @@ def main(ctx: ProjectContext | None = None) -> int:
     try:
         from profilekit.icons import check_icons  # noqa: PLC0415
 
-        skills_path = ctx.data_dir / "skills.json"
-        if skills_path.exists():
-            skills_data = _load_json(skills_path)
-            icon_warnings = check_icons(skills_data)
+        if "skills.json" in passed_files:
+            icon_warnings = check_icons(_loaded("skills.json", {}))
             for warning in icon_warnings:
                 print(f"WARNING (icon): {warning}", file=sys.stderr)
     except ImportError:
@@ -181,11 +191,7 @@ def main(ctx: ProjectContext | None = None) -> int:
     try:
         from profilekit.links import check_links  # noqa: PLC0415
 
-        projects_path = ctx.data_dir / "projects.json"
-        social_path = ctx.data_dir / "social.json"
-        projects_data = _load_json(projects_path) if projects_path.exists() else []
-        social_data = _load_json(social_path) if social_path.exists() else {}
-        link_warnings = check_links(projects_data, social_data)
+        link_warnings = check_links(_loaded("projects.json", []), _loaded("social.json", {}))
         for warning in link_warnings:
             print(f"WARNING (link): {warning}", file=sys.stderr)
     except ImportError:

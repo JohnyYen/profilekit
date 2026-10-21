@@ -188,18 +188,10 @@ def test_generate_on_malformed_json_names_the_file(
     assert "about.json" in result.stderr
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "defect: validate.main loads skills.json for the icon probe (and "
-        "projects/social for the link probe) outside any error handling, so "
-        "malformed JSON there raises JSONDecodeError as a traceback even with "
-        "the probes skipped"
-    ),
-)
 def test_validate_on_malformed_skills_json_fails_without_a_traceback(
     empty_project: Path, profile, run_profile
 ) -> None:
+    """skills.json is also read by the icon probe after the schema pass."""
     run_profile("init", cwd=empty_project)
     (empty_project / "data" / "skills.json").write_text("{not json", encoding="utf-8")
 
@@ -207,6 +199,8 @@ def test_validate_on_malformed_skills_json_fails_without_a_traceback(
 
     assert result.returncode == 1
     assert "Traceback" not in result.stdout + result.stderr
+    assert "skills.json: JSON parse error" in result.stdout
+    assert "FAILED" in result.stdout
 
 
 # ---------------------------------------------------------------------------
