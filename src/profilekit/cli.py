@@ -18,8 +18,9 @@ import json
 import os
 import subprocess
 import sys
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from pathlib import Path
+from typing import Any
 
 from profilekit import manifest, publish, registry, validate
 from profilekit.config import ConfigError
@@ -97,6 +98,29 @@ def _stale_published_destinations(ctx: ProjectContext) -> list[str]:
     return stale
 
 
+def _registered_generators() -> dict[str, Callable[..., Any]] | int:
+    """Return the registered generators, or an exit code after reporting why not.
+
+    An empty registry is a broken install — the package's own entry points
+    are missing — never a project with nothing to do. Treating it as success
+    made ``generate all`` write a manifest indexing nothing and exit 0.
+    """
+    try:
+        available = registry.generators()
+    except registry.RegistryError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return exc.exit_code
+
+    if not available:
+        print(
+            f"error: no generators are registered (entry-point group "
+            f"{registry.GENERATOR_GROUP!r} is empty) — reinstall profilekit",
+            file=sys.stderr,
+        )
+        return 1
+    return available
+
+
 def cmd_generate(target: str, ctx: ProjectContext) -> int:
     """Run one generator, or all of them (``target == "all"``), in order.
 
@@ -104,11 +128,9 @@ def cmd_generate(target: str, ctx: ProjectContext) -> int:
     Publishers are in a different entry-point group, so none can be reached
     from here regardless of what a project declares.
     """
-    try:
-        available = registry.generators()
-    except registry.RegistryError as exc:
-        print(f"error: {exc}", file=sys.stderr)
-        return exc.exit_code
+    available = _registered_generators()
+    if isinstance(available, int):
+        return available
 
     if target == "all":
         selected = list(available.items())
@@ -381,12 +403,11 @@ def cmd_init(target: Path) -> int:
 
 def cmd_list(ctx: ProjectContext) -> int:
     """Print the registered generation targets and publish destinations."""
-    try:
-        for name in registry.generators():
-            print(name)
-    except registry.RegistryError as exc:
-        print(f"error: {exc}", file=sys.stderr)
-        return exc.exit_code
+    available = _registered_generators()
+    if isinstance(available, int):
+        return available
+    for name in available:
+        print(name)
     return 0
 
 

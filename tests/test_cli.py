@@ -154,6 +154,30 @@ def test_list_prints_all_targets(spies, project, capsys):
         assert name in out, f"{name} should appear in list output"
 
 
+# --- empty registry ----------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "argv",
+    [("generate",), ("generate", "all"), ("generate", "cv"), ("list",)],
+    ids=["generate", "generate-all", "generate-one", "list"],
+)
+def test_empty_generator_registry_fails_loudly(project, monkeypatch, capsys, argv):
+    """No registered generators is a broken install, never a silent success.
+
+    With no entry points, `generate all` used to write only the manifest and
+    exit 0, and `list` printed nothing and exit 0.
+    """
+    monkeypatch.setattr(cli.registry, "generators", lambda: {})
+    rc = _run(project, *argv)
+    out = capsys.readouterr()
+    assert rc == 1
+    assert "no generators are registered" in out.err
+    assert "reinstall profilekit" in out.err
+    assert "Traceback" not in out.err + out.out
+    assert not (project / "output" / "manifest.json").exists(), "No manifest may be written"
+
+
 # --- no path overrides -------------------------------------------------------
 
 
