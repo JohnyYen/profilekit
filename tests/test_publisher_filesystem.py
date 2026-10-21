@@ -118,6 +118,61 @@ def test_a_custom_data_dir_is_protected_wherever_it_lives(tmp_path: Path) -> Non
         FilesystemPublisher().plan(ctx, {"destination": "profile"})
 
 
+def test_rejects_a_symlinked_artifact_pointing_outside_the_root(
+    project: ProjectContext, tmp_path: Path
+) -> None:
+    """A safe destination directory can still hold a symlink planted per file."""
+    outside = tmp_path.parent / f"outside-{tmp_path.name}.json"
+    outside.write_text("untouched\n", encoding="utf-8")
+    destination = project.root / "site"
+    destination.mkdir()
+    (destination / "about.json").symlink_to(outside)
+
+    publisher = FilesystemPublisher()
+    with pytest.raises(UnsafeDestinationError, match="about.json"):
+        publisher.plan(project, {"destination": "site"})
+    assert outside.read_text(encoding="utf-8") == "untouched\n"
+
+
+def test_rejects_a_symlinked_artifact_pointing_at_canonical_data(
+    project: ProjectContext,
+) -> None:
+    """A symlink that stays inside the root is still refused: it leaves the destination."""
+    canonical = (project.data_dir / "about.json").read_bytes()
+    destination = project.root / "site"
+    destination.mkdir()
+    (destination / "about.json").symlink_to(project.data_dir / "about.json")
+
+    publisher = FilesystemPublisher()
+    with pytest.raises(UnsafeDestinationError, match="about.json"):
+        publisher.plan(project, {"destination": "site"})
+    assert (project.data_dir / "about.json").read_bytes() == canonical
+
+
+def test_publish_rechecks_every_artifact_before_the_first_write(
+    project: ProjectContext, tmp_path: Path
+) -> None:
+    """A symlink planted between plan() and publish() fails the whole destination.
+
+    ``projects.json`` is written last, so checking per write would already have
+    written the other three files; nothing may be written at all.
+    """
+    outside = tmp_path.parent / f"outside-{tmp_path.name}.json"
+    outside.write_text("untouched\n", encoding="utf-8")
+    publisher = FilesystemPublisher()
+    plan = publisher.plan(project, {"destination": "site"})
+    assert "projects.json" in plan.changes
+
+    destination = project.root / "site"
+    destination.mkdir()
+    (destination / "projects.json").symlink_to(outside)
+
+    with pytest.raises(UnsafeDestinationError, match="projects.json"):
+        publisher.publish(project, plan)
+    assert outside.read_text(encoding="utf-8") == "untouched\n"
+    assert sorted(p.name for p in destination.iterdir()) == ["projects.json"]
+
+
 # ---------------------------------------------------------------------------
 # plan() is read-only; publish() is the only thing that writes
 # ---------------------------------------------------------------------------

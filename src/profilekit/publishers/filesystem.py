@@ -13,7 +13,9 @@ Security note: the destination is the one value here that an edit to project
 configuration can turn into an arbitrary-write primitive. It is resolved
 against ``ctx.root`` and rejected *before* any content is produced — absolute
 paths, parent-directory escapes, and symlinks pointing out of the project all
-fail closed. So do destinations that would overwrite the project's own
+fail closed. Each artifact file is checked too, before it is read or written:
+a symlink planted at ``<destination>/about.json`` is refused rather than
+followed. So do destinations that would overwrite the project's own
 inputs or outputs: the root itself, and anything at or inside the canonical
 data directory or the generated output directory.
 """
@@ -91,6 +93,24 @@ def resolve_destination(root: Path, destination: str, protected: Iterable[Path] 
                 f"{resolved} is at or inside {guarded}"
             )
     return resolved
+
+
+def artifact_path(directory: Path, name: str) -> Path:
+    """Return the path of artifact *name* in *directory*, refusing a redirected file.
+
+    *directory* is an already-resolved destination, compared as-is: if it has
+    since been replaced by a symlink, its artifacts no longer resolve inside it
+    and are refused. Reading or writing follows symlinks, so a symlink at the
+    artifact path — wherever it points — is refused too.
+    """
+    path = directory / name
+    if path.is_symlink():
+        raise UnsafeDestinationError(f"artifact is a symlink, refusing to follow it: {path}")
+    if path.resolve().parent != directory:
+        raise UnsafeDestinationError(
+            f"artifact resolves outside the destination: {path} -> {path.resolve()}"
+        )
+    return path
 
 
 def build_about(about: Mapping[str, object]) -> dict[str, object]:
@@ -175,7 +195,7 @@ class FilesystemPublisher:
         changes = [
             artifact.name
             for artifact in artifacts
-            if self._differs(resolved / artifact.name, artifact.content)
+            if self._differs(artifact_path(resolved, artifact.name), artifact.content)
         ]
 
         return PublishPlan(
@@ -196,9 +216,16 @@ class FilesystemPublisher:
             )
 
         plan.resolved_path.mkdir(parents=True, exist_ok=True)
-        for artifact in plan.artifacts:
-            if artifact.name in plan.changes:
-                (plan.resolved_path / artifact.name).write_text(artifact.content, encoding="utf-8")
+        # Re-check every target before the first write: the destination may
+        # have changed since plan(), and a failure part-way through would
+        # leave a partially published destination behind.
+        targets = [
+            (artifact_path(plan.resolved_path, artifact.name), artifact.content)
+            for artifact in plan.artifacts
+            if artifact.name in plan.changes
+        ]
+        for path, content in targets:
+            path.write_text(content, encoding="utf-8")
 
         written = ", ".join(plan.changes)
         return PublishResult(
