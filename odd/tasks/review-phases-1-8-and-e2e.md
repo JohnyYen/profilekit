@@ -56,7 +56,7 @@ writer trigger (2+ non-trivial files -> delegated writer).
   - [x] D5 (`03e0202`, RED UnicodeDecodeError/PermissionError -> GREEN) publish ledger read: UnicodeDecodeError/OSError escape before the destination loop
   - [x] D6 (`e339b3e`, RED JSONDecodeError traceback -> GREEN, xfail removed) validate crashes with a traceback on malformed skills/projects/social JSON (e2e xfail)
   - [x] D7 (`5809780`, RED unnamed file -> GREEN, xfail removed) generate does not name the malformed data file (e2e xfail)
-  - [ ] D8 contract: manifest carries no version for the published projects.json (e2e xfail).
+  - [x] D8 (`7f432ff`, RED 12 failing -> GREEN, last xfail removed; e2e 49 passed) contract: manifest carries no version for the published projects.json (e2e xfail).
         Owner decision 2026-10-20: the filesystem publisher writes a manifest.json into the destination
         (schemaVersion + per-file version and digest), with its own schema, validation and docs.
   - [ ] D9 duplicate entry-point names silently shadow each other
