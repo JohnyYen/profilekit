@@ -51,9 +51,9 @@ writer trigger (2+ non-trivial files -> delegated writer).
       Triage: 33 still present, 14 fixed, 5 obsolete, 3 disputed; plus 3 e2e strict xfails.
   - [x] D1 (`0228449`, RED 7 failing -> GREEN) filesystem publisher accepts the project root, data/ or output/ as destination (overwrites canonical data)
   - [x] D2 (`d2de5da`, RED 3 failing -> GREEN) per-file symlink escape in the filesystem publisher (`write_text` follows symlinks)
-  - [ ] D3 empty generator registry: `generate all` writes only the manifest and exits 0; `list` exits 0
-  - [ ] D4 publish ledger write: results table lost on write failure; write not atomic
-  - [ ] D5 publish ledger read: UnicodeDecodeError/OSError escape before the destination loop
+  - [x] D3 (`f3f0790`, RED 4 failing -> GREEN) empty generator registry: `generate all` writes only the manifest and exits 0; `list` exits 0
+  - [x] D4 (`c4f8ba2`, RED traceback -> GREEN) publish ledger write: results table lost on write failure; write not atomic
+  - [x] D5 (`03e0202`, RED UnicodeDecodeError/PermissionError -> GREEN) publish ledger read: UnicodeDecodeError/OSError escape before the destination loop
   - [ ] D6 validate crashes with a traceback on malformed skills/projects/social JSON (e2e xfail)
   - [ ] D7 generate does not name the malformed data file (e2e xfail)
   - [ ] D8 contract: manifest carries no version for the published projects.json (e2e xfail); resolve code vs spec
@@ -89,7 +89,7 @@ writer trigger (2+ non-trivial files -> delegated writer).
 - 4d80fa3..e29f1bc reviewed: medium, 1 lens, approved, burned (`review-9d56d888e00d5b6c`). Boundary -> e29f1bc.
 - Full-branch candidate (stop hook): consent granted twice, START failed `lens_context_budget_exceeded`
   (280 files / 21k lines, not_started). Third confirmation that the branch is reviewable only by slice.
-- e29f1bc..d2de5da assessed medium, `under_budget`: pending in slice.
+- e29f1bc..03e0202 assessed medium, `under_budget`: pending in slice. Suite 378 passed (93.76%), e2e 46 + 3 xfail.
 
 ## Next step
 T9 triage result -> fix STILL_PRESENT findings worth fixing; T10 gap map -> T11.
