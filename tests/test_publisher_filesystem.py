@@ -16,6 +16,7 @@ from pathlib import Path
 import pytest
 
 from profilekit.context import ProjectContext
+from profilekit.manifest import SCHEMA_VERSION
 from profilekit.publishers.filesystem import FilesystemPublisher, UnsafeDestinationError
 
 CANONICAL = {
@@ -187,14 +188,22 @@ def test_plan_writes_nothing(project: ProjectContext) -> None:
     assert not _destinations_written(project.root)
 
 
-def test_publish_writes_the_four_app_data_files(project: ProjectContext) -> None:
+def test_publish_writes_the_four_app_data_files_and_their_manifest(
+    project: ProjectContext,
+) -> None:
     publisher = FilesystemPublisher()
     cfg = {"destination": "apps/portfolio/app/data"}
     result = publisher.publish(project, publisher.plan(project, cfg))
 
     destination = project.root / "apps" / "portfolio" / "app" / "data"
     written = sorted(p.name for p in destination.glob("*.json"))
-    assert written == ["about.json", "projects.json", "skills.json", "social.json"]
+    assert written == [
+        "about.json",
+        "manifest.json",
+        "projects.json",
+        "skills.json",
+        "social.json",
+    ]
     assert result.status == "published"
 
 
@@ -218,3 +227,89 @@ def test_plan_reports_drift_when_destination_is_stale(project: ProjectContext) -
     stale.write_text('{"username": "someone else"}\n', encoding="utf-8")
 
     assert publisher.plan(project, cfg).changes == ("about.json",)
+
+
+# ---------------------------------------------------------------------------
+# The destination manifest — where an array-shaped file's version lives
+# ---------------------------------------------------------------------------
+
+PUBLISHED_FILES = ["about.json", "projects.json", "skills.json", "social.json"]
+
+
+def _publish(project: ProjectContext, destination: str = "site") -> Path:
+    publisher = FilesystemPublisher()
+    publisher.publish(project, publisher.plan(project, {"destination": destination}))
+    return project.root / destination
+
+
+def test_the_destination_manifest_versions_every_published_file(
+    project: ProjectContext,
+) -> None:
+    """``projects.json`` is an array: the destination manifest is its only version."""
+    import hashlib
+
+    destination = _publish(project)
+    index = json.loads((destination / "manifest.json").read_text(encoding="utf-8"))
+
+    assert index["schemaVersion"] == SCHEMA_VERSION
+    entries = {entry["name"]: entry for entry in index["files"]}
+    assert sorted(entries) == PUBLISHED_FILES, "the manifest must not index itself"
+    for name, entry in entries.items():
+        raw = (destination / name).read_bytes()
+        assert entry["schemaVersion"] == SCHEMA_VERSION
+        assert entry["sha256"] == hashlib.sha256(raw).hexdigest(), name
+        assert entry["bytes"] == len(raw), name
+
+
+def test_the_destination_manifest_is_byte_identical_across_destinations(
+    project: ProjectContext,
+) -> None:
+    """No timestamp and sorted entries: identical data gives identical bytes."""
+    first = (_publish(project, "one") / "manifest.json").read_bytes()
+    second = (_publish(project, "two") / "manifest.json").read_bytes()
+
+    assert first == second
+    names = [entry["name"] for entry in json.loads(first)["files"]]
+    assert names == sorted(names)
+
+
+def test_a_missing_destination_manifest_is_drift(project: ProjectContext) -> None:
+    """A destination published before the manifest existed must be republished."""
+    destination = _publish(project)
+    (destination / "manifest.json").unlink()
+
+    assert FilesystemPublisher().plan(project, {"destination": "site"}).changes == (
+        "manifest.json",
+    )
+
+
+def test_rejects_a_symlinked_destination_manifest(project: ProjectContext, tmp_path: Path) -> None:
+    outside = tmp_path.parent / f"outside-{tmp_path.name}-manifest.json"
+    outside.write_text("untouched\n", encoding="utf-8")
+    destination = project.root / "site"
+    destination.mkdir()
+    (destination / "manifest.json").symlink_to(outside)
+
+    with pytest.raises(UnsafeDestinationError, match="manifest.json"):
+        FilesystemPublisher().plan(project, {"destination": "site"})
+    assert outside.read_text(encoding="utf-8") == "untouched\n"
+
+
+def test_publish_rechecks_the_manifest_before_the_first_write(
+    project: ProjectContext, tmp_path: Path
+) -> None:
+    """A symlinked manifest planted after plan() stops every write, not just its own."""
+    outside = tmp_path.parent / f"outside-{tmp_path.name}-manifest.json"
+    outside.write_text("untouched\n", encoding="utf-8")
+    publisher = FilesystemPublisher()
+    plan = publisher.plan(project, {"destination": "site"})
+    assert "manifest.json" in plan.changes
+
+    destination = project.root / "site"
+    destination.mkdir()
+    (destination / "manifest.json").symlink_to(outside)
+
+    with pytest.raises(UnsafeDestinationError, match="manifest.json"):
+        publisher.publish(project, plan)
+    assert outside.read_text(encoding="utf-8") == "untouched\n"
+    assert sorted(p.name for p in destination.iterdir()) == ["manifest.json"]

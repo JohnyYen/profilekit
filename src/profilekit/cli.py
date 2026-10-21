@@ -212,12 +212,15 @@ def _manifest_is_valid(ctx: ProjectContext) -> int:
 
 #: Published artifact filename -> its packaged schema. `projects.json` is an
 #: array and so carries no inline version, but its item shape is still a
-#: contract a consumer depends on.
+#: contract a consumer depends on; its version lives in the destination
+#: `manifest.json`, which is listed last so the files it describes are
+#: validated first.
 PUBLISHED_SCHEMAS = {
     "about.json": "published-about.schema.json",
     "social.json": "published-social.schema.json",
     "skills.json": "published-skills.schema.json",
     "projects.json": "published-projects.schema.json",
+    manifest.MANIFEST_FILENAME: "published-manifest.schema.json",
 }
 
 
@@ -259,6 +262,17 @@ def _published_artifacts_are_valid(ctx: ProjectContext) -> int:
                     file=sys.stderr,
                 )
             if errors:
+                return 1
+
+        # The schema run above validated the destination manifest, so its
+        # entry names are plain file names that are safe to join here.
+        index_path = destination / manifest.MANIFEST_FILENAME
+        if index_path.is_file():
+            index = json.loads(index_path.read_text(encoding="utf-8"))
+            problems = manifest.digest_mismatches(destination, index["files"])
+            for problem in problems:
+                print(f"error: published manifest.json {problem}", file=sys.stderr)
+            if problems:
                 return 1
 
     return 0

@@ -1,0 +1,34 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "published manifest.json",
+  "description": "Index a filesystem publisher writes into its destination, next to the files it publishes. It carries the contract version of every published file, including the array-shaped projects.json, which has nowhere to put a version of its own. Carries no timestamp and never indexes itself, so republishing identical data produces identical bytes.",
+  "type": "object",
+  "required": ["schemaVersion", "files"],
+  "additionalProperties": true,
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Output-contract version. Bumped only by a breaking change: a removed field, a retyped field, or a newly required field."
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "schemaVersion", "sha256", "bytes"],
+        "additionalProperties": true,
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "A plain file name in the destination: no directory part, and never the manifest itself.",
+            "pattern": "^[A-Za-z0-9_-][A-Za-z0-9._-]*\\.json$",
+            "not": { "const": "manifest.json" }
+          },
+          "schemaVersion": { "type": "integer", "minimum": 1 },
+          "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "bytes": { "type": "integer", "minimum": 0 }
+        }
+      }
+    }
+  }
+}

@@ -27,7 +27,7 @@ import json
 from collections.abc import Iterable, Mapping
 from pathlib import Path
 
-from profilekit.manifest import stamp
+from profilekit.manifest import MANIFEST_FILENAME, build_published, stamp
 from profilekit.publishers import (
     Artifact,
     Capability,
@@ -155,7 +155,11 @@ def _digest(text: str) -> str:
 
 
 def build_artifacts(ctx: ProjectContext) -> list[Artifact]:
-    """Transform canonical data into the four JSON artifacts a frontend reads."""
+    """Transform canonical data into the four JSON artifacts a frontend reads.
+
+    A fifth, ``manifest.json``, indexes the four with their contract version
+    and digest.
+    """
     about = load_json("about.json", ctx.data_dir)
     social = load_json("social.json", ctx.data_dir)
     skills = load_json("skills.json", ctx.data_dir)
@@ -163,14 +167,19 @@ def build_artifacts(ctx: ProjectContext) -> list[Artifact]:
 
     # Every published JSON object declares the contract version it satisfies,
     # so a consumer knows the shape it is reading without consulting the
-    # manifest. `projects.json` is an array, so its version lives only in the
-    # manifest — a list has nowhere to put a top-level field.
-    return [
+    # manifest. `projects.json` is an array — a list has nowhere to put a
+    # top-level field — so its version lives in the destination manifest,
+    # written beside it and built from exactly these contents.
+    artifacts = [
         Artifact("about.json", _serialize(stamp(build_about(about)))),
         Artifact("social.json", _serialize(stamp(build_social(social)))),
         Artifact("skills.json", _serialize(stamp(build_skills(skills)))),
         Artifact("projects.json", _serialize(build_projects(projects))),
     ]
+    # Last, so a write that fails part-way never leaves a manifest vouching
+    # for files that were not written.
+    index = build_published((artifact.name, artifact.content) for artifact in artifacts)
+    return [*artifacts, Artifact(MANIFEST_FILENAME, _serialize(index))]
 
 
 class FilesystemPublisher:
@@ -225,7 +234,9 @@ class FilesystemPublisher:
             if artifact.name in plan.changes
         ]
         for path, content in targets:
-            path.write_text(content, encoding="utf-8")
+            # Bytes, not text: text mode would translate newlines on Windows
+            # and every digest in the destination manifest would be wrong.
+            path.write_bytes(content.encode("utf-8"))
 
         written = ", ".join(plan.changes)
         return PublishResult(
@@ -238,7 +249,9 @@ class FilesystemPublisher:
     def _differs(path: Path, content: str) -> bool:
         if not path.is_file():
             return True
-        return _digest(path.read_text(encoding="utf-8")) != _digest(content)
+        # Compared as bytes, matching what publish() writes and what the
+        # destination manifest's digests describe.
+        return hashlib.sha256(path.read_bytes()).hexdigest() != _digest(content)
 
 
 def publish_entry_point(

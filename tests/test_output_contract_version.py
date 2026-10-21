@@ -316,7 +316,8 @@ def test_published_artifacts_validate_against_their_schemas(project: Path) -> No
         )
         checked += 1
 
-    assert checked == 4
+    # The four published files plus the destination manifest that versions them.
+    assert checked == 5
 
 
 def test_check_fails_when_a_published_artifact_breaks_its_schema(
@@ -448,3 +449,105 @@ def test_published_schemas_resolve_even_with_a_project_schemas_override(
     monkeypatch.setattr(cli, "cmd_generate", lambda target, ctx: 0)
 
     assert cli.main(["--project", str(target), "check"]) == 0
+
+
+# ---------------------------------------------------------------------------
+# The destination manifest — the version of the array-shaped projects.json
+# ---------------------------------------------------------------------------
+
+
+def _isolate_published_gate(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Stub every earlier gate so only the published-artifact gate can fail."""
+    from profilekit import cli
+
+    monkeypatch.setattr(cli.validate, "main", lambda ctx: 0)
+    monkeypatch.setattr(cli, "_git_output_is_clean", lambda ctx: True)
+    monkeypatch.setattr(cli, "cmd_generate", lambda target, ctx: 0)
+    monkeypatch.setattr(cli, "_stale_published_destinations", lambda ctx: [])
+    monkeypatch.setattr(
+        cli,
+        "filesystem_destinations",
+        lambda ctx: [{"kind": "filesystem", "destination": "app/data"}],
+    )
+
+
+def _publish_and_generate(project: Path) -> Path:
+    ctx = discover_project(explicit=project)
+    publisher = FilesystemPublisher()
+    publisher.publish(ctx, publisher.plan(ctx, {"destination": "app/data"}))
+    _generate_all(project)
+    manifest.write(ctx)
+    return project / "app" / "data"
+
+
+def test_the_destination_manifest_carries_the_projects_json_version(project: Path) -> None:
+    """output-data-contract: an array artifact's version is readable next to it."""
+    data = _publish_and_generate(project)
+    assert isinstance(json.loads((data / "projects.json").read_text(encoding="utf-8")), list)
+
+    index = json.loads((data / "manifest.json").read_text(encoding="utf-8"))
+    entries = {entry["name"]: entry for entry in index["files"]}
+    assert entries["projects.json"]["schemaVersion"] == manifest.SCHEMA_VERSION
+
+
+def test_the_destination_manifest_schema_refuses_a_self_entry() -> None:
+    """A manifest that indexes itself can never hold its own correct digest."""
+    import jsonschema
+
+    from profilekit.validate import packaged_schemas
+
+    schema = json.loads(
+        (packaged_schemas() / "published-manifest.schema.json").read_text(encoding="utf-8")
+    )
+    entry = {"schemaVersion": 1, "sha256": "0" * 64, "bytes": 1}
+    validator = jsonschema.Draft7Validator(schema)
+
+    assert validator.is_valid({"schemaVersion": 1, "files": [{"name": "about.json", **entry}]})
+    assert not validator.is_valid(
+        {"schemaVersion": 1, "files": [{"name": "manifest.json", **entry}]}
+    )
+    assert not validator.is_valid({"schemaVersion": 1, "files": [{"name": "../x.json", **entry}]})
+
+
+def test_check_fails_when_a_destination_digest_does_not_match_its_file(
+    project: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+) -> None:
+    """A schema-valid edit to a published file still breaks the manifest's promise."""
+    from profilekit import cli
+
+    data = _publish_and_generate(project)
+    _isolate_published_gate(monkeypatch)
+    about = json.loads((data / "about.json").read_text(encoding="utf-8"))
+    about["username"] = "someone-else"
+    (data / "about.json").write_text(json.dumps(about) + "\n", encoding="utf-8")
+
+    assert cli.main(["--project", str(project), "check"]) != 0
+    err = capsys.readouterr().err
+    assert "manifest.json" in err and "about.json" in err and "digest" in err
+
+
+def test_check_fails_when_a_destination_manifest_lists_a_missing_file(
+    project: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+) -> None:
+    from profilekit import cli
+
+    data = _publish_and_generate(project)
+    _isolate_published_gate(monkeypatch)
+    (data / "skills.json").unlink()
+
+    assert cli.main(["--project", str(project), "check"]) != 0
+    assert "skills.json" in capsys.readouterr().err
+
+
+def test_check_fails_when_the_destination_manifest_breaks_its_schema(
+    project: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+) -> None:
+    from profilekit import cli
+
+    data = _publish_and_generate(project)
+    _isolate_published_gate(monkeypatch)
+    (data / "manifest.json").write_text('{"files": []}\n', encoding="utf-8")
+
+    assert cli.main(["--project", str(project), "check"]) != 0
+    err = capsys.readouterr().err
+    assert "published manifest.json" in err and "schemaVersion" in err

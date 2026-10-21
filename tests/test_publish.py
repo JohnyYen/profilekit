@@ -74,7 +74,7 @@ def test_dry_run_is_the_default_and_writes_nothing(project: Path) -> None:
 def test_execute_is_required_to_write(project: Path) -> None:
     assert _publish(project, "--execute") == 0
     written = sorted(p.name for p in (project / "app" / "data").glob("*.json"))
-    assert written == ["about.json", "projects.json", "skills.json", "social.json"]
+    assert written == ["about.json", "manifest.json", "projects.json", "skills.json", "social.json"]
 
 
 def test_dry_run_says_it_published_nothing(project: Path, capsys: pytest.CaptureFixture) -> None:

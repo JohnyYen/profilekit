@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "published projects.json",
-  "description": "Projects as published. A JSON array, so it carries no top-level schemaVersion: wrapping it in an object to make room would break every consumer that indexes into it as a list. Its version lives in output/manifest.json.",
+  "description": "Projects as published. A JSON array, so it carries no top-level schemaVersion: wrapping it in an object to make room would break every consumer that indexes into it as a list. Its version lives in the manifest.json the publisher writes next to it (published-manifest.schema.json).",
   "type": "array",
   "items": {
     "type": "object",

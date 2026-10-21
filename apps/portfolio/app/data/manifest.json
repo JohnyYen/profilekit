@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "files": [
+    {
+      "name": "about.json",
+      "schemaVersion": 1,
+      "sha256": "ddf59c89a9d04b638770cdb003fe3a707078bcc2e224db26fe4ccdc098ea6f47",
+      "bytes": 1007
+    },
+    {
+      "name": "projects.json",
+      "schemaVersion": 1,
+      "sha256": "9c560048aa3741c9e09e0dad0579a38cf40f3157ec83c878cb5d063d6b450422",
+      "bytes": 2005
+    },
+    {
+      "name": "skills.json",
+      "schemaVersion": 1,
+      "sha256": "051feb55de50ec0acc31dd6daf2e6ac4df1067f494ed203664fd1a7bbbd1579a",
+      "bytes": 2462
+    },
+    {
+      "name": "social.json",
+      "schemaVersion": 1,
+      "sha256": "3839baf05ae9116d6becd169659f1ef7baab5f6badbd37827779d7e11fdbc0c6",
+      "bytes": 278
+    }
+  ]
+}

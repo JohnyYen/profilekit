@@ -16,7 +16,8 @@ mismatch without parsing the rest of the payload.
 
 An **object-shaped** artifact MUST carry a top-level `schemaVersion` field.
 An **array-shaped** artifact has nowhere to put one, and MUST declare its
-version through `output/manifest.json` instead.
+version through a manifest instead: the `manifest.json` the publisher writes
+into the same destination, next to the artifact.
 
 #### Scenario: An object artifact carries its version inline
 
@@ -30,7 +31,7 @@ version through `output/manifest.json` instead.
 - GIVEN a publisher emits a JSON array for an external consumer
 - WHEN the artifact is inspected
 - THEN it SHALL remain an array
-- AND `output/manifest.json` SHALL carry the contract version for it
+- AND the destination's `manifest.json` SHALL carry the contract version for it
 
 > Amended by owner decision after verification. The original wording required
 > every JSON artifact to carry the field inline, which `projects.json` cannot
@@ -39,6 +40,10 @@ version through `output/manifest.json` instead.
 > portfolio app — to gain a field already readable from the manifest. The
 > manifest exists precisely because Markdown and YAML artifacts cannot carry a
 > version either; an array is the same case.
+>
+> Amended again by owner decision (2026-10-20): `output/manifest.json` indexes
+> only `output/`, and a consumer reads the publish destination, so the version
+> lives in a manifest the filesystem publisher writes into that destination.
 
 #### Scenario: Version bump on breaking change
 

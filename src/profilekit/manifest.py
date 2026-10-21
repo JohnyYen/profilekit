@@ -44,7 +44,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from pathlib import Path
 from typing import Any
 
@@ -123,6 +123,46 @@ def read(output_dir: Path) -> dict[str, Any] | None:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def build_published(files: Iterable[tuple[str, str]]) -> dict[str, Any]:
+    """Build the manifest a filesystem publisher writes next to its files.
+
+    *files* are ``(name, content)`` pairs as they will be written. The output
+    manifest above indexes ``output/``; nothing in a publish destination
+    carried a version, so a consumer of the array-shaped ``projects.json`` had
+    no way to read one. This index is that version, beside the file itself.
+
+    Same determinism rules as :func:`build`: entries sorted by name, no
+    timestamp, and never an entry for the manifest itself.
+    """
+    entries = [
+        {
+            "name": name,
+            "schemaVersion": SCHEMA_VERSION,
+            "sha256": digest_text(content),
+            "bytes": len(content.encode("utf-8")),
+        }
+        for name, content in sorted(files)
+        if name != MANIFEST_FILENAME
+    ]
+    return {"schemaVersion": SCHEMA_VERSION, "files": entries}
+
+
+def digest_mismatches(directory: Path, entries: Iterable[Mapping[str, Any]]) -> list[str]:
+    """Describe every entry whose file in *directory* is missing or differs.
+
+    Entry names must already be validated as plain file names: this joins
+    them onto *directory* as-is.
+    """
+    problems: list[str] = []
+    for entry in entries:
+        path = directory / entry["name"]
+        if not path.is_file():
+            problems.append(f"lists missing file {entry['name']}")
+        elif digest_file(path) != entry["sha256"]:
+            problems.append(f"digest for {entry['name']} does not match its content")
+    return problems
+
+
 def stamp(payload: Mapping[str, Any]) -> dict[str, Any]:
     """Return *payload* with the contract version as its first key.
 
@@ -175,7 +215,9 @@ __all__ = [
     "MANIFEST_FILENAME",
     "SCHEMA_VERSION",
     "build",
+    "build_published",
     "digest_file",
+    "digest_mismatches",
     "digest_text",
     "is_backward_compatible",
     "read",

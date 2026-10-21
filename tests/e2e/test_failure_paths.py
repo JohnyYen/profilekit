@@ -378,7 +378,7 @@ def test_one_failing_destination_does_not_block_the_others(
 
     assert "published" in _line_for(result.stdout, "site")
     written = sorted(p.name for p in (project / "site" / "data").glob("*.json"))
-    assert written == ["about.json", "projects.json", "skills.json", "social.json"]
+    assert written == ["about.json", "manifest.json", "projects.json", "skills.json", "social.json"]
 
     assert "pending-manual" in _line_for(result.stdout, "linkedin")
 
@@ -482,18 +482,22 @@ def test_object_shaped_published_files_carry_an_integer_schema_version(
     assert isinstance(json.loads((data / "projects.json").read_text()), list)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "possible defect: output-data-contract says output/manifest.json SHALL "
-        "carry the version for the array-shaped projects.json, but the manifest "
-        "indexes only output/ and so has no entry for projects.json; only the "
-        "file-wide top-level schemaVersion exists"
-    ),
-)
-def test_the_manifest_carries_a_version_entry_for_projects_json(published_site: Path) -> None:
-    manifest = json.loads((published_site / "output" / "manifest.json").read_text())
-    entries = {entry["name"]: entry for entry in manifest["artifacts"]}
+def test_the_destination_manifest_carries_a_version_entry_for_projects_json(
+    published_site: Path,
+) -> None:
+    """output-data-contract: an array artifact's version is read from the manifest.
 
-    assert "projects.json" in entries
-    assert entries["projects.json"]["schemaVersion"] >= 1
+    The publisher writes that manifest into the destination, beside the
+    array, so a consumer of the published directory alone can read it.
+    """
+    data = published_site / "site" / "data"
+    index = json.loads((data / "manifest.json").read_text(encoding="utf-8"))
+    entries = {entry["name"]: entry for entry in index["files"]}
+    output_version = json.loads((published_site / "output" / "manifest.json").read_text())[
+        "schemaVersion"
+    ]
+
+    assert isinstance(json.loads((data / "projects.json").read_text()), list)
+    version = entries["projects.json"]["schemaVersion"]
+    assert type(version) is int and version >= 1, f"projects.json schemaVersion: {version!r}"
+    assert version == index["schemaVersion"] == output_version

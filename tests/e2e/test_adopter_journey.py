@@ -280,7 +280,13 @@ def test_execute_writes_the_destination(
     assert result.returncode == 0, f"publish failed:\n{result.stderr}"
 
     written = sorted(p.name for p in (project_with_destinations / "site" / "data").glob("*.json"))
-    assert written == ["about.json", "projects.json", "skills.json", "social.json"]
+    assert written == [
+        "about.json",
+        "manifest.json",
+        "projects.json",
+        "skills.json",
+        "social.json",
+    ]
 
 
 def test_a_manual_destination_never_reports_published(
@@ -356,6 +362,7 @@ pairs = {
     "social.json": "published-social.schema.json",
     "skills.json": "published-skills.schema.json",
     "projects.json": "published-projects.schema.json",
+    "manifest.json": "published-manifest.schema.json",
 }
 data = Path(sys.argv[1])
 for artifact, schema_name in pairs.items():

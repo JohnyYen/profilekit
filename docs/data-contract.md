@@ -19,7 +19,8 @@ A full `profile generate` writes these into the configured output directory:
 
 A `filesystem` publish destination additionally receives four JSON files —
 `about.json`, `social.json`, `skills.json`, `projects.json` — shaped for
-direct consumption by a frontend.
+direct consumption by a frontend, plus a `manifest.json` of its own that
+versions them (see [the destination manifest](#the-destination-manifest)).
 
 ## `manifest.json` is the authoritative index
 
@@ -50,6 +51,35 @@ artifact, and a wall-clock value inside a version-controlled file would make
 it report a change on every regeneration while telling you nothing about
 content. If you need to know *when* something was published, ask the publish
 layer, not the generated file.
+
+## The destination manifest
+
+`output/manifest.json` indexes `output/`. A frontend usually reads only the
+publish destination, so the `filesystem` publisher writes a second, smaller
+`manifest.json` into the destination, next to the four files it publishes:
+
+```json
+{
+  "schemaVersion": 1,
+  "files": [
+    {
+      "name": "about.json",
+      "schemaVersion": 1,
+      "sha256": "…",
+      "bytes": 812
+    }
+  ]
+}
+```
+
+There is one entry per published file, sorted by name. The manifest never
+lists itself and carries no timestamp, so republishing identical data rewrites
+nothing and reports `unchanged`. Each `sha256` and `bytes` describe the file
+exactly as written, so you can verify what you read.
+
+**Read the version of `projects.json` here.** It is an array, so it has no
+`schemaVersion` of its own; its entry in this manifest is where the version
+lives. The object-shaped files carry the same number inline as well.
 
 ## Versioning rules
 
@@ -133,7 +163,7 @@ optional `icon` or `iconUrl`. Handle both.
 ```
 
 This one is a **JSON array**, so it has nowhere to put a top-level field. Its
-version lives in the manifest only. Wrapping it in an object to make room
+version lives in the [destination manifest](#the-destination-manifest) only. Wrapping it in an object to make room
 would break every consumer that indexes into it as a list, which is not a
 trade worth making for one field you can read elsewhere.
 
@@ -155,6 +185,7 @@ schemas = resources.files("profilekit.schemas")
 | `social.json` | `published-social.schema.json` |
 | `skills.json` | `published-skills.schema.json` |
 | `projects.json` | `published-projects.schema.json` |
+| destination `manifest.json` | `published-manifest.schema.json` |
 
 These are distinct from the schemas that validate a project's **input** data
 (`about.schema.json` and friends). The input schemas are deliberately permissive
@@ -166,6 +197,6 @@ A project may point `[paths] schemas` at its own directory to validate its
 input data. That override does not apply here: these schemas describe
 profilekit's own output, so they always come from the package.
 
-`profile check` validates the manifest and all four published artifacts against
-these schemas, and verifies every manifest digest matches its file — so a
-malformed contract cannot be published.
+`profile check` validates both manifests and all four published artifacts
+against these schemas, and verifies every digest in either manifest matches
+its file — so a malformed contract cannot be published.
