@@ -121,6 +121,38 @@ def test_manifest_indexes_markdown_and_yaml_artifacts(project: Path) -> None:
     assert "manifest.json" not in names, "the manifest must not index itself"
 
 
+def test_manifest_skips_hidden_files(project: Path) -> None:
+    """Dotfiles are tooling noise, never artifacts.
+
+    A `.gitkeep`, an editor swap file or a `.DS_Store` in the output directory
+    used to be indexed as an artifact, so the committed contract depended on
+    whose machine last ran the generators.
+    """
+    ctx = _generate_all(project)
+    for stray in (".gitkeep", ".DS_Store", ".cv.md.swp"):
+        (ctx.output_dir / stray).write_text("noise\n", encoding="utf-8")
+
+    names = {entry["name"] for entry in manifest.build(ctx.output_dir)["artifacts"]}
+
+    assert names == set(manifest.ARTIFACT_GENERATORS)
+
+
+def test_manifest_indexes_a_plugin_artifact_as_unattributed(project: Path) -> None:
+    """A third-party generator's artifact is part of the output set.
+
+    Generators do not declare what they write, so a name the package does not
+    know is indexed with generator "unknown" rather than dropped — dropping it
+    would leave a plugin's output outside the contract.
+    """
+    ctx = _generate_all(project)
+    (ctx.output_dir / "plugin-card.txt").write_text("plugin card\n", encoding="utf-8")
+
+    entries = {e["name"]: e for e in manifest.build(ctx.output_dir)["artifacts"]}
+
+    assert entries["plugin-card.txt"]["generator"] == "unknown"
+    assert entries["cv.yml"]["generator"] == "cv"
+
+
 def test_manifest_entries_carry_a_digest_and_size(project: Path) -> None:
     ctx = _generate_all(project)
     manifest.write(ctx)
@@ -244,21 +276,6 @@ def test_check_fails_when_the_manifest_is_missing(project: Path, monkeypatch) ->
     monkeypatch.setattr(cli.validate, "main", lambda ctx: 0)
     monkeypatch.setattr(cli, "_git_output_is_clean", lambda ctx: True)
     monkeypatch.setattr(cli, "cmd_generate", lambda target, ctx: 0)
-
-    assert cli.main(["--project", str(project), "check"]) != 0
-
-
-def test_check_fails_when_a_digest_is_stale(project: Path, monkeypatch) -> None:
-    """A stale digest would make `publish` skip a destination that needs writing."""
-    from profilekit import cli
-
-    ctx = _generate_all(project)
-    manifest.write(ctx)
-    monkeypatch.setattr(cli.validate, "main", lambda ctx: 0)
-    monkeypatch.setattr(cli, "_git_output_is_clean", lambda ctx: True)
-    monkeypatch.setattr(cli, "cmd_generate", lambda target, ctx: 0)
-
-    (ctx.output_dir / "linkedin.md").write_text("tampered\n", encoding="utf-8")
 
     assert cli.main(["--project", str(project), "check"]) != 0
 

@@ -77,6 +77,17 @@ def digest_text(text: str) -> str:
 def build(output_dir: Path) -> dict[str, Any]:
     """Build the manifest index for every artifact in *output_dir*.
 
+    An artifact is a regular, non-hidden file directly inside *output_dir*.
+    Hidden files (a leading ``.``) are skipped: ``.gitkeep``, editor swap
+    files and ``.DS_Store`` are tooling noise, and indexing them made the
+    committed contract depend on whose machine last ran the generators.
+
+    Names outside :data:`ARTIFACT_GENERATORS` are still indexed, with
+    generator ``"unknown"``. Generators do not declare what they write, so a
+    third-party generator's artifact is only recognisable as a visible file
+    in the output directory; dropping unknown names would leave plugin output
+    outside the contract.
+
     The manifest never indexes itself: its own digest would change every time
     it was written, which makes it useless as a comparison reference.
 
@@ -88,7 +99,7 @@ def build(output_dir: Path) -> dict[str, Any]:
         return {"schemaVersion": SCHEMA_VERSION, "artifacts": artifacts}
 
     for path in sorted(output_dir.glob("*")):
-        if not path.is_file() or path.name == MANIFEST_FILENAME:
+        if not path.is_file() or path.name.startswith(".") or path.name == MANIFEST_FILENAME:
             continue
         artifacts.append(
             {

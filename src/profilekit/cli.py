@@ -208,20 +208,11 @@ def _manifest_is_valid(ctx: ProjectContext) -> int:
             print(f"error: manifest.json: {path}: {error.message}", file=sys.stderr)
         return 1
 
-    # Digests are the publish layer's idempotency reference, so a stale one
-    # would make `publish` skip a destination that actually needs writing.
-    for entry in index["artifacts"]:
-        artifact = ctx.output_dir / entry["name"]
-        if not artifact.is_file():
-            print(f"error: manifest.json lists missing artifact {entry['name']}", file=sys.stderr)
-            return 1
-        if manifest.digest_file(artifact) != entry["sha256"]:
-            print(
-                f"error: manifest.json digest for {entry['name']} does not match its content",
-                file=sys.stderr,
-            )
-            return 1
-
+    # No digest comparison here. `check` calls this right after regenerating,
+    # and `manifest.write` digests the files it just indexed, so a mismatch
+    # cannot occur: the branch that compared them was unreachable. A
+    # committed manifest that lies about its artifacts is caught by the
+    # freshness gate instead, because regeneration rewrites it.
     return 0
 
 

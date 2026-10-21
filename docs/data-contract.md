@@ -42,6 +42,11 @@ reference for **every** artifact, not just the JSON ones:
 }
 ```
 
+It indexes every regular file directly inside the output directory except
+itself and hidden files (names starting with `.`, such as `.gitkeep`). A file
+written by a third-party generator is indexed too, with `"generator":
+"unknown"`, because generators do not declare their artifacts by name.
+
 Read `schemaVersion` first and decide whether you can handle it. The `sha256`
 digests let you detect changes without diffing content — useful if you cache
 or mirror the artifacts.
@@ -198,5 +203,8 @@ input data. That override does not apply here: these schemas describe
 profilekit's own output, so they always come from the package.
 
 `profile check` validates both manifests and all four published artifacts
-against these schemas, and verifies every digest in either manifest matches
-its file — so a malformed contract cannot be published.
+against these schemas, and verifies every digest in the destination manifest
+matches its file — so a malformed contract cannot be published. The output
+manifest's digests need no separate comparison: `check` regenerates it from
+the files it indexes, and the freshness gate fails if that differs from the
+committed copy.
