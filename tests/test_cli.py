@@ -178,6 +178,33 @@ def test_empty_generator_registry_fails_loudly(project, monkeypatch, capsys, arg
     assert not (project / "output" / "manifest.json").exists(), "No manifest may be written"
 
 
+def test_duplicate_generator_names_fail_without_a_traceback(project, monkeypatch, capsys):
+    """Two distributions registering one name is reported, not silently shadowed."""
+
+    class _EntryPoint:
+        def __init__(self, dist: str) -> None:
+            self.name = "cv"
+            self.value = f"{dist.replace('-', '_')}:main"
+            self.dist = type("_Dist", (), {"name": dist})()
+
+        def load(self):
+            raise AssertionError("a duplicate must be rejected before loading")
+
+    monkeypatch.setattr(
+        cli.registry,
+        "_entry_points_for",
+        lambda group: [_EntryPoint("first-dist"), _EntryPoint("second-dist")],
+    )
+
+    rc = _run(project, "generate", "all")
+    out = capsys.readouterr()
+    assert rc == 1
+    assert "'cv'" in out.err
+    assert "first-dist" in out.err and "second-dist" in out.err
+    assert "Traceback" not in out.err + out.out
+    assert not (project / "output" / "manifest.json").exists()
+
+
 # --- no path overrides -------------------------------------------------------
 
 

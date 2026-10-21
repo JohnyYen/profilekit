@@ -26,9 +26,11 @@ from profilekit import registry
 class _FakeEntryPoint:
     """Stand-in for an importlib.metadata entry point."""
 
-    def __init__(self, name: str, value: object, group: str) -> None:
+    def __init__(self, name: str, value: object, group: str, dist: str | None = None) -> None:
         self.name = name
         self.group = group
+        self.value = f"{dist or 'fake'}_module:{name}"
+        self.dist = type("_Dist", (), {"name": dist})() if dist else None
         self._value = value
 
     def load(self) -> object:
@@ -49,8 +51,8 @@ def fake_entry_points(monkeypatch: pytest.MonkeyPatch):
 
     monkeypatch.setattr(registry, "_entry_points_for", select)
 
-    def add(name: str, group: str, value: object = _noop) -> None:
-        installed.append(_FakeEntryPoint(name, value, group))
+    def add(name: str, group: str, value: object = _noop, dist: str | None = None) -> None:
+        installed.append(_FakeEntryPoint(name, value, group, dist))
 
     return add
 
@@ -141,6 +143,44 @@ def test_a_component_that_fails_to_load_is_reported_by_name(
         registry.generators()
 
     assert "broken" in str(exc_info.value)
+
+
+def test_a_duplicated_name_names_both_distributions(fake_entry_points) -> None:
+    """Two distributions claiming one name must not silently shadow each other.
+
+    The registry used to key a dict by name, so the last one loaded won and the
+    other component simply vanished from every command.
+    """
+    fake_entry_points("cv", registry.GENERATOR_GROUP, dist="first-dist")
+    fake_entry_points("cv", registry.GENERATOR_GROUP, dist="second-dist")
+
+    with pytest.raises(registry.RegistryError) as exc_info:
+        registry.generators()
+
+    message = str(exc_info.value)
+    assert "'cv'" in message
+    assert "first-dist" in message
+    assert "second-dist" in message
+
+
+def test_a_duplicate_without_distribution_metadata_names_the_modules(
+    fake_entry_points,
+) -> None:
+    fake_entry_points("cv", registry.GENERATOR_GROUP)
+    fake_entry_points("cv", registry.GENERATOR_GROUP)
+
+    with pytest.raises(registry.RegistryError) as exc_info:
+        registry.generators()
+
+    assert "fake_module:cv" in str(exc_info.value)
+
+
+def test_the_same_name_in_different_groups_is_not_a_duplicate(fake_entry_points) -> None:
+    fake_entry_points("linkedin", registry.GENERATOR_GROUP, dist="a")
+    fake_entry_points("linkedin", registry.PUBLISHER_GROUP, dist="b")
+
+    assert "linkedin" in registry.generators()
+    assert "linkedin" in registry.publishers()
 
 
 # ---------------------------------------------------------------------------

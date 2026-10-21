@@ -29,7 +29,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable
 from importlib import metadata
-from typing import Any
+from typing import Any, cast
 
 GENERATOR_GROUP = "profilekit.generators"
 PUBLISHER_GROUP = "profilekit.publishers"
@@ -52,37 +52,66 @@ def _entry_points_for(group: str) -> Iterable[Any]:
     return metadata.entry_points(group=group)
 
 
-def components(group: str) -> dict[str, Callable[..., Any]]:
-    """Load every component registered under *group*, keyed by name.
+def _provenance(entry_point: Any) -> str:
+    """Say where *entry_point* came from: its distribution, else its module path."""
+    dist = getattr(entry_point, "dist", None)
+    dist_name = getattr(dist, "name", None)
+    if dist_name:
+        return f"distribution {dist_name!r}"
+    return f"module {getattr(entry_point, 'value', '<unknown>')!r}"
 
-    Insertion order follows the sorted entry-point names, so run order is
-    deterministic — an unstable order would churn generated output between
-    runs for no reason.
 
-    A component that fails to import is reported by name. A third-party
-    generator with a broken dependency should say which one it is, not
-    surface an opaque traceback from inside the loader.
+def _discover(group: str) -> dict[str, Any]:
+    """Return the entry points under *group* by name, without loading any.
+
+    Sorted by name, so run order is deterministic — an unstable order would
+    churn generated output between runs for no reason.
+
+    Two distributions registering the same name is an error, not a choice.
+    Keying a dict by name used to let the last one silently win, so one
+    component vanished from every command with nothing said about it.
     """
     if group not in KNOWN_GROUPS:
         known = ", ".join(KNOWN_GROUPS)
         raise RegistryError(f"unknown component group {group!r}; known groups are: {known}")
 
-    discovered: dict[str, Callable[..., Any]] = {}
+    discovered: dict[str, Any] = {}
     for entry_point in sorted(_entry_points_for(group), key=lambda ep: ep.name):
-        try:
-            loaded = entry_point.load()
-        except Exception as exc:  # noqa: BLE001 — name the culprit, then re-raise
+        previous = discovered.get(entry_point.name)
+        if previous is not None:
             raise RegistryError(
-                f"component {entry_point.name!r} in group {group!r} failed to load: {exc}"
-            ) from exc
-
-        if not callable(loaded):
-            raise RegistryError(
-                f"component {entry_point.name!r} in group {group!r} is not callable"
+                f"component {entry_point.name!r} in group {group!r} is registered twice: "
+                f"by {_provenance(previous)} and by {_provenance(entry_point)}"
             )
-        discovered[entry_point.name] = loaded
-
+        discovered[entry_point.name] = entry_point
     return discovered
+
+
+def _load(group: str, entry_point: Any) -> Callable[..., Any]:
+    """Import one entry point, naming it if that fails.
+
+    A third-party generator with a broken dependency should say which one it
+    is, not surface an opaque traceback from inside the loader.
+    """
+    try:
+        loaded = entry_point.load()
+    except Exception as exc:  # noqa: BLE001 — name the culprit, then re-raise
+        raise RegistryError(
+            f"component {entry_point.name!r} in group {group!r} failed to load: {exc}"
+        ) from exc
+
+    if not callable(loaded):
+        raise RegistryError(f"component {entry_point.name!r} in group {group!r} is not callable")
+    return cast("Callable[..., Any]", loaded)
+
+
+def components(group: str) -> dict[str, Callable[..., Any]]:
+    """Load every component registered under *group*, keyed by name.
+
+    Insertion order follows the sorted entry-point names. A component that
+    fails to import is reported by name.
+    """
+    return {name: _load(group, ep) for name, ep in _discover(group).items()}
 
 
 def generators() -> dict[str, Callable[..., Any]]:
