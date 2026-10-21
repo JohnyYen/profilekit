@@ -49,8 +49,8 @@ writer trigger (2+ non-trivial files -> delegated writer).
 - [x] T8 Review phase 8 slice — granted, 4 lenses, approved, burned (`review-9ffee9f2d4ffff5d`); 13 warnings
 - [ ] T9 Fix every confirmed defect, in order, one commit each (owner decision 2026-10-20: all of them).
       Triage: 33 still present, 14 fixed, 5 obsolete, 3 disputed; plus 3 e2e strict xfails.
-  - [ ] D1 filesystem publisher accepts the project root, data/ or output/ as destination (overwrites canonical data)
-  - [ ] D2 per-file symlink escape in the filesystem publisher (`write_text` follows symlinks)
+  - [x] D1 (`0228449`, RED 7 failing -> GREEN) filesystem publisher accepts the project root, data/ or output/ as destination (overwrites canonical data)
+  - [x] D2 (`d2de5da`, RED 3 failing -> GREEN) per-file symlink escape in the filesystem publisher (`write_text` follows symlinks)
   - [ ] D3 empty generator registry: `generate all` writes only the manifest and exits 0; `list` exits 0
   - [ ] D4 publish ledger write: results table lost on write failure; write not atomic
   - [ ] D5 publish ledger read: UnicodeDecodeError/OSError escape before the destination loop
@@ -86,6 +86,10 @@ writer trigger (2+ non-trivial files -> delegated writer).
 - T1-T8 terminal. 55 non-blocking warnings (+34 suggestions) collected; triage against HEAD delegated
   to a read-only explorer (T9). Phase 12 gap mapping delegated in parallel (T10).
 - `2db9195` fix(init): full suite 385 passed, coverage 93.43%, pre-commit green.
+- 4d80fa3..e29f1bc reviewed: medium, 1 lens, approved, burned (`review-9d56d888e00d5b6c`). Boundary -> e29f1bc.
+- Full-branch candidate (stop hook): consent granted twice, START failed `lens_context_budget_exceeded`
+  (280 files / 21k lines, not_started). Third confirmation that the branch is reviewable only by slice.
+- e29f1bc..d2de5da assessed medium, `under_budget`: pending in slice.
 
 ## Next step
 T9 triage result -> fix STILL_PRESENT findings worth fixing; T10 gap map -> T11.
