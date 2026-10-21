@@ -59,9 +59,9 @@ writer trigger (2+ non-trivial files -> delegated writer).
   - [x] D8 (`7f432ff`, RED 12 failing -> GREEN, last xfail removed; e2e 49 passed) contract: manifest carries no version for the published projects.json (e2e xfail).
         Owner decision 2026-10-20: the filesystem publisher writes a manifest.json into the destination
         (schemaVersion + per-file version and digest), with its own schema, validation and docs.
-  - [ ] D9 duplicate entry-point names silently shadow each other
-  - [ ] D10 eager plugin loading: one broken entry point breaks every generate/list
-  - [ ] D11 manifest indexes stray files (dotfiles, unknown names); unreachable digest-mismatch branch in check
+  - [x] D9 (`ffa211a`, RED 3 -> GREEN) duplicate entry-point names silently shadow each other
+  - [x] D10 (`8d6dff8`, RED 3 -> GREEN; e2e plugin contract: `list` no longer fails on a broken plugin) eager plugin loading: one broken entry point breaks every generate/list
+  - [x] D11 (`edd9157`, RED -> GREEN; hidden files skipped, unknown names still indexed for plugins; dead digest branch removed) manifest indexes stray files (dotfiles, unknown names); unreachable digest-mismatch branch in check
   - [ ] D12 setuptools>=61 floor with PEP 639 `license = "MIT"` (needs >=77)
   - [ ] D13 malformed credential declaration treated as missing credential (skipped, exit 0)
   - [ ] D14 `skipped` overloaded for dry-run and missing credential; linkedin adapter labelled capability push
