@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import tempfile
 from collections.abc import Mapping
 from dataclasses import dataclass, replace
@@ -82,9 +83,17 @@ def read_state(ctx: ProjectContext) -> dict[str, str]:
         return {}
     try:
         loaded = json.loads(path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
-        # A corrupt ledger must not block publishing. The worst case is one
-        # redundant publish, which is strictly better than refusing to run.
+    except (ValueError, OSError) as exc:
+        # A corrupt or unreadable ledger must not block publishing. The worst
+        # case is one redundant publish, which is strictly better than
+        # refusing to run. ValueError covers both JSONDecodeError and
+        # UnicodeDecodeError. Said out loud, so a ledger that stays broken —
+        # and republishes every run — does not go unnoticed.
+        print(
+            f"warning: ignoring unreadable publish ledger {path}: {exc} — "
+            "every destination is treated as changed",
+            file=sys.stderr,
+        )
         return {}
     return {str(k): str(v) for k, v in loaded.items()} if isinstance(loaded, dict) else {}
 

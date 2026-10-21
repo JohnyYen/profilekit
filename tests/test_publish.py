@@ -153,13 +153,44 @@ def test_the_ledger_is_local_and_gitignored(project: Path) -> None:
     assert ".profilekit/" in ignore, "the ledger records one machine's runs; it must not be shared"
 
 
-def test_a_corrupt_ledger_does_not_block_publishing(project: Path) -> None:
-    """Worst case is one redundant publish, which beats refusing to run."""
+@pytest.mark.parametrize(
+    "damage",
+    ["invalid-json", "invalid-utf8", "unreadable"],
+)
+def test_a_corrupt_ledger_does_not_block_publishing(
+    project: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture, damage: str
+) -> None:
+    """Worst case is one redundant publish, which beats refusing to run.
+
+    Ignoring the ledger is still reported, so a persistently broken ledger —
+    and the redundant publishes it causes — does not go unnoticed.
+    """
     _publish(project, "--execute")
     ledger = project / publish.STATE_DIR / publish.STATE_FILENAME
-    ledger.write_text("{not json", encoding="utf-8")
+    if damage == "invalid-json":
+        ledger.write_text("{not json", encoding="utf-8")
+    elif damage == "invalid-utf8":
+        ledger.write_bytes(b'{"site": "\xff\xfe"}')
+    else:
+        real_read_text = Path.read_text
 
-    assert _publish(project, "--execute") == 0
+        def deny_ledger(self: Path, *args: object, **kwargs: object) -> str:
+            if self == ledger:
+                raise PermissionError(13, "Permission denied", str(self))
+            return real_read_text(self, *args, **kwargs)  # type: ignore[arg-type]
+
+        monkeypatch.setattr(Path, "read_text", deny_ledger)
+    (project / "app" / "data" / "about.json").write_text("{}\n", encoding="utf-8")
+    capsys.readouterr()
+
+    rc = _publish(project, "--execute")
+    out = capsys.readouterr()
+
+    assert rc == 0
+    site_line = next(line for line in out.out.splitlines() if line.startswith("site"))
+    assert "published" in site_line
+    assert f"warning: ignoring unreadable publish ledger {ledger}" in out.err
+    assert "Traceback" not in out.out + out.err
 
 
 def test_a_ledger_write_failure_keeps_the_results_and_fails(
