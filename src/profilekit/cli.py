@@ -98,15 +98,18 @@ def _stale_published_destinations(ctx: ProjectContext) -> list[str]:
     return stale
 
 
-def _registered_generators() -> dict[str, Callable[..., Any]] | int:
-    """Return the registered generators, or an exit code after reporting why not.
+def _registered_generator_names() -> list[str] | int:
+    """Return the registered generator names, or an exit code after reporting why not.
+
+    Names come from distribution metadata; nothing is imported here, so a
+    broken third-party plugin cannot break a command that does not need it.
 
     An empty registry is a broken install — the package's own entry points
     are missing — never a project with nothing to do. Treating it as success
     made ``generate all`` write a manifest indexing nothing and exit 0.
     """
     try:
-        available = registry.generators()
+        available = registry.names(registry.GENERATOR_GROUP)
     except registry.RegistryError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return exc.exit_code
@@ -127,19 +130,31 @@ def cmd_generate(target: str, ctx: ProjectContext) -> int:
     Targets come from the registry, which is the only enumeration source.
     Publishers are in a different entry-point group, so none can be reached
     from here regardless of what a project declares.
+
+    Only the selected generators are imported, and all of them before any
+    runs: ``generate all`` must not leave a half-regenerated tree behind
+    because the last plugin in the list could not be imported.
     """
-    available = _registered_generators()
+    available = _registered_generator_names()
     if isinstance(available, int):
         return available
 
     if target == "all":
-        selected = list(available.items())
+        wanted = available
     elif target in available:
-        selected = [(target, available[target])]
+        wanted = [target]
     else:
         valid = ", ".join(["all", *available])
         print(f"error: unknown target '{target}' (choose from: {valid})", file=sys.stderr)
         return 2
+
+    selected: list[tuple[str, Callable[..., Any]]] = []
+    for name in wanted:
+        try:
+            selected.append((name, registry.component(registry.GENERATOR_GROUP, name)))
+        except registry.RegistryError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return exc.exit_code
 
     for name, run in selected:
         try:
@@ -429,8 +444,8 @@ def cmd_init(target: Path) -> int:
 
 
 def cmd_list(ctx: ProjectContext) -> int:
-    """Print the registered generation targets and publish destinations."""
-    available = _registered_generators()
+    """Print the registered generation targets, without importing any of them."""
+    available = _registered_generator_names()
     if isinstance(available, int):
         return available
     for name in available:

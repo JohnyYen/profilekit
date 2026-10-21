@@ -207,7 +207,11 @@ def test_a_plugin_publisher_runs_on_execute(plugin_project: Path, plugin_profile
 def test_a_plugin_that_fails_to_import_is_named(
     plugin_project: Path, plugin_profile, plugin_env: Path, tmp_path: Path
 ) -> None:
-    """A broken third-party generator must say which one it is.
+    """A broken third-party generator fails only the commands that import it.
+
+    Discovery reads names from metadata, so `list` and an unrelated target
+    keep working; `generate all` and `generate broken-card` must import it and
+    must say which plugin broke.
 
     Installed with `--target` into its own directory and made visible through
     `PYTHONPATH` for these invocations only, so the shared plugin environment
@@ -233,13 +237,22 @@ def test_a_plugin_that_fails_to_import_is_named(
     assert install.returncode == 0, f"install failed:\n{install.stdout}\n{install.stderr}"
 
     extra = {"PYTHONPATH": str(target)}
-    for command in ("generate", "list"):
-        result = plugin_profile(command, cwd=plugin_project, env_extra=extra)
+    for args in (("generate", "all"), ("generate", "broken-card")):
+        result = plugin_profile(*args, cwd=plugin_project, env_extra=extra)
 
-        assert result.returncode == 1, f"{command}: {result.stdout}\n{result.stderr}"
+        assert result.returncode == 1, f"{args}: {result.stdout}\n{result.stderr}"
         assert "'broken-card'" in result.stderr
         assert "failed to load" in result.stderr
+        assert "profilekit_e2e_missing_dependency" in result.stderr
         assert "Traceback" not in result.stderr
+
+    listed = plugin_profile("list", cwd=plugin_project, env_extra=extra)
+    assert listed.returncode == 0, listed.stderr
+    assert "broken-card" in listed.stdout.split(), "list names a plugin without importing it"
+
+    unrelated = plugin_profile("generate", "cv", cwd=plugin_project, env_extra=extra)
+    assert unrelated.returncode == 0, unrelated.stderr
+    assert "Traceback" not in unrelated.stderr
 
     # The control: without the extra directory the same project works, so the
     # failure above came from the broken plugin and nothing else.

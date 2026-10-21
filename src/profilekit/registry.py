@@ -105,11 +105,30 @@ def _load(group: str, entry_point: Any) -> Callable[..., Any]:
     return cast("Callable[..., Any]", loaded)
 
 
+def names(group: str) -> list[str]:
+    """Return the names registered under *group*, sorted, without importing any.
+
+    Discovery reads distribution metadata only. Importing is deferred to the
+    component a command actually needs, so one broken third-party plugin
+    cannot take down every command — or every unrelated target.
+    """
+    return list(_discover(group))
+
+
+def component(group: str, name: str) -> Callable[..., Any]:
+    """Load the single component *name* registered under *group*."""
+    discovered = _discover(group)
+    if name not in discovered:
+        raise RegistryError(f"no component {name!r} is registered in group {group!r}")
+    return _load(group, discovered[name])
+
+
 def components(group: str) -> dict[str, Callable[..., Any]]:
     """Load every component registered under *group*, keyed by name.
 
     Insertion order follows the sorted entry-point names. A component that
-    fails to import is reported by name.
+    fails to import is reported by name. Prefer :func:`names` and
+    :func:`component` when only some components are needed.
     """
     return {name: _load(group, ep) for name, ep in _discover(group).items()}
 
@@ -129,7 +148,9 @@ __all__ = [
     "KNOWN_GROUPS",
     "PUBLISHER_GROUP",
     "RegistryError",
+    "component",
     "components",
     "generators",
+    "names",
     "publishers",
 ]

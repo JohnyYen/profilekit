@@ -244,10 +244,11 @@ def _load_publisher(destination: Destination) -> Any:
         return builtin[destination.kind]()
 
     # An out-of-tree adapter registers itself as a publisher entry point. Its
-    # kind is its registered name.
-    available = registry.publishers()
-    if destination.kind in available:
-        return _AdapterPublisher(available[destination.kind], destination.kind)
+    # kind is its registered name. Only that one is imported, so an unrelated
+    # broken plugin cannot fail this destination.
+    if destination.kind in registry.names(registry.PUBLISHER_GROUP):
+        adapter = registry.component(registry.PUBLISHER_GROUP, destination.kind)
+        return _AdapterPublisher(adapter, destination.kind)
 
     raise registry.RegistryError(
         f"destination {destination.name!r} declares unknown kind {destination.kind!r}; "

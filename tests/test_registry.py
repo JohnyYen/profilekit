@@ -34,7 +34,13 @@ class _FakeEntryPoint:
         self._value = value
 
     def load(self) -> object:
+        if isinstance(self._value, _Unloadable):
+            raise ImportError("bad import")
         return self._value
+
+
+class _Unloadable:
+    """Marks a fake entry point whose import fails."""
 
 
 def _noop(ctx: object) -> None:
@@ -181,6 +187,23 @@ def test_the_same_name_in_different_groups_is_not_a_duplicate(fake_entry_points)
 
     assert "linkedin" in registry.generators()
     assert "linkedin" in registry.publishers()
+
+
+def test_names_are_discovered_without_importing(fake_entry_points) -> None:
+    """Discovery reads metadata only; a broken import surfaces when it is loaded."""
+    fake_entry_points("broken", registry.GENERATOR_GROUP, value=_Unloadable())
+    fake_entry_points("cv", registry.GENERATOR_GROUP)
+
+    assert registry.names(registry.GENERATOR_GROUP) == ["broken", "cv"]
+    assert registry.component(registry.GENERATOR_GROUP, "cv") is _noop
+
+    with pytest.raises(registry.RegistryError, match="'broken' .* failed to load: bad import"):
+        registry.component(registry.GENERATOR_GROUP, "broken")
+
+
+def test_loading_an_unregistered_name_is_named(fake_entry_points) -> None:
+    with pytest.raises(registry.RegistryError, match="no component 'acme'"):
+        registry.component(registry.GENERATOR_GROUP, "acme")
 
 
 # ---------------------------------------------------------------------------

@@ -14,7 +14,8 @@ import pytest
 
 import profilekit.cli as cli
 
-TARGET_ORDER = ["github-readme", "linkedin", "portfolio", "cv"]
+#: The registry runs targets in sorted entry-point name order.
+TARGET_ORDER = ["cv", "github-readme", "linkedin", "portfolio"]
 
 MINIMAL_PROJECT = "[project]\nconfig_version = 1\n"
 
@@ -26,9 +27,44 @@ def project(tmp_path: Path) -> Path:
     return tmp_path
 
 
+class _EntryPoint:
+    """Stand-in for an importlib.metadata entry point; records every load."""
+
+    loads: list[str]
+
+    def __init__(self, name: str, value: object, loads: list[str]) -> None:
+        self.name = name
+        self.value = f"fake_module:{name}"
+        self.dist = None
+        self._value = value
+        self.loads = loads
+
+    def load(self) -> object:
+        self.loads.append(self.name)
+        if isinstance(self._value, BaseException):
+            raise self._value
+        return self._value
+
+
+def _install_generators(monkeypatch, generators: dict[str, object]) -> list[str]:
+    """Register *generators* as fake entry points; return the log of loads.
+
+    A value that is an exception is raised on load, like a plugin whose own
+    import fails.
+    """
+    loads: list[str] = []
+    entry_points = [_EntryPoint(name, value, loads) for name, value in generators.items()]
+    monkeypatch.setattr(
+        cli.registry,
+        "_entry_points_for",
+        lambda group: entry_points if group == cli.registry.GENERATOR_GROUP else [],
+    )
+    return loads
+
+
 @pytest.fixture
 def spies(monkeypatch, project: Path):
-    """Replace cli.GENERATORS with call-recording spies; return the call log."""
+    """Register call-recording generators; return the call log."""
     calls: list[str] = []
 
     def make_spy(name: str):
@@ -37,8 +73,7 @@ def spies(monkeypatch, project: Path):
 
         return _spy
 
-    fake = {name: make_spy(name) for name in TARGET_ORDER}
-    monkeypatch.setattr(cli.registry, "generators", lambda: fake)
+    _install_generators(monkeypatch, {name: make_spy(name) for name in TARGET_ORDER})
     return calls
 
 
@@ -97,7 +132,7 @@ def test_generate_failure_propagates(project, monkeypatch, capsys):
     def boom(ctx):
         raise RuntimeError("kaboom")
 
-    monkeypatch.setattr(cli.registry, "generators", lambda: {"cv": boom})
+    _install_generators(monkeypatch, {"cv": boom})
     rc = _run(project, "generate", "cv")
     assert rc != 0
     out = capsys.readouterr()
@@ -154,6 +189,59 @@ def test_list_prints_all_targets(spies, project, capsys):
         assert name in out, f"{name} should appear in list output"
 
 
+# --- broken plugins --------------------------------------------------------
+
+
+def _with_a_broken_plugin(monkeypatch) -> tuple[list[str], list[str]]:
+    calls: list[str] = []
+    loads = _install_generators(
+        monkeypatch,
+        {
+            "broken-card": ImportError("No module named 'missing_dependency'"),
+            "cv": lambda ctx: calls.append("cv"),
+        },
+    )
+    return calls, loads
+
+
+def test_list_names_targets_without_importing_them(project, monkeypatch, capsys):
+    """`list` reads names from metadata; a broken plugin cannot break it."""
+    _calls, loads = _with_a_broken_plugin(monkeypatch)
+
+    rc = _run(project, "list")
+    out = capsys.readouterr()
+
+    assert rc == 0, out.err
+    assert out.out.split() == ["broken-card", "cv"]
+    assert loads == [], "listing must not import any component"
+
+
+def test_generating_one_target_ignores_an_unrelated_broken_plugin(project, monkeypatch, capsys):
+    calls, loads = _with_a_broken_plugin(monkeypatch)
+
+    rc = _run(project, "generate", "cv")
+    out = capsys.readouterr()
+
+    assert rc == 0, out.err
+    assert calls == ["cv"]
+    assert loads == ["cv"], "only the selected target may be imported"
+
+
+@pytest.mark.parametrize("argv", [("generate", "all"), ("generate", "broken-card")])
+def test_a_broken_plugin_fails_the_commands_that_need_it(project, monkeypatch, capsys, argv):
+    calls, _loads = _with_a_broken_plugin(monkeypatch)
+
+    rc = _run(project, *argv)
+    out = capsys.readouterr()
+
+    assert rc == 1
+    assert "component 'broken-card' in group 'profilekit.generators' failed to load" in out.err
+    assert "missing_dependency" in out.err
+    assert "Traceback" not in out.err + out.out
+    assert calls == [], "no generator may run when the set it needs cannot load"
+    assert not (project / "output" / "manifest.json").exists()
+
+
 # --- empty registry ----------------------------------------------------------
 
 
@@ -168,7 +256,7 @@ def test_empty_generator_registry_fails_loudly(project, monkeypatch, capsys, arg
     With no entry points, `generate all` used to write only the manifest and
     exit 0, and `list` printed nothing and exit 0.
     """
-    monkeypatch.setattr(cli.registry, "generators", lambda: {})
+    _install_generators(monkeypatch, {})
     rc = _run(project, *argv)
     out = capsys.readouterr()
     assert rc == 1

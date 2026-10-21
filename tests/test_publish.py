@@ -25,6 +25,32 @@ import pytest
 from profilekit import cli, manifest, publish
 from profilekit.context import discover_project
 
+
+class _AdapterEntryPoint:
+    """Stand-in for an installed publisher entry point."""
+
+    def __init__(self, name: str, value: object) -> None:
+        self.name = name
+        self.value = f"fake_module:{name}"
+        self.dist = None
+        self._value = value
+
+    def load(self) -> object:
+        if isinstance(self._value, BaseException):
+            raise self._value
+        return self._value
+
+
+def _register_adapter(monkeypatch: pytest.MonkeyPatch, *adapters: object) -> None:
+    """Register ``(kind, implementation)`` pairs as publisher entry points."""
+    pairs = list(zip(adapters[::2], adapters[1::2], strict=True))
+    entry_points = [_AdapterEntryPoint(str(kind), impl) for kind, impl in pairs]
+    monkeypatch.setattr(
+        "profilekit.registry._entry_points_for",
+        lambda group: entry_points if group == "profilekit.publishers" else [],
+    )
+
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 FIXTURE_PROJECT = REPO_ROOT / "tests" / "fixtures" / "project"
 
@@ -419,7 +445,7 @@ def test_an_adapter_destination_republishes_every_run(
         '[project]\nconfig_version = 1\n\n[publishers.acme]\nkind = "acme-cdn"\n',
         encoding="utf-8",
     )
-    monkeypatch.setattr("profilekit.registry.publishers", lambda: {"acme-cdn": adapter})
+    _register_adapter(monkeypatch, "acme-cdn", adapter)
 
     for _ in range(2):
         assert cli.main(["--project", str(tmp_path / "p"), "publish", "--execute"]) == 0
@@ -452,7 +478,7 @@ def test_an_adapter_receives_its_config_and_credentials(
         encoding="utf-8",
     )
     monkeypatch.setenv("ACME_TOKEN", "s3cret")
-    monkeypatch.setattr("profilekit.registry.publishers", lambda: {"acme-cdn": adapter})
+    _register_adapter(monkeypatch, "acme-cdn", adapter)
 
     cli.main(["--project", str(tmp_path / "p"), "publish", "--execute"])
 
@@ -482,7 +508,7 @@ def test_a_legacy_one_argument_adapter_still_works(
         '[project]\nconfig_version = 1\n\n[publishers.acme]\nkind = "acme-cdn"\n',
         encoding="utf-8",
     )
-    monkeypatch.setattr("profilekit.registry.publishers", lambda: {"acme-cdn": legacy_adapter})
+    _register_adapter(monkeypatch, "acme-cdn", legacy_adapter)
 
     rc = cli.main(["--project", str(tmp_path / "p"), "publish", "--execute"])
 
@@ -506,7 +532,7 @@ def test_a_two_argument_adapter_receives_its_config(
         '[project]\nconfig_version = 1\n\n[publishers.acme]\nkind = "acme-cdn"\nregion = "eu"\n',
         encoding="utf-8",
     )
-    monkeypatch.setattr("profilekit.registry.publishers", lambda: {"acme-cdn": two_arg_adapter})
+    _register_adapter(monkeypatch, "acme-cdn", two_arg_adapter)
 
     assert cli.main(["--project", str(tmp_path / "p"), "publish", "--execute"]) == 0
     assert seen["cfg"]["region"] == "eu"  # type: ignore[index]
@@ -534,7 +560,7 @@ def test_a_legacy_adapter_with_a_defaulted_parameter_keeps_its_default(
         '[project]\nconfig_version = 1\n\n[publishers.acme]\nkind = "acme-cdn"\nregion = "eu"\n',
         encoding="utf-8",
     )
-    monkeypatch.setattr("profilekit.registry.publishers", lambda: {"acme-cdn": legacy_with_default})
+    _register_adapter(monkeypatch, "acme-cdn", legacy_with_default)
 
     assert cli.main(["--project", str(tmp_path / "p"), "publish", "--execute"]) == 0
     assert seen["timeout"] == 30, "an unrelated parameter received the config mapping"
@@ -562,7 +588,7 @@ def test_a_keyword_only_adapter_still_receives_its_config(
         '[project]\nconfig_version = 1\n\n[publishers.acme]\nkind = "acme-cdn"\nregion = "eu"\n',
         encoding="utf-8",
     )
-    monkeypatch.setattr("profilekit.registry.publishers", lambda: {"acme-cdn": keyword_only})
+    _register_adapter(monkeypatch, "acme-cdn", keyword_only)
 
     assert cli.main(["--project", str(tmp_path / "p"), "publish", "--execute"]) == 0
     assert seen["cfg"]["region"] == "eu"  # type: ignore[index]
@@ -584,7 +610,7 @@ def test_an_adapter_taking_var_keywords_receives_everything(
         '[project]\nconfig_version = 1\n\n[publishers.acme]\nkind = "acme-cdn"\n',
         encoding="utf-8",
     )
-    monkeypatch.setattr("profilekit.registry.publishers", lambda: {"acme-cdn": var_keywords})
+    _register_adapter(monkeypatch, "acme-cdn", var_keywords)
 
     cli.main(["--project", str(tmp_path / "p"), "publish", "--execute"])
     assert sorted(seen) == ["cfg", "credentials"]
@@ -605,7 +631,7 @@ def test_a_signature_mismatch_fails_only_its_own_destination(
         '[publishers.linkedin]\nkind = "manual"\nartifacts = []\n',
         encoding="utf-8",
     )
-    monkeypatch.setattr("profilekit.registry.publishers", lambda: {"acme-cdn": broken})
+    _register_adapter(monkeypatch, "acme-cdn", broken)
 
     rc = cli.main(["--project", str(tmp_path / "p"), "publish", "--execute"])
     out = capsys.readouterr().out
@@ -613,3 +639,28 @@ def test_a_signature_mismatch_fails_only_its_own_destination(
     assert rc == 1
     assert "failed" in out
     assert "linkedin" in out, "the healthy destination must still be processed"
+
+
+def test_an_adapter_runs_when_an_unrelated_publisher_is_broken(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Only the declared kind is imported; another plugin's broken import is not ours."""
+    calls: list[int] = []
+
+    def adapter(ctx, cfg=None, credentials=None):
+        calls.append(1)
+        from profilekit.publishers import PublishResult as _R
+
+        return _R(destination="acme", status="published", detail="sent")
+
+    shutil.copytree(FIXTURE_PROJECT, tmp_path / "p")
+    (tmp_path / "p" / "profile.toml").write_text(
+        '[project]\nconfig_version = 1\n\n[publishers.acme]\nkind = "acme-cdn"\n',
+        encoding="utf-8",
+    )
+    _register_adapter(
+        monkeypatch, "acme-cdn", adapter, "zz-broken", ImportError("missing dependency")
+    )
+
+    assert cli.main(["--project", str(tmp_path / "p"), "publish", "--execute"]) == 0
+    assert calls == [1]
