@@ -364,9 +364,6 @@ def cmd_publish(
             )
         results.append(result)
 
-    if execute:
-        publish.write_state(ctx, state)
-
     width = max((len(r.destination) for r in results), default=11)
     print(f"{'DESTINATION':<{width + 2}}{'STATUS':<16}DETAIL")
     for result in results:
@@ -377,7 +374,23 @@ def cmd_publish(
     if not execute:
         print("\ndry run: nothing was published. Re-run with --execute to publish.")
 
-    return 1 if any(r.status == "failed" for r in results) else 0
+    failed = any(r.status == "failed" for r in results)
+
+    if execute:
+        # After the table, so a ledger failure cannot hide what the
+        # destinations did — they already ran and that cannot be undone.
+        ledger = publish.ledger_path(ctx)
+        try:
+            publish.write_state(ctx, state)
+        except OSError as exc:
+            print(
+                f"warning: could not write the publish ledger {ledger}: {exc} — "
+                "the next run may republish unchanged destinations",
+                file=sys.stderr,
+            )
+            return 1
+
+    return 1 if failed else 0
 
 
 def cmd_init(target: Path) -> int:

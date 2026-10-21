@@ -16,6 +16,7 @@ Each property here exists because the obvious alternative is dangerous:
 from __future__ import annotations
 
 import json
+import os
 import shutil
 from pathlib import Path
 
@@ -159,6 +160,48 @@ def test_a_corrupt_ledger_does_not_block_publishing(project: Path) -> None:
     ledger.write_text("{not json", encoding="utf-8")
 
     assert _publish(project, "--execute") == 0
+
+
+def test_a_ledger_write_failure_keeps_the_results_and_fails(
+    project: Path, capsys: pytest.CaptureFixture
+) -> None:
+    """Destinations already ran; losing their results to a traceback hides what happened."""
+    # A file where the ledger directory belongs makes the write raise OSError.
+    (project / publish.STATE_DIR).write_text("in the way\n", encoding="utf-8")
+
+    rc = _publish(project, "--execute")
+    out = capsys.readouterr()
+
+    assert rc == 1
+    site_line = next(line for line in out.out.splitlines() if line.startswith("site"))
+    assert "published" in site_line, "the results table must survive a ledger failure"
+    assert "could not write the publish ledger" in out.err
+    assert str(project / publish.STATE_DIR / publish.STATE_FILENAME) in out.err
+    assert "Traceback" not in out.out + out.err
+
+
+def test_an_interrupted_ledger_write_leaves_the_old_ledger_intact(
+    project: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+) -> None:
+    """The ledger is replaced atomically: a failed write never truncates it."""
+    _publish(project, "--execute")
+    ledger = project / publish.STATE_DIR / publish.STATE_FILENAME
+    before = ledger.read_bytes()
+    (project / "app" / "data" / "about.json").write_text("{}\n", encoding="utf-8")
+    capsys.readouterr()
+
+    def interrupted(src: object, dst: object) -> None:
+        raise OSError("disk full")
+
+    monkeypatch.setattr(os, "replace", interrupted)
+    rc = _publish(project, "--execute")
+    out = capsys.readouterr()
+
+    assert rc == 1
+    assert "disk full" in out.err
+    assert ledger.read_bytes() == before, "a failed write must not touch the existing ledger"
+    leftovers = sorted(p.name for p in ledger.parent.iterdir())
+    assert leftovers == [publish.STATE_FILENAME], f"temp files left behind: {leftovers}"
 
 
 # ---------------------------------------------------------------------------

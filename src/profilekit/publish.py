@@ -32,6 +32,8 @@ skipped publish would be a problem.
 from __future__ import annotations
 
 import json
+import os
+import tempfile
 from collections.abc import Mapping
 from dataclasses import dataclass, replace
 from pathlib import Path
@@ -63,7 +65,8 @@ def destinations(ctx: ProjectContext) -> list[Destination]:
     ]
 
 
-def _state_path(ctx: ProjectContext) -> Path:
+def ledger_path(ctx: ProjectContext) -> Path:
+    """Return where the publish ledger lives for *ctx*."""
     return ctx.root / STATE_DIR / STATE_FILENAME
 
 
@@ -74,7 +77,7 @@ def read_state(ctx: ProjectContext) -> dict[str, str]:
     published, which is the only thing it can honestly know — a shared ledger
     would claim knowledge of other people's runs.
     """
-    path = _state_path(ctx)
+    path = ledger_path(ctx)
     if not path.is_file():
         return {}
     try:
@@ -87,10 +90,30 @@ def read_state(ctx: ProjectContext) -> dict[str, str]:
 
 
 def write_state(ctx: ProjectContext, state: Mapping[str, str]) -> Path:
-    """Persist the publish ledger."""
-    path = _state_path(ctx)
+    """Persist the publish ledger atomically.
+
+    The content goes to a temporary file in the ledger's own directory and
+    then replaces the ledger in one ``os.replace``, so an interrupted write
+    leaves the previous ledger intact rather than a truncated one. Same
+    directory, because a rename is only atomic within one filesystem.
+
+    Raises ``OSError`` when the ledger cannot be written; the temporary file
+    is removed first.
+    """
+    path = ledger_path(ctx)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(dict(sorted(state.items())), indent=2) + "\n", encoding="utf-8")
+    payload = json.dumps(dict(sorted(state.items())), indent=2) + "\n"
+
+    fd, tmp_name = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(payload)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(tmp_name, path)
+    except BaseException:
+        Path(tmp_name).unlink(missing_ok=True)
+        raise
     return path
 
 
@@ -300,6 +323,7 @@ __all__ = [
     "STATE_FILENAME",
     "Destination",
     "destinations",
+    "ledger_path",
     "plan_digest",
     "publish_destination",
     "read_state",
