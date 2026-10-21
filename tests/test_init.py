@@ -94,6 +94,18 @@ def test_init_refuses_to_overwrite_an_existing_project(tmp_path: Path) -> None:
     assert "mine" in config.read_text(encoding="utf-8"), "init overwrote existing config"
 
 
+def test_init_refuses_to_overwrite_existing_profile_data(tmp_path: Path) -> None:
+    """Data without a config is still the user's data; init must not replace it."""
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    about = data_dir / "about.json"
+    about.write_text('{"name": "Mine"}\n', encoding="utf-8")
+
+    assert _init(tmp_path) != 0
+    assert about.read_text(encoding="utf-8") == '{"name": "Mine"}\n', "init overwrote data"
+    assert not (tmp_path / CONFIG_FILENAME).exists(), "init left a half-scaffolded project"
+
+
 def test_init_creates_a_missing_directory(tmp_path: Path) -> None:
     target = tmp_path / "new" / "project"
     assert _init(target) == 0

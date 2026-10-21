@@ -154,17 +154,25 @@ class ScaffoldError(Exception):
 def init_project(target: Path) -> list[Path]:
     """Scaffold a project at *target*, returning the files written.
 
-    Refuses to proceed when a configuration file already exists. Re-running
-    ``init`` over a configured project would silently discard whatever the
-    user had set up, and losing configuration is worse than an error message.
+    Refuses to proceed when a configuration file or any example data file
+    already exists. Re-running ``init`` over a configured project, or over a
+    directory that already holds profile data, would silently discard whatever
+    the user had set up, and losing data is worse than an error message. Every
+    destination is checked before the first write, so a refusal leaves the
+    directory untouched.
     """
     target = Path(target)
     config_path = target / CONFIG_FILENAME
+    data_dir = target / "data"
 
     if config_path.exists():
         raise ScaffoldError(
             f"{config_path} already exists; this directory is already a profilekit project"
         )
+    existing = [data_dir / name for name in EXAMPLE_DATA if (data_dir / name).exists()]
+    if existing:
+        names = ", ".join(str(path) for path in existing)
+        raise ScaffoldError(f"refusing to overwrite existing profile data: {names}")
 
     target.mkdir(parents=True, exist_ok=True)
     written: list[Path] = []
@@ -172,7 +180,6 @@ def init_project(target: Path) -> list[Path]:
     config_path.write_text(PROFILE_TOML, encoding="utf-8")
     written.append(config_path)
 
-    data_dir = target / "data"
     data_dir.mkdir(exist_ok=True)
     for filename, payload in EXAMPLE_DATA.items():
         path = data_dir / filename
