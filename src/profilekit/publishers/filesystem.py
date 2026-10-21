@@ -13,14 +13,16 @@ Security note: the destination is the one value here that an edit to project
 configuration can turn into an arbitrary-write primitive. It is resolved
 against ``ctx.root`` and rejected *before* any content is produced — absolute
 paths, parent-directory escapes, and symlinks pointing out of the project all
-fail closed.
+fail closed. So do destinations that would overwrite the project's own
+inputs or outputs: the root itself, and anything at or inside the canonical
+data directory or the generated output directory.
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from pathlib import Path
 
 from profilekit.manifest import stamp
@@ -46,15 +48,23 @@ _ABOUT_KEYS = (
 
 
 class UnsafeDestinationError(ValueError):
-    """Raised when a configured destination resolves outside the project root."""
+    """Raised when a configured destination is outside the project or overlaps it.
+
+    Overlap means the project root itself, or a protected directory (canonical
+    data, generated output) or anything inside one.
+    """
 
 
-def resolve_destination(root: Path, destination: str) -> Path:
-    """Resolve *destination* against *root*, refusing anything that escapes it.
+def resolve_destination(root: Path, destination: str, protected: Iterable[Path] = ()) -> Path:
+    """Resolve *destination* against *root*, refusing anything unsafe to write into.
 
     Rejects absolute paths and any relative path that — after following
     symlinks — lands outside *root*. Resolution happens first so that a
     symlinked directory inside the project cannot be used as a tunnel.
+
+    It also rejects *root* itself and any path at or inside one of the
+    *protected* directories: publishing there would overwrite the canonical
+    data the artifacts are built from, or the generated output.
     """
     candidate = Path(destination)
     if candidate.is_absolute():
@@ -69,6 +79,17 @@ def resolve_destination(root: Path, destination: str) -> Path:
         raise UnsafeDestinationError(
             f"destination escapes the project root: {destination} -> {resolved}"
         )
+    if resolved == resolved_root:
+        raise UnsafeDestinationError(
+            f"destination is the project root itself: {destination!r} -> {resolved}"
+        )
+    for directory in protected:
+        guarded = directory.resolve()
+        if resolved == guarded or guarded in resolved.parents:
+            raise UnsafeDestinationError(
+                f"destination would overwrite a project directory: {destination} -> "
+                f"{resolved} is at or inside {guarded}"
+            )
     return resolved
 
 
@@ -146,7 +167,9 @@ class FilesystemPublisher:
         produced, so an unsafe destination cannot reach ``publish()`` at all.
         """
         destination = str(cfg.get("destination", DEFAULT_DESTINATION))
-        resolved = resolve_destination(ctx.root, destination)
+        resolved = resolve_destination(
+            ctx.root, destination, protected=(ctx.data_dir, ctx.output_dir)
+        )
 
         artifacts = build_artifacts(ctx)
         changes = [

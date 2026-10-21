@@ -87,6 +87,37 @@ def test_rejects_symlink_escape(project: ProjectContext, tmp_path: Path) -> None
     assert not list(outside.iterdir()), "publisher wrote through a symlink escape"
 
 
+@pytest.mark.parametrize("destination", [".", "", "data", "data/nested", "output", "output/site"])
+def test_rejects_destinations_that_would_overwrite_project_inputs_or_outputs(
+    project: ProjectContext, destination: str
+) -> None:
+    """The root, the canonical data dir and the output dir are never a destination.
+
+    Publishing into ``data/`` would replace canonical ``about.json`` with its
+    six-key published subset — silent data loss that no later run can undo.
+    """
+    canonical = (project.data_dir / "about.json").read_bytes()
+
+    publisher = FilesystemPublisher()
+    with pytest.raises(UnsafeDestinationError, match="destination"):
+        publisher.plan(project, {"destination": destination})
+
+    assert (project.data_dir / "about.json").read_bytes() == canonical
+    assert not project.output_dir.exists()
+
+
+def test_a_custom_data_dir_is_protected_wherever_it_lives(tmp_path: Path) -> None:
+    """Protection follows the context's data dir, not the literal name ``data``."""
+    data_dir = tmp_path / "profile"
+    data_dir.mkdir()
+    for filename, payload in CANONICAL.items():
+        (data_dir / filename).write_text(json.dumps(payload), encoding="utf-8")
+    ctx = ProjectContext.for_root(tmp_path, data_dir=data_dir)
+
+    with pytest.raises(UnsafeDestinationError, match="profile"):
+        FilesystemPublisher().plan(ctx, {"destination": "profile"})
+
+
 # ---------------------------------------------------------------------------
 # plan() is read-only; publish() is the only thing that writes
 # ---------------------------------------------------------------------------
