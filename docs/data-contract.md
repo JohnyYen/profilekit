@@ -22,10 +22,12 @@ A `filesystem` publish destination additionally receives four JSON files —
 direct consumption by a frontend, plus a `manifest.json` of its own that
 versions them (see [the destination manifest](#the-destination-manifest)).
 
-## `manifest.json` is the authoritative index
+## `output/manifest.json` indexes the output directory
 
 Markdown and YAML files cannot carry a version field, so the manifest is the
-reference for **every** artifact, not just the JSON ones:
+version reference for **every** artifact in the output directory, not just the
+JSON ones. It does not cover published files: those are versioned by
+[the destination manifest](#the-destination-manifest).
 
 ```json
 {

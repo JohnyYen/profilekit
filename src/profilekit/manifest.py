@@ -12,10 +12,12 @@ JSON artifacts carry a top-level ``schemaVersion``, which is the natural place
 for it — a consumer reading the file already has the number in hand.
 
 Markdown and YAML artifacts cannot carry a field, so ``output/manifest.json``
-is the authoritative index for **all** artifacts. It also carries a content
-digest per artifact, which gives the publish layer an idempotency reference
-and gives ``profile check`` something to compare against when git is not
-available.
+is the version index for **every** artifact in ``output/``, JSON or not. It
+also carries a content digest per artifact, so a consumer can detect changes
+without diffing content. It does not cover publish destinations: a
+``filesystem`` destination gets a manifest of its own (``build_published``),
+and publish idempotency comes from ``plan().changes`` and the publish ledger,
+not from this file.
 
 **No timestamp.** Design decision D6 specified a ``generatedAt`` field. It is
 deliberately omitted: the manifest is a committed artifact, and a wall-clock

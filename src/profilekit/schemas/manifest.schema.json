@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "profilekit output manifest",
-  "description": "Authoritative index of every generated artifact. Markdown and YAML artifacts cannot carry a schemaVersion of their own, so this file is the contract reference for all of them. Carries no timestamp: it is a committed artifact, so it must be byte-identical across runs over identical data.",
+  "description": "Index of every artifact in the output directory. Markdown and YAML artifacts cannot carry a schemaVersion of their own, so this file is the contract reference for all of them. Files written to a publish destination are indexed by that destination's own manifest, not this one. Carries no timestamp: it is a committed artifact, so it must be byte-identical across runs over identical data.",
   "type": "object",
   "required": [
     "schemaVersion",

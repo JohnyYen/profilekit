@@ -9,9 +9,11 @@ reversible — a pushed commit, a posted update, an overwritten file in someone
 else's directory. Opting in to writing is cheap; discovering you wrote by
 accident is not.
 
-**Idempotency.** ``plan()`` compares the current content digest against a
-ledger of what was last published. An unchanged destination reports
-``unchanged`` and is not written. Republishing identical content wastes a
+**Idempotency.** A publisher that can read its destination (a local
+directory) reports what differs in ``plan().changes``; for one that cannot,
+the plan's content digest is compared against a ledger of what was last
+published. An unchanged destination reports ``unchanged`` and is not
+written. Republishing identical content wastes a
 round trip at best, and at worst makes a destination's history look busy when
 nothing happened.
 
@@ -159,8 +161,11 @@ def publish_destination(
 ) -> PublishResult:
     """Plan, and conditionally publish, one destination.
 
-    Returns a result rather than raising, so the caller can aggregate across
-    destinations without one failure hiding the others.
+    A missing credential and an unchanged or dry-run destination come back as
+    a result, not an exception. Anything else can raise: an unknown or broken
+    publisher kind (``_load_publisher``), and whatever the publisher's own
+    ``plan()`` or ``publish()`` raises. The caller wraps each call in its own
+    ``try/except`` so one destination's failure cannot hide the others.
     """
     publisher = _load_publisher(destination)
 

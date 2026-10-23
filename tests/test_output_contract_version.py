@@ -8,7 +8,7 @@ to whatever the generators happened to emit on the day they integrated.
 So:
 
 - JSON artifacts carry a top-level ``schemaVersion``.
-- ``output/manifest.json`` is the authoritative index for *all* artifacts,
+- ``output/manifest.json`` indexes *every* artifact in ``output/``,
   including Markdown and YAML, which cannot carry a field of their own.
 - ``schemaVersion`` is one integer per artifact. Adding an optional field does
   **not** bump it — that preserves the use-if-present-else-fallback rule the
