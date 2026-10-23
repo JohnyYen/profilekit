@@ -84,7 +84,8 @@ def digest_text(text: str) -> str:
 def build(output_dir: Path) -> dict[str, Any]:
     """Build the manifest index for every artifact in *output_dir*.
 
-    An artifact is a regular, non-hidden file directly inside *output_dir*.
+    An artifact is a regular, non-hidden, non-symlink file directly inside
+    *output_dir*.
     Hidden files (a leading ``.``) are skipped: ``.gitkeep``, editor swap
     files and ``.DS_Store`` are tooling noise, and indexing them made the
     committed contract depend on whose machine last ran the generators.
@@ -94,6 +95,13 @@ def build(output_dir: Path) -> dict[str, Any]:
     third-party generator's artifact is only recognisable as a visible file
     in the output directory; dropping unknown names would leave plugin output
     outside the contract.
+
+    Symlinks are skipped, wherever they point. Generators never create one,
+    and the filesystem publisher refuses to follow one, so a link in the
+    output directory is not an artifact; following it would put a file from
+    outside the project into the committed contract. Skipping (rather than
+    failing the run) matches how other foreign entries, such as dotfiles,
+    are treated: the manifest describes what the generators wrote.
 
     The manifest never indexes itself: its own digest would change every time
     it was written, which makes it useless as a comparison reference.
@@ -106,7 +114,12 @@ def build(output_dir: Path) -> dict[str, Any]:
         return {"schemaVersion": SCHEMA_VERSION, "artifacts": artifacts}
 
     for path in sorted(output_dir.glob("*")):
-        if not path.is_file() or path.name.startswith(".") or path.name == MANIFEST_FILENAME:
+        if (
+            path.is_symlink()
+            or not path.is_file()
+            or path.name.startswith(".")
+            or path.name == MANIFEST_FILENAME
+        ):
             continue
         artifacts.append(
             {

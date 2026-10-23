@@ -153,6 +153,29 @@ def test_manifest_indexes_a_plugin_artifact_as_unattributed(project: Path) -> No
     assert entries["cv.yml"]["generator"] == "cv"
 
 
+def test_manifest_does_not_follow_a_symlink_out_of_the_output_directory(
+    project: Path, tmp_path: Path
+) -> None:
+    """A symlink in output/ is not an artifact, wherever it points.
+
+    Generators never create links, and the publisher refuses to follow one,
+    so indexing a link would put a file outside the project into the
+    committed contract: its name, size and digest.
+    """
+    ctx = _generate_all(project)
+    outside = tmp_path / "outside-secret.txt"
+    outside.write_text("not part of the profile\n", encoding="utf-8")
+    try:
+        (ctx.output_dir / "linked.txt").symlink_to(outside)
+    except OSError:
+        pytest.skip("this platform cannot create symlinks")
+
+    names = {entry["name"] for entry in manifest.build(ctx.output_dir)["artifacts"]}
+
+    assert "linked.txt" not in names
+    assert names == set(manifest.ARTIFACT_GENERATORS)
+
+
 def test_manifest_entries_carry_a_digest_and_size(project: Path) -> None:
     ctx = _generate_all(project)
     manifest.write(ctx)
