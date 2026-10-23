@@ -2,6 +2,7 @@
 
 import sys
 from pathlib import Path
+from typing import Any
 
 from profilekit.context import ProjectContext, discover_project
 from profilekit.render import format_date_range
@@ -30,7 +31,7 @@ DEFAULT_FOOTER = (
 SKILLICONS_BASE = "https://skillicons.dev/icons?i="
 
 
-def render_header(about: dict, greeting: str = DEFAULT_GREETING) -> str:
+def render_header(about: dict[str, Any], greeting: str = DEFAULT_GREETING) -> str:
     """Render the centered HTML header with h1 (username) and h2 (headline/tagline).
 
     Prefers `githubReadmeSummary` for the h2 subtitle; falls back to
@@ -46,7 +47,7 @@ def render_header(about: dict, greeting: str = DEFAULT_GREETING) -> str:
     return "\n".join(lines)
 
 
-def render_what_i_build_section(about: dict) -> str:
+def render_what_i_build_section(about: dict[str, Any]) -> str:
     """Render the 'What I build' section from whatIBuildVariants[github] or whatIBuild."""
     items = what_i_build(about, "github")
     if not items:
@@ -58,7 +59,9 @@ def render_what_i_build_section(about: dict) -> str:
     return "\n".join(lines)
 
 
-def render_about_html(about: dict, assets_dir: Path, about_image: str = DEFAULT_ABOUT_IMAGE) -> str:
+def render_about_html(
+    about: dict[str, Any], assets_dir: Path, about_image: str = DEFAULT_ABOUT_IMAGE
+) -> str:
     """Render the centered about block, optionally with a decorative image.
 
     ``about_image`` is a project-relative path. An empty string omits the
@@ -94,7 +97,7 @@ def render_about_html(about: dict, assets_dir: Path, about_image: str = DEFAULT_
     return "\n".join(lines)
 
 
-def render_focus(about: dict) -> str:
+def render_focus(about: dict[str, Any]) -> str:
     """Render the 'What I focus on' bullet section from currentFocus entries."""
     items = about.get("currentFocus", [])
     if not items:
@@ -106,7 +109,7 @@ def render_focus(about: dict) -> str:
     return "\n".join(lines)
 
 
-def render_icon_rows(skills: dict) -> str:
+def render_icon_rows(skills: dict[str, Any]) -> str:
     """Render per-category icon rows as centered HTML div blocks.
 
     For each skill category:
@@ -151,7 +154,7 @@ def render_icon_rows(skills: dict) -> str:
     return "\n".join(output_parts)
 
 
-def render_experience_text(experience: list) -> str:
+def render_experience_text(experience: list[dict[str, Any]]) -> str:
     """Render a brief text summary of experience entries."""
     if not experience:
         return ""
@@ -168,7 +171,7 @@ def render_experience_text(experience: list) -> str:
     return "\n".join(lines)
 
 
-def render_learning(about: dict) -> str:
+def render_learning(about: dict[str, Any]) -> str:
     """Render the learningJourney text section."""
     journey = about.get("learningJourney", "")
     if not journey:
@@ -177,7 +180,7 @@ def render_learning(about: dict) -> str:
     return "\n".join(lines)
 
 
-def render_footer(about: dict, footer: str = DEFAULT_FOOTER) -> str:
+def render_footer(about: dict[str, Any], footer: str = DEFAULT_FOOTER) -> str:
     """Render the closing footer with an optional quote and sign-off."""
     quote = about.get("githubQuote", "")
     lines: list[str] = []

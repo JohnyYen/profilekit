@@ -35,14 +35,14 @@ from __future__ import annotations
 
 import json
 import sys
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
 
 from profilekit import manifest, registry
 from profilekit.context import ProjectContext
-from profilekit.publishers import PublishResult
+from profilekit.publishers import Capability, Publisher, PublishPlan, PublishResult
 from profilekit.safe_io import write_file
 from profilekit.secrets import CredentialSet, MissingCredentialError, resolve
 
@@ -176,6 +176,9 @@ def publish_destination(
     # publisher derives its destination from configuration, which may be a
     # path or absent entirely, so operator-facing text would otherwise name
     # something the project never declared.
+    # The core injects credentials onto every publisher. `Publisher` does not
+    # declare the attribute because the built-in kinds need none, so the
+    # assignment is outside the protocol by design.
     publisher.credentials = credentials  # type: ignore[attr-defined]
     plan = replace(publisher.plan(ctx, destination.config), destination=destination.name)
     digest = plan_digest(plan)
@@ -227,12 +230,15 @@ def publish_destination(
     return replace(result, destination=destination.name)
 
 
-def _load_publisher(destination: Destination) -> Any:
+def _load_publisher(destination: Destination) -> Publisher:
     """Return the publisher implementation for a destination's kind."""
     from profilekit.publishers.filesystem import FilesystemPublisher
     from profilekit.publishers.manual import ManualPublisher
 
-    builtin = {"filesystem": FilesystemPublisher, "manual": ManualPublisher}
+    builtin: dict[str, Callable[[], Publisher]] = {
+        "filesystem": FilesystemPublisher,
+        "manual": ManualPublisher,
+    }
     if destination.kind in builtin:
         return builtin[destination.kind]()
 
@@ -255,7 +261,7 @@ def _load_publisher(destination: Destination) -> Any:
     )
 
 
-def _native_publishers() -> dict[Any, Any]:
+def _native_publishers() -> dict[Callable[..., Any], Callable[[], Publisher]]:
     """Map the package's own publisher entry points to their classes."""
     from profilekit.publishers import filesystem, manual
 
@@ -268,19 +274,17 @@ def _native_publishers() -> dict[Any, Any]:
 class _AdapterPublisher:
     """Wraps a registered entry point in the two-phase publisher protocol."""
 
-    def __init__(self, entry_point: Any, kind: str) -> None:
+    def __init__(self, entry_point: Callable[..., PublishResult], kind: str) -> None:
         self._entry_point = entry_point
         self.kind = kind
-        self.capability = "push"
+        self.capability: Capability = "push"
         # An out-of-tree adapter is assumed unable to read its destination.
         # Guessing the other way would skip republishes it actually needs.
         self.reads_destination = False
         self.credentials: CredentialSet = CredentialSet({})
-        self._cfg: Mapping[str, Any] = {}
+        self._cfg: Mapping[str, object] = {}
 
-    def plan(self, ctx: ProjectContext, cfg: Mapping[str, Any]) -> Any:
-        from profilekit.publishers import PublishPlan
-
+    def plan(self, ctx: ProjectContext, cfg: Mapping[str, object]) -> PublishPlan:
         self._cfg = cfg
         return PublishPlan(
             destination=str(cfg.get("destination", self.kind)),
@@ -292,7 +296,7 @@ class _AdapterPublisher:
             changes=("<adapter-managed>",),
         )
 
-    def publish(self, ctx: ProjectContext, plan: Any) -> PublishResult:
+    def publish(self, ctx: ProjectContext, plan: PublishPlan) -> PublishResult:
         """Invoke the entry point, passing what its signature actually names.
 
         Widening the call from ``(ctx)`` to ``(ctx, cfg, credentials)`` is a

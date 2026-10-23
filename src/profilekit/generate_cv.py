@@ -1,6 +1,7 @@
 """Generate RenderCV-compatible YAML and human-readable markdown CV from canonical profile data."""
 
 from pathlib import Path
+from typing import Any
 
 from profilekit.context import ProjectContext, discover_project
 from profilekit.render import format_education_entry_yaml, format_experience_entry_yaml
@@ -57,7 +58,7 @@ def escape_yaml_string(value: str) -> str:
     return value
 
 
-def compute_cv_headline(about: dict) -> str:
+def compute_cv_headline(about: dict[str, Any]) -> str:
     """Return the YAML-escaped CV headline for the given about dict.
 
     Prefers `cvHeadline`; falls back to `headline` then `tagline`.
@@ -80,7 +81,7 @@ format_experience_entry = format_experience_entry_yaml
 format_education_entry = format_education_entry_yaml
 
 
-def format_project_entry(entry: dict) -> str:
+def format_project_entry(entry: dict[str, Any]) -> str:
     lines = [
         f'      - name: "{entry["name"]}"',
         "        date:",
@@ -95,18 +96,18 @@ def format_project_entry(entry: dict) -> str:
     return "\n".join(lines)
 
 
-def format_skill_entry(cat: dict) -> str:
+def format_skill_entry(cat: dict[str, Any]) -> str:
     details = ", ".join(skill_name(e) for e in cat["details"])
     return f"      - label: {cat['label']}\n        details: {details}"
 
 
 def render_cv_markdown(
-    about: dict,
-    experience: list,
-    education: list,
-    projects: list,
-    skills: dict,
-    social: dict,
+    about: dict[str, Any],
+    experience: list[dict[str, Any]],
+    education: list[dict[str, Any]],
+    projects: list[dict[str, Any]],
+    skills: dict[str, Any],
+    social: dict[str, Any],
 ) -> str:
     """Render a human-readable markdown CV."""
     headline_text = about.get("cvHeadline") or about.get("headline", about.get("tagline", ""))

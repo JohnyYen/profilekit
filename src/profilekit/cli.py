@@ -578,7 +578,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return exc.exit_code
 
-    return args.func(args, ctx)
+    handler: Callable[[argparse.Namespace, ProjectContext], int] = args.func
+    return handler(args, ctx)
 
 
 if __name__ == "__main__":

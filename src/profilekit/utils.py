@@ -8,6 +8,7 @@ inside the installed package rather than the user's project.
 
 import json
 import sys
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -34,7 +35,7 @@ class DataError(Exception):
         super().__init__(full_message)
 
 
-def _parse(path: Path, filename: str) -> Any:
+def _parse(path: Path, filename: str) -> object:
     """Parse the JSON at *path*, raising DataError that names *filename*.
 
     A parse error carries its line and column, so the user can go straight to
@@ -42,7 +43,8 @@ def _parse(path: Path, filename: str) -> Any:
     """
     try:
         with open(path, encoding="utf-8") as f:
-            return json.load(f)
+            parsed: object = json.load(f)
+            return parsed
     except json.JSONDecodeError as exc:
         raise DataError(
             filename,
@@ -56,7 +58,7 @@ def load_json_strict(
     filename: str,
     data_dir: Path,
     required_fields: tuple[str, ...] = (),
-) -> dict | list:
+) -> dict[str, Any] | list[Any]:
     """Load *filename* from *data_dir*, raising DataError for known faults.
 
     Raises:
@@ -83,7 +85,7 @@ def load_json_strict(
     return data
 
 
-def run(main_fn) -> None:
+def run(main_fn: Callable[[], object]) -> None:
     """Call *main_fn*(), catching DataError for clean exit.
 
     - DataError → prints the message to stderr and calls sys.exit(1).
@@ -96,7 +98,7 @@ def run(main_fn) -> None:
         sys.exit(1)
 
 
-def what_i_build(about: dict, platform: str) -> list[str]:
+def what_i_build(about: dict[str, Any], platform: str) -> list[str]:
     """Return the "what I build" bullet list for *platform*.
 
     Lookup order:
@@ -141,7 +143,7 @@ def write_output(content: str, output_dir: Path, filename: str) -> Path:
     return write_file(output_dir / filename, content, root=output_dir, overwrite=True)
 
 
-def skill_name(entry: str | dict) -> str:
+def skill_name(entry: str | dict[str, Any]) -> str:
     """Return the display name for a skill entry.
 
     Accepts either a plain string or an object dict with at least a 'name' key.
@@ -149,10 +151,11 @@ def skill_name(entry: str | dict) -> str:
     """
     if isinstance(entry, str):
         return entry
-    return entry["name"]
+    name: str = entry["name"]
+    return name
 
 
-def skill_icon(entry: str | dict) -> tuple[str | None, str | None] | None:
+def skill_icon(entry: str | dict[str, Any]) -> tuple[str | None, str | None] | None:
     """Return the icon references for a skill entry as (slug, iconUrl).
 
     - Plain string entry: returns None (no icon information available).

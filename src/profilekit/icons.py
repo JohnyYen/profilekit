@@ -10,12 +10,13 @@ raises. The check is fully skippable via ``SKIP_ICON_CHECK=1`` or the
 import os
 import urllib.error
 import urllib.request
+from typing import Any
 
 SKILLICONS_BASE = "https://skillicons.dev/icons?i="
 _DEFAULT_TIMEOUT = 5  # seconds
 
 
-def _resolve_urls(skills: dict) -> list[tuple[str, str]]:
+def _resolve_urls(skills: dict[str, Any]) -> list[tuple[str, str]]:
     """Extract (slug_or_name, url) pairs from the skills data structure."""
     pairs: list[tuple[str, str]] = []
     for cat in skills.get("categories", []):
@@ -60,7 +61,7 @@ def _check_url(label: str, url: str, timeout: int) -> str | None:
 
 
 def check_icons(
-    skills: dict, *, offline: bool = False, timeout: int = _DEFAULT_TIMEOUT
+    skills: dict[str, Any], *, offline: bool = False, timeout: int = _DEFAULT_TIMEOUT
 ) -> list[str]:
     """Check all icon URLs in *skills* for reachability.
 

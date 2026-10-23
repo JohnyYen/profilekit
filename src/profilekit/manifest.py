@@ -48,7 +48,10 @@ import hashlib
 import json
 from collections.abc import Iterable, Mapping
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from profilekit.context import ProjectContext
 
 from profilekit.safe_io import write_file
 
@@ -118,7 +121,7 @@ def build(output_dir: Path) -> dict[str, Any]:
     return {"schemaVersion": SCHEMA_VERSION, "artifacts": artifacts}
 
 
-def write(ctx: Any) -> Path:
+def write(ctx: ProjectContext) -> Path:
     """Write ``manifest.json`` into the context's output directory."""
     index = build(ctx.output_dir)
     ctx.output_dir.mkdir(parents=True, exist_ok=True)
@@ -130,12 +133,17 @@ def write(ctx: Any) -> Path:
     )
 
 
-def read(output_dir: Path) -> dict[str, Any] | None:
-    """Read the manifest from *output_dir*, or ``None`` when absent."""
+def read(output_dir: Path) -> object | None:
+    """Read the manifest from *output_dir*, or ``None`` when absent.
+
+    The parsed JSON is returned unvalidated, typed as ``object``: its shape is
+    only known after a caller checks it against ``manifest.schema.json``.
+    """
     path = output_dir / MANIFEST_FILENAME
     if not path.is_file():
         return None
-    return json.loads(path.read_text(encoding="utf-8"))
+    parsed: object = json.loads(path.read_text(encoding="utf-8"))
+    return parsed
 
 
 def build_published(files: Iterable[tuple[str, str]]) -> dict[str, Any]:

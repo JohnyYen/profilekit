@@ -2,12 +2,15 @@
 
 import sys
 from pathlib import Path
+from typing import Any
 
 from profilekit.context import ProjectContext, discover_project
 from profilekit.utils import load_json, run, what_i_build, write_output
 
 
-def compute_portfolio_projects(projects: list, highlights: list | None) -> list:
+def compute_portfolio_projects(
+    projects: list[dict[str, Any]], highlights: list[str] | None
+) -> list[dict[str, Any]]:
     """Return the ordered project list based on portfolioHighlights.
 
     - highlights is None or empty -> return all projects in source order.
@@ -32,7 +35,7 @@ def compute_portfolio_projects(projects: list, highlights: list | None) -> list:
     return result
 
 
-def render_portfolio(about: dict, projects: list) -> str:
+def render_portfolio(about: dict[str, Any], projects: list[dict[str, Any]]) -> str:
     """Render a portfolio markdown string from about metadata and a project list."""
     lines = [
         "# Portfolio",

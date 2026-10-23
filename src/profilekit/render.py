@@ -8,6 +8,7 @@ Callers import the functions they need; no generator is forced to use all of
 them.
 """
 
+from typing import Any
 
 # ---------------------------------------------------------------------------
 # Internal helper shared by YAML formatters
@@ -70,7 +71,7 @@ def format_date_range(start: str, end: str, *, default_end: str = "Present") -> 
 # ---------------------------------------------------------------------------
 
 
-def format_experience_entry_yaml(entry: dict) -> str:
+def format_experience_entry_yaml(entry: dict[str, Any]) -> str:
     """Render a single experience entry as an indented YAML block.
 
     Matches the format expected by RenderCV (8-space block indent, 10-space
@@ -92,7 +93,7 @@ def format_experience_entry_yaml(entry: dict) -> str:
     return "\n".join(lines)
 
 
-def format_education_entry_yaml(entry: dict) -> str:
+def format_education_entry_yaml(entry: dict[str, Any]) -> str:
     """Render a single education entry as an indented YAML block.
 
     Output is identical to the legacy inline formatter in ``generate_cv.py``.
@@ -118,7 +119,7 @@ def format_education_entry_yaml(entry: dict) -> str:
 # ---------------------------------------------------------------------------
 
 
-def format_experience_entry_md(entry: dict) -> str:
+def format_experience_entry_md(entry: dict[str, Any]) -> str:
     """Render a single experience entry as a markdown block.
 
     Format::
@@ -147,7 +148,7 @@ def format_experience_entry_md(entry: dict) -> str:
     return "\n".join(lines)
 
 
-def format_education_entry_md(entry: dict) -> str:
+def format_education_entry_md(entry: dict[str, Any]) -> str:
     """Render a single education entry as a markdown block.
 
     Format::

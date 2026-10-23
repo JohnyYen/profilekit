@@ -11,6 +11,7 @@ The reachability probe mirrors ``profilekit.icons`` (HEAD, GET fallback on 405).
 import os
 import urllib.error
 import urllib.request
+from typing import Any
 
 _DEFAULT_TIMEOUT = 5  # seconds
 
@@ -46,8 +47,8 @@ def _check_url(label: str, url: str, timeout: int) -> str | None:
 
 
 def check_links(
-    projects: list,
-    social: dict,
+    projects: list[dict[str, Any]],
+    social: dict[str, Any],
     *,
     offline: bool = False,
     timeout: int = _DEFAULT_TIMEOUT,

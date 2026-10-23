@@ -92,7 +92,9 @@ def validate_file(data_file: str, ctx: ProjectContext) -> tuple[bool, list[str]]
 MAX_PORTFOLIO_HIGHLIGHTS = 6
 
 
-def validate_portfolio_highlights(about: dict, projects: list) -> list[str]:
+def validate_portfolio_highlights(
+    about: dict[str, Any], projects: list[dict[str, Any]]
+) -> list[str]:
     """Validate portfolioHighlights against known project names.
 
     Returns a list of warning strings (empty = no warnings).

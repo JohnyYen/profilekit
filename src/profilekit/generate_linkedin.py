@@ -2,6 +2,7 @@
 
 import sys
 from pathlib import Path
+from typing import Any
 
 from profilekit.context import ProjectContext, discover_project
 from profilekit.render import format_date_range
@@ -26,7 +27,7 @@ def truncate_headline(headline: str, max_len: int = MAX_HEADLINE_LENGTH) -> str:
     return truncated
 
 
-def compute_headline(about: dict) -> str:
+def compute_headline(about: dict[str, Any]) -> str:
     """Return the LinkedIn headline for the given about dict.
 
     Prefers `linkedinHeadline`; falls back to `headline` then `tagline`.
@@ -43,7 +44,7 @@ def compute_headline(about: dict) -> str:
     return truncate_headline(raw)
 
 
-def render_linkedin_about(about: dict) -> str:
+def render_linkedin_about(about: dict[str, Any]) -> str:
     """Render the About / summary section for LinkedIn."""
     lines = ["## About", "", about.get("description", ""), ""]
 
@@ -66,7 +67,7 @@ def render_linkedin_about(about: dict) -> str:
     return "\n".join(lines)
 
 
-def render_linkedin_experience(experience: list) -> str:
+def render_linkedin_experience(experience: list[dict[str, Any]]) -> str:
     """Render the Experience section for LinkedIn."""
     lines = ["## Experience", ""]
     for entry in experience:
@@ -85,7 +86,7 @@ def render_linkedin_experience(experience: list) -> str:
     return "\n".join(lines)
 
 
-def render_linkedin_education(education: list) -> str:
+def render_linkedin_education(education: list[dict[str, Any]]) -> str:
     """Render the Education section for LinkedIn."""
     lines = ["## Education", ""]
     for entry in education:
@@ -100,7 +101,7 @@ def render_linkedin_education(education: list) -> str:
     return "\n".join(lines)
 
 
-def render_linkedin_skills(skills: dict) -> str:
+def render_linkedin_skills(skills: dict[str, Any]) -> str:
     """Render the Skills section for LinkedIn."""
     lines = ["## Skills", ""]
     for cat in skills.get("categories", []):
