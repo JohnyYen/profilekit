@@ -240,6 +240,7 @@ def _load_publisher(destination: Destination) -> Publisher:
         "manual": ManualPublisher,
     }
     if destination.kind in builtin:
+        _refuse_a_shadowed_plugin(destination)
         return builtin[destination.kind]()
 
     # An out-of-tree adapter registers itself as a publisher entry point. Its
@@ -258,6 +259,32 @@ def _load_publisher(destination: Destination) -> Publisher:
     raise registry.RegistryError(
         f"destination {destination.name!r} declares unknown kind {destination.kind!r}; "
         f"built-in kinds are: {', '.join(sorted(builtin))}"
+    )
+
+
+#: The distribution allowed to register publisher entry points named after
+#: a built-in kind: the package itself.
+_OWN_DISTRIBUTION = "profilekit"
+
+
+def _refuse_a_shadowed_plugin(destination: Destination) -> None:
+    """Fail when a third-party plugin registers a built-in kind's name.
+
+    The built-in used to win without a word, so the plugin never ran and
+    nothing said which implementation a destination actually used. The
+    ambiguity is the operator's to resolve, so it is refused, not guessed.
+    Only names are read: the plugin is never imported.
+    """
+    group = registry.PUBLISHER_GROUP
+    if destination.kind not in registry.names(group):
+        return
+    if registry.distribution(group, destination.kind) == _OWN_DISTRIBUTION:
+        return
+    raise registry.RegistryError(
+        f"destination {destination.name!r} declares kind {destination.kind!r}, which is "
+        f"both a built-in publisher and a plugin registered by "
+        f"{registry.provenance(group, destination.kind)}; rename the plugin's entry point "
+        f"or uninstall it"
     )
 
 

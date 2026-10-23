@@ -154,6 +154,11 @@ def publish_entry_point(ctx, cfg=None) -> PublishResult:
 The registry hands every component a uniform callable, so the two-phase
 protocol stays internal to your implementation.
 
+Do not name your entry point `filesystem` or `manual`: those kinds are
+built in. A destination declaring a kind that is both built in and
+registered by another distribution fails with an error naming both, rather
+than silently using one of them.
+
 ## Path safety
 
 If your destination is a filesystem path from configuration, it is an

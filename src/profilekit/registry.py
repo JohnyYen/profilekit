@@ -115,6 +115,23 @@ def names(group: str) -> list[str]:
     return list(_discover(group))
 
 
+def distribution(group: str, name: str) -> str | None:
+    """Return the distribution that registered *name* under *group*, without importing it.
+
+    ``None`` when *name* is not registered or its entry point carries no
+    distribution metadata.
+    """
+    entry_point = _discover(group).get(name)
+    dist = getattr(entry_point, "dist", None)
+    dist_name = getattr(dist, "name", None)
+    return dist_name if isinstance(dist_name, str) and dist_name else None
+
+
+def provenance(group: str, name: str) -> str:
+    """Say where the component *name* under *group* came from, for messages."""
+    return _provenance(_discover(group).get(name))
+
+
 def component(group: str, name: str) -> Callable[..., Any]:
     """Load the single component *name* registered under *group*."""
     discovered = _discover(group)

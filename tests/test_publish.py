@@ -29,10 +29,10 @@ from profilekit.context import discover_project
 class _AdapterEntryPoint:
     """Stand-in for an installed publisher entry point."""
 
-    def __init__(self, name: str, value: object) -> None:
+    def __init__(self, name: str, value: object, dist: str | None = None) -> None:
         self.name = name
         self.value = f"fake_module:{name}"
-        self.dist = None
+        self.dist = type("_Dist", (), {"name": dist})() if dist else None
         self._value = value
 
     def load(self) -> object:
@@ -163,6 +163,67 @@ def test_the_builtin_linkedin_entry_point_is_a_manual_destination(
 
     assert _publish(project) == 0
     assert _row(capsys.readouterr().out, "profile")[1] == "pending-manual"
+
+
+def _register_from(monkeypatch: pytest.MonkeyPatch, name: str, impl: object, dist: str) -> None:
+    """Register one publisher entry point as shipped by distribution *dist*."""
+    entry_points = [_AdapterEntryPoint(name, impl, dist=dist)]
+    monkeypatch.setattr(
+        "profilekit.registry._entry_points_for",
+        lambda group: entry_points if group == "profilekit.publishers" else [],
+    )
+
+
+@pytest.mark.parametrize("kind", ["filesystem", "manual"])
+def test_a_plugin_named_after_a_builtin_kind_is_a_conflict_not_a_shadow(
+    monkeypatch: pytest.MonkeyPatch, kind: str
+) -> None:
+    """A third-party `filesystem` publisher must not be silently ignored.
+
+    The built-in used to win without a word, so the plugin's author saw their
+    adapter never run and the operator could not tell which one published.
+    """
+    _register_from(monkeypatch, kind, lambda ctx, cfg=None, credentials=None: None, "acme-pub")
+
+    from profilekit import registry
+
+    with pytest.raises(registry.RegistryError) as exc_info:
+        publish._load_publisher(publish.Destination("dest", kind, {}))
+    message = str(exc_info.value)
+    assert f"{kind!r}" in message
+    assert "'acme-pub'" in message
+    assert "built-in" in message
+
+
+def test_the_conflict_fails_only_that_destination_with_no_traceback(
+    project: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    calls: list[int] = []
+
+    def adapter(ctx: object, cfg: object = None, credentials: object = None) -> None:
+        calls.append(1)
+
+    _register_from(monkeypatch, "filesystem", adapter, "acme-pub")
+
+    rc = _publish(project)
+    captured = capsys.readouterr()
+
+    assert rc == 1
+    assert _row(captured.out, "site")[1] == "failed"
+    assert "registered by distribution 'acme-pub'" in captured.out
+    assert _row(captured.out, "linkedin")[1] == "pending-manual"
+    assert calls == [], "neither publisher may run when the kind is ambiguous"
+    assert "Traceback" not in captured.out + captured.err
+
+
+def test_the_package_may_register_a_builtin_kind_name_itself(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from profilekit.publishers.manual import ManualPublisher, publish_entry_point
+
+    _register_from(monkeypatch, "manual", publish_entry_point, "profilekit")
+
+    assert isinstance(publish._load_publisher(publish.Destination("d", "manual", {})), ManualPublisher)
 
 
 def test_builtin_entry_points_load_their_native_publishers() -> None:
