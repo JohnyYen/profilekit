@@ -38,6 +38,15 @@ pre-commit install   # optional, runs the same checks before each commit
 - `docs/` — contributor-facing reference material (data contract, authoring
   guides for generators/publishers).
 
+### All file writes go through `profilekit.safe_io`
+
+Never call `write_text`, `write_bytes`, `open(..., "w")`, `os.replace`,
+`shutil` copies, or similar directly in `src/profilekit`. Use
+`profilekit.safe_io.write_file(path, data, root=..., overwrite=...)`: it
+refuses symlinks, paths outside `root`, and unrequested overwrites, writes
+bytes, and replaces files atomically. `tests/test_architecture_writes.py`
+fails on any direct write elsewhere, naming the module and line.
+
 ## Commit and PR conventions
 
 - Use [Conventional Commits](https://www.conventionalcommits.org/) for commit
