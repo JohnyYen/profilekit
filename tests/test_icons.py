@@ -7,6 +7,8 @@ import urllib.error
 import urllib.request
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 # ---------------------------------------------------------------------------
 # Minimal skills fixture
 # ---------------------------------------------------------------------------
@@ -127,3 +129,18 @@ def test_check_icons_skip_env_var(monkeypatch):
 
     assert warnings == []
     mock_open.assert_not_called()
+
+
+# An iconUrl that is not http(s) is reported, never opened and never raised.
+@pytest.mark.parametrize("url", ["nope", "file:///etc/hostname", "ftp://example.com/x.svg"])
+def test_check_icons_non_http_icon_url_warns_without_opening(monkeypatch, url):
+    from profilekit.icons import check_icons
+
+    monkeypatch.delenv("SKIP_ICON_CHECK", raising=False)
+    skills = {"categories": [{"details": [{"name": "Tool", "iconUrl": url}]}]}
+    with patch("urllib.request.urlopen") as mock_open:
+        result = check_icons(skills)
+    mock_open.assert_not_called()
+    assert len(result) == 1
+    assert "Tool" in result[0]
+    assert "http(s)" in result[0]

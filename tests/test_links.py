@@ -6,6 +6,8 @@ All tests must fail before links.py exists (RED).
 import urllib.error
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 
 def _projects(url: str) -> list:
     return [{"name": "MyProject", "url": url}]
@@ -116,3 +118,17 @@ def test_check_links_ignores_non_http_social(monkeypatch):
 
     assert warnings == []
     mock_open.assert_not_called()
+
+
+# A URL that is not http(s) is reported, never opened and never raised.
+@pytest.mark.parametrize("url", ["not-a-url", "file:///etc/hostname", "ftp://example.com/x"])
+def test_check_links_non_http_url_warns_without_opening(monkeypatch, url):
+    from profilekit.links import check_links
+
+    monkeypatch.delenv("SKIP_LINK_CHECK", raising=False)
+    with patch("urllib.request.urlopen") as mock_open:
+        result = check_links(_projects(url), _social())
+    mock_open.assert_not_called()
+    assert len(result) == 1
+    assert "MyProject" in result[0]
+    assert "http(s)" in result[0]

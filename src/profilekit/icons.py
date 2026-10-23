@@ -9,6 +9,7 @@ raises. The check is fully skippable via ``SKIP_ICON_CHECK=1`` or the
 
 import os
 import urllib.error
+import urllib.parse
 import urllib.request
 from typing import Any
 
@@ -36,8 +37,13 @@ def _resolve_urls(skills: dict[str, Any]) -> list[tuple[str, str]]:
 def _check_url(label: str, url: str, timeout: int) -> str | None:
     """Return a warning string if the URL is not reachable; else None.
 
-    Uses HEAD first; falls back to GET on HTTP 405 Method Not Allowed.
+    Uses HEAD first; falls back to GET on HTTP 405 Method Not Allowed. A URL
+    that is not http(s) is reported without being opened: urllib would read a
+    ``file:`` URL from local disk, and raises ``ValueError`` for a string with
+    no scheme at all.
     """
+    if urllib.parse.urlsplit(url).scheme.lower() not in ("http", "https"):
+        return f"Icon is not an http(s) URL: {label} — {url}"
     req = urllib.request.Request(url, method="HEAD")
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
