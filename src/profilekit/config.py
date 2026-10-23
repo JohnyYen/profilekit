@@ -73,6 +73,15 @@ def validate_config(config: dict[str, Any], *, source: str) -> dict[str, Any]:
                 f"{source}: [{section}] must be a table, got {type(config[section]).__name__}"
             )
 
+    # Each destination is a [publishers.<name>] table. A bare key such as
+    # `site = "oops"` would otherwise be dropped when destinations are read,
+    # and publish would report "nothing declared" with exit 0.
+    for name, entry in config.get("publishers", {}).items():
+        if not isinstance(entry, dict):
+            raise ConfigError(
+                f"{source}: [publishers.{name}] must be a table, got {type(entry).__name__}"
+            )
+
     project = config.get("project", {})
     if "config_version" not in project:
         raise ConfigError(

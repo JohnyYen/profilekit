@@ -138,6 +138,38 @@ def test_publisher_destinations_are_exposed(tmp_path: Path) -> None:
     assert destinations["linkedin"]["kind"] == "manual"
 
 
+def test_a_non_table_publisher_entry_is_an_error_naming_it(tmp_path: Path) -> None:
+    """`site = "oops"` under [publishers] is a typo, not "no destinations"."""
+    root = _write(
+        tmp_path / "p",
+        '[project]\nconfig_version = 1\n\n[publishers]\nsite = "oops"\n',
+    )
+    with pytest.raises(ConfigError) as exc_info:
+        load_config(root / "profile.toml")
+    message = str(exc_info.value)
+    assert "[publishers.site]" in message
+    assert "must be a table" in message
+    assert "str" in message
+
+
+def test_a_non_table_publisher_entry_fails_publish_with_exit_2(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from profilekit import cli
+
+    root = _write(
+        tmp_path / "p",
+        '[project]\nconfig_version = 1\n\n[publishers]\nsite = "oops"\n',
+    )
+    rc = cli.main(["--project", str(root), "publish"])
+    captured = capsys.readouterr()
+
+    assert rc == 2
+    assert "[publishers.site] must be a table" in captured.err
+    assert "no publish destinations declared" not in captured.out
+    assert "Traceback" not in captured.err + captured.out
+
+
 def test_validate_config_is_usable_on_an_in_memory_mapping() -> None:
     """Validation is separable from file IO so callers can check a dict."""
     validate_config({"project": {"config_version": 1}}, source="<memory>")
