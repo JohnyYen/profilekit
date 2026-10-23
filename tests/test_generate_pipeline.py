@@ -41,8 +41,16 @@ PROTECTED = (
 )
 
 
-def _tree_digest(root: Path) -> str:
-    """A content digest of every file under *root*, stable across runs."""
+def _tree_digest(root: Path) -> str | None:
+    """A content digest of every file under *root*, stable across runs.
+
+    ``None`` means *root* does not exist. Recording absence instead of
+    skipping the directory keeps the guard meaningful in a checkout where a
+    protected directory has not been created yet: a write that creates it
+    changes ``None`` into a digest and is reported as drift.
+    """
+    if not root.exists():
+        return None
     digest = hashlib.sha256()
     for path in sorted(p for p in root.rglob("*") if p.is_file()):
         digest.update(str(path.relative_to(root)).encode())
@@ -59,9 +67,22 @@ def project(tmp_path: Path) -> Path:
 
 
 @pytest.fixture
-def protected_digests() -> dict[Path, str]:
-    """Snapshot the directories that must survive the test unchanged."""
-    return {path: _tree_digest(path) for path in PROTECTED if path.exists()}
+def protected_digests() -> dict[Path, str | None]:
+    """Snapshot the directories that must survive the test unchanged.
+
+    Every protected directory is snapshotted, present or not, so none of
+    them can drop out of the comparison.
+    """
+    return {path: _tree_digest(path) for path in PROTECTED}
+
+
+def _file_digests(root: Path, *, exclude: Path) -> dict[Path, str]:
+    """Map every file under *root*, outside *exclude*, to its content digest."""
+    return {
+        path: hashlib.sha256(path.read_bytes()).hexdigest()
+        for path in root.rglob("*")
+        if path.is_file() and exclude not in path.parents
+    }
 
 
 def _run(argv: list[str], project: Path) -> subprocess.CompletedProcess:
@@ -104,21 +125,35 @@ def test_generate_all_writes_every_artifact(project: Path) -> None:
 
 
 def test_generation_writes_nothing_outside_the_output_directory(project: Path) -> None:
-    """Generation must not write a published destination — that is `publish`."""
-    _generate(project)
+    """Generation must not write a published destination — that is `publish`.
 
+    Every file outside ``output/`` is compared by content, whatever its
+    extension: a generator that wrote a published ``.json`` file, or
+    rewrote an input in place, escapes the boundary just as much as one that
+    wrote Markdown.
+    """
     output_dir = project / "output"
-    escaped = [
-        p
-        for p in project.rglob("*")
-        if p.is_file() and output_dir not in p.parents and p.suffix in {".md", ".yml"}
-    ]
-    assert not escaped, f"generation wrote artifacts outside output/: {escaped}"
+    before = _file_digests(project, exclude=output_dir)
+    assert before, "the fixture project has no inputs — the comparison proves nothing"
+
+    result = _generate(project)
+    assert result.returncode == 0, f"stdout: {result.stdout}\nstderr: {result.stderr}"
+
+    after = _file_digests(project, exclude=output_dir)
+    created = sorted(str(p.relative_to(project)) for p in after.keys() - before.keys())
+    changed = sorted(
+        str(p.relative_to(project)) for p in before.keys() & after.keys() if before[p] != after[p]
+    )
+    assert not created, f"generation wrote files outside output/: {created}"
+    assert not changed, f"generation modified files outside output/: {changed}"
 
 
-def test_the_real_tree_is_untouched(project: Path, protected_digests: dict[Path, str]) -> None:
+def test_the_real_tree_is_untouched(
+    project: Path, protected_digests: dict[Path, str | None]
+) -> None:
     """The guard the previous version of this file needed and lacked."""
-    _generate(project)
+    result = _generate(project)
+    assert result.returncode == 0, f"stdout: {result.stdout}\nstderr: {result.stderr}"
 
     drifted = [
         str(path.relative_to(REPO_ROOT))
