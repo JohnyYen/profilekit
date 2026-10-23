@@ -32,8 +32,9 @@ code does not have. Fix each class structurally so a new instance cannot land un
   - [ ] F5 plugin publisher named `filesystem`/`manual` silently shadowed by built-ins (publish.py)
   - [ ] F6 stale openspec/config.yaml context (old layout, hard-coded test count)
   - [ ] F7 validate.yml / portfolio.yml declare no `permissions:`
-- [ ] Q5 Docs-to-code coherence test: commands, flags, statuses and paths named in README/docs
-      exist in the CLI (worktree `docs-coherence`)
+- [x] Q5 Docs-to-code coherence test: commands, flags, statuses and paths named in README/docs
+      exist in the CLI (worktree `docs-coherence`). Integrated as `c762129` + `c8b1242` (12 tests; each check
+      proven to fail on a bogus claim; fixed the undocumented `failed` status). 438 unit passed.
 - [ ] Q6 Integrate in order Q1 -> Q5 -> Q2 -> Q3, then fix confirmed Q4 findings; full checks;
       remove worktrees
 
