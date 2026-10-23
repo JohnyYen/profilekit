@@ -108,6 +108,13 @@ A missing credential is `skipped` and exit 0 by default — an unset variable is
 a configuration state, not a crash — and `--require-credentials` escalates it
 for CI.
 
+A malformed declaration is different: a `credential` that is not a table, or an
+entry whose value is not a non-empty variable name, is a configuration error.
+`profile publish` refuses the whole run with exit 2 and names the destination
+and the field, with or without `--require-credentials` — no environment could
+make that destination publish, so reporting it as `skipped` would hide a broken
+`profile.toml`.
+
 ## Idempotency
 
 Compute a digest of what you would write and compare it. Republishing

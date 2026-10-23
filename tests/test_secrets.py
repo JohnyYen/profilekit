@@ -18,7 +18,15 @@ from __future__ import annotations
 
 import pytest
 
-from profilekit.secrets import CredentialSet, MissingCredentialError, Secret, resolve
+from profilekit.config import ConfigError
+from profilekit.secrets import (
+    CredentialDeclarationError,
+    CredentialSet,
+    MissingCredentialError,
+    Secret,
+    resolve,
+    validate_declaration,
+)
 
 TOKEN = "ghp_verySecretValue123"
 
@@ -130,6 +138,49 @@ def test_the_error_message_does_not_contain_any_value(
         resolve({"credential": {"env": "MY_TOKEN"}}, destination="acme")
 
     assert TOKEN not in str(exc_info.value)
+
+
+@pytest.mark.parametrize(
+    ("declaration", "field"),
+    [
+        ("MY_TOKEN", "credential"),
+        ({"token": 42}, "credential.token"),
+        ({"token": {"env": "MY_TOKEN"}}, "credential.token"),
+        ({"token": ""}, "credential.token"),
+    ],
+)
+def test_a_malformed_declaration_is_a_configuration_error_not_a_missing_credential(
+    monkeypatch: pytest.MonkeyPatch, declaration: object, field: str
+) -> None:
+    """A typo in profile.toml must not masquerade as an unset variable.
+
+    Treated as missing, it was reported `skipped` with exit 0 — the operator
+    saw a benign state while the destination could never have published.
+    """
+    monkeypatch.setenv("MY_TOKEN", TOKEN)
+
+    with pytest.raises(CredentialDeclarationError) as exc_info:
+        resolve({"credential": declaration}, destination="acme")
+
+    error = exc_info.value
+    assert not isinstance(error, MissingCredentialError)
+    assert isinstance(error, ConfigError)
+    assert error.exit_code == 2
+    assert "'acme'" in str(error)
+    assert field in str(error)
+    assert TOKEN not in str(error)
+
+
+def test_validate_declaration_does_not_read_the_environment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Validation is shape-only, so an absent variable is not its concern."""
+    monkeypatch.delenv("MY_TOKEN", raising=False)
+
+    validate_declaration({"credential": {"env": "MY_TOKEN"}}, destination="acme")
+    validate_declaration({}, destination="acme")
+    with pytest.raises(CredentialDeclarationError, match=r"credential\.env"):
+        validate_declaration({"credential": {"env": 1}}, destination="acme")
 
 
 def test_publishers_do_not_read_the_environment() -> None:

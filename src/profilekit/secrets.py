@@ -25,6 +25,8 @@ import os
 from collections.abc import Mapping
 from typing import Any
 
+from profilekit.config import ConfigError
+
 REDACTED = "<redacted>"
 
 
@@ -38,6 +40,18 @@ class MissingCredentialError(Exception):
     """
 
     exit_code = 1
+
+
+class CredentialDeclarationError(ConfigError):
+    """Raised when a destination's ``[publishers.X.credential]`` is malformed.
+
+    Kept apart from :class:`MissingCredentialError` because the two call for
+    opposite handling. An unset variable is a state of the machine the run is
+    on, so it is skipped by default. A declaration of the wrong shape is a
+    defect in ``profile.toml`` that no environment can satisfy — reporting it
+    as ``skipped`` with exit 0 would show a benign result for a destination
+    that can never publish. It is a ``ConfigError`` and exits like one.
+    """
 
 
 class Secret:
@@ -111,25 +125,51 @@ class CredentialSet(dict[str, Secret]):
     """
 
 
+def validate_declaration(cfg: Mapping[str, Any], *, destination: str) -> None:
+    """Check the shape of one destination's credential declaration.
+
+    Shape only — the environment is not read, so this can run for every
+    selected destination before any of them publishes. A declaration must be
+    a table mapping each credential name to a non-empty environment variable
+    name. Raises :class:`CredentialDeclarationError` naming the destination
+    and the offending field otherwise.
+    """
+    if "credential" not in cfg:
+        return
+
+    declaration = cfg["credential"]
+    if not isinstance(declaration, Mapping):
+        raise CredentialDeclarationError(
+            f"destination {destination!r}: credential must be a table of "
+            f'name = "ENV_VAR" entries, got {type(declaration).__name__}'
+        )
+
+    for key, variable in declaration.items():
+        if not isinstance(variable, str) or not variable:
+            got = type(variable).__name__ if not isinstance(variable, str) else "an empty string"
+            raise CredentialDeclarationError(
+                f"destination {destination!r}: credential.{key} must name an "
+                f"environment variable, got {got}"
+            )
+
+
 def resolve(cfg: Mapping[str, Any], *, destination: str) -> CredentialSet:
     """Resolve the credentials declared by one destination's configuration.
 
-    Reads ``[publishers.X.credential]`` entries of the form ``env = "NAME"``.
-    A destination that needs no credential — the ``filesystem`` and ``manual``
-    kinds — declares none and gets an empty set rather than being forced to
-    invent one.
+    Reads ``[publishers.X.credential]`` entries of the form
+    ``name = "ENV_VAR"``. A destination that needs no credential — the
+    ``filesystem`` and ``manual`` kinds — declares none and gets an empty set
+    rather than being forced to invent one.
+
+    A malformed declaration raises :class:`CredentialDeclarationError`; a
+    well-formed one whose variable is unset or empty raises
+    :class:`MissingCredentialError`.
     """
-    declaration = cfg.get("credential")
-    if not isinstance(declaration, dict):
-        return CredentialSet({})
+    validate_declaration(cfg, destination=destination)
+    declaration = cfg.get("credential") or {}
 
     resolved = CredentialSet({})
     for key, variable in declaration.items():
-        if not isinstance(variable, str):
-            raise MissingCredentialError(
-                f"destination {destination!r}: credential {key!r} must name an environment variable"
-            )
-
         value = os.environ.get(variable)
         if not value:
             raise MissingCredentialError(
@@ -143,8 +183,10 @@ def resolve(cfg: Mapping[str, Any], *, destination: str) -> CredentialSet:
 
 __all__ = [
     "REDACTED",
+    "CredentialDeclarationError",
     "CredentialSet",
     "MissingCredentialError",
     "Secret",
     "resolve",
+    "validate_declaration",
 ]

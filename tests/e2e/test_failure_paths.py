@@ -338,6 +338,38 @@ def test_a_present_credential_lets_the_destination_publish(
     assert (project_needing_a_credential / "site" / "data" / "about.json").is_file()
 
 
+MALFORMED_CREDENTIAL_CONFIG = """\
+[project]
+config_version = 1
+
+[publishers.site]
+kind = "filesystem"
+destination = "site/data"
+
+[publishers.site.credential]
+token = 42
+"""
+
+
+@pytest.mark.parametrize("extra", [(), ("--require-credentials",)])
+def test_a_malformed_credential_declaration_is_a_configuration_error(
+    empty_project: Path, run_profile, profile, extra: tuple[str, ...]
+) -> None:
+    """A wrong-typed declaration is a broken config, never a benign skip."""
+    run_profile("init", cwd=empty_project)
+    (empty_project / "profile.toml").write_text(MALFORMED_CREDENTIAL_CONFIG, encoding="utf-8")
+    run_profile("generate", cwd=empty_project)
+
+    result = profile("publish", "--execute", *extra, cwd=empty_project)
+
+    assert result.returncode == 2, result.stdout + result.stderr
+    assert "Traceback" not in result.stdout + result.stderr
+    assert "error: destination 'site'" in result.stderr
+    assert "credential.token" in result.stderr
+    assert "skipped" not in result.stdout
+    assert not (empty_project / "site").exists()
+
+
 MIXED_DESTINATIONS_CONFIG = """\
 [project]
 config_version = 1
