@@ -22,8 +22,12 @@ code does not have. Fix each class structurally so a new instance cannot land un
       (worktree `safe-write`). Integrated as `2dd0bb4` `a654a4d` `be7c20b`: 6 write sites / 8 raw calls migrated,
       RED ImportError -> 22 tests GREEN, architecture test proven by a reverted raw write. Known gap:
       `Path.replace` is indistinguishable from `str.replace` in the AST scan (documented). 496 unit passed.
-- [ ] Q3 mypy `strict` + ruff `BLE`, `S`, `TRY` rule sets, code brought into compliance
-      (worktree `strict-lint`)
+- [x] Q3 mypy `strict` + ruff `BLE`, `S`, `TRY` rule sets, code brought into compliance
+      (worktree `strict-lint`). Integrated as `2bb971f` `ae88790` `056482a` `f5fd2fe` `d62d729` (2 import
+      conflicts with Q2 in publish.py resolved by hand). 52 mypy errors fixed; TRY003 ignored globally
+      (messages carry context); 2 real defects fixed test-first: load_json_strict returned scalars;
+      scheme-less/`file:` URLs crashed validate or read local files. After integration: mypy strict clean,
+      ruff clean, 506 unit (94.87%), 51 e2e, pre-commit green.
 - [x] Q4 Independent read-only review of the unreviewed surface: fixes D9-D16 (ee39bdc..4a489dc) and
       phase 1 (`e702db5`, insertions only); findings only. Result: 0 CRITICAL, 2 WARNING, 5 SUGGESTION,
       no regression from a fix. To fix in Q6:
