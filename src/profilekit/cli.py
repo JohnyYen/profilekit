@@ -177,7 +177,7 @@ def cmd_validate(ctx: ProjectContext) -> int:
     return validate.main(ctx)
 
 
-def _manifest_is_valid(ctx: ProjectContext) -> int:
+def _check_output_manifest(ctx: ProjectContext) -> int:
     """Validate the output manifest against its packaged schema.
 
     The manifest is the contract third parties read, so a malformed one is a
@@ -324,7 +324,7 @@ def cmd_check(ctx: ProjectContext) -> int:
         )
         return 1
 
-    rc = _manifest_is_valid(ctx)
+    rc = _check_output_manifest(ctx)
     if rc != 0:
         return rc
 

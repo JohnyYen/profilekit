@@ -265,6 +265,12 @@ def publish_entry_point(
     their two-phase protocol internally — a plan is still computed before
     anything is written — but the registered surface is a single function so
     the loader does not need to know about kinds beyond its group.
+
+    Registered as the ``portfolio-data`` publisher. profilekit itself never
+    calls it: ``publish._load_publisher`` maps this entry point to
+    :class:`FilesystemPublisher` so the destination keeps its native
+    capability and staleness signal. It stays callable for code outside the
+    package that loads the entry point directly.
     """
     publisher = FilesystemPublisher()
     return publisher.publish(ctx, publisher.plan(ctx, cfg or {}))

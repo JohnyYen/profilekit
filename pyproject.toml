@@ -60,6 +60,13 @@ linkedin = "profilekit.generate_linkedin:main"
 portfolio = "profilekit.generate_portfolio:main"
 cv = "profilekit.generate_cv:main"
 
+# The package registers its own publishers too, under destination-flavoured
+# names, so they show up in `registry.publishers()` and can be used directly as
+# a destination `kind` (`kind = "portfolio-data"` behaves like
+# `kind = "filesystem"`, `kind = "linkedin"` like `kind = "manual"`).
+# `publish._load_publisher` resolves these two entries to their native
+# classes, so the `publish_entry_point` callables only run when something
+# outside profilekit loads the entry point and calls it.
 [project.entry-points."profilekit.publishers"]
 portfolio-data = "profilekit.publishers.filesystem:publish_entry_point"
 linkedin = "profilekit.publishers.manual:publish_entry_point"
