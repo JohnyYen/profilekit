@@ -35,19 +35,19 @@ code does not have. Fix each class structurally so a new instance cannot land un
 - [x] Q4 Independent read-only review of the unreviewed surface: fixes D9-D16 (ee39bdc..4a489dc) and
       phase 1 (`e702db5`, insertions only); findings only. Result: 0 CRITICAL, 2 WARNING, 5 SUGGESTION,
       no regression from a fix. To fix in Q6:
-  - [ ] F1 WARNING non-table `[publishers]` entry silently dropped -> publish exits 0 (context.py, config.py)
-  - [ ] F2 WARNING unanchored `lib/` in .gitignore hides new files under apps/portfolio/app/lib/
-  - [ ] F3 publish table header runs together when destination names are short (cli.py)
-  - [ ] F4 manifest.build follows symlinks in output/ (manifest.py), unlike the publisher
-  - [ ] F5 plugin publisher named `filesystem`/`manual` silently shadowed by built-ins (publish.py)
-  - [ ] F6 stale openspec/config.yaml context (old layout, hard-coded test count)
-  - [ ] F7 validate.yml / portfolio.yml declare no `permissions:`
-  - [ ] F8 (Q1 xfail) manual destination with malformed `artifacts` reports pending-manual for nothing
+  - [x] F1 (`6fee185`) WARNING non-table `[publishers]` entry silently dropped -> publish exits 0 (context.py, config.py)
+  - [x] F2 (`b285899`) WARNING unanchored `lib/` in .gitignore hides new files under apps/portfolio/app/lib/
+  - [x] F3 (`0157a90`) publish table header runs together when destination names are short (cli.py)
+  - [x] F4 (`e205027`) manifest.build follows symlinks in output/ (manifest.py), unlike the publisher
+  - [x] F5 (`b8a5962`) plugin publisher named `filesystem`/`manual` silently shadowed by built-ins (publish.py)
+  - [x] F6 (`59d8924`) stale openspec/config.yaml context (old layout, hard-coded test count)
+  - [x] F7 (`14748f6`) validate.yml / portfolio.yml declare no `permissions:`
+  - [x] F8 (`e4dbe22`) (Q1 xfail) manual destination with malformed `artifacts` reports pending-manual for nothing
 - [x] Q5 Docs-to-code coherence test: commands, flags, statuses and paths named in README/docs
       exist in the CLI (worktree `docs-coherence`). Integrated as `c762129` + `c8b1242` (12 tests; each check
       proven to fail on a bogus claim; fixed the undocumented `failed` status). 438 unit passed.
-- [ ] Q6 Integrate in order Q1 -> Q5 -> Q2 -> Q3, then fix confirmed Q4 findings; full checks;
-      remove worktrees
+- [x] Q6 Integrated Q5 -> Q2 -> Q3 -> Q1 (order followed completion; conflicts resolved by hand), fixed
+      F1-F8 test-first; full checks; worktrees and quality/* branches removed
 
 ## Acceptance criteria
 - Mutation score measured and recorded, before and after Q1's new tests.
@@ -60,4 +60,5 @@ code does not have. Fix each class structurally so a new instance cannot land un
 - Base `4a489dc`: 426 unit (94.56% line, 93.36% branch), 51 e2e, ruff/mypy (non-strict) clean.
 
 ## Next step
-Launch Q1-Q5 in parallel.
+Complete. Final: 667 unit passed, 0 xfail (97.12%), 51 e2e, mypy strict, ruff BLE/S/TRY/PT, pre-commit green.
+Open (owner): push/PR, PyPI release, data/social.json cvUrl 404.
