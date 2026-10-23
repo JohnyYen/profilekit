@@ -41,6 +41,7 @@ dev = [
     "pyyaml>=6",
     # The end-to-end suite builds the distribution before installing it.
     "build>=1",
+    "mutmut>=3.8.0",
 ]
 
 [project.urls]
@@ -124,6 +125,30 @@ ignore = ["TRY003"]
 python_version = "3.11"
 strict = true
 files = ["src/"]
+
+[tool.mutmut]
+# Mutation testing (see docs/quality/mutation-baseline.md). Only the package is
+# mutated; the end-to-end suite is excluded because it builds and installs the
+# distribution, which is far too slow to repeat once per mutant. `--no-cov`
+# drops the coverage gate from `addopts`: a partial selection of tests would
+# otherwise fail it and abort the clean run.
+source_paths = ["src/profilekit/"]
+pytest_add_cli_args = ["--no-cov", "-p", "no:cacheprovider"]
+# The deselected test inspects generator signatures, which mutmut replaces
+# with its own trampolines; it fails on the mutated copy before any mutant runs.
+pytest_add_cli_args_test_selection = [
+    "tests/",
+    "--ignore=tests/e2e",
+    "--deselect=tests/test_generator_output_boundary.py::test_every_generator_accepts_an_explicit_output_dir",
+]
+# Several unit tests read repository files next to the package (sample data,
+# docs, CI workflows, the Next.js app's data contract), so they are copied into
+# mutmut's working copy as well.
+also_copy = [
+    "data", "docs", "output", "assets", "apps", "cv", ".github",
+    "README.md", "CONTRIBUTING.md", "CHANGELOG.md", "SECURITY.md", "CODE_OF_CONDUCT.md",
+    "LICENSE", "MANIFEST.in", "profile.toml", ".pre-commit-config.yaml", ".gitignore",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

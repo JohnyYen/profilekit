@@ -229,3 +229,7 @@ cv/.agents/
 # Local publish ledger: records what THIS machine last published. Local by
 # design — a shared ledger would claim knowledge of other people' runs.
 .profilekit/
+
+# mutmut working copy and results cache (mutation testing, regenerated per run)
+mutants/
+.mutmut-cache
