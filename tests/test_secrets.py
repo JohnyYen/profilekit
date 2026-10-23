@@ -183,22 +183,61 @@ def test_validate_declaration_does_not_read_the_environment(
         validate_declaration({"credential": {"env": 1}}, destination="acme")
 
 
+#: Names through which Python code reads the process environment.
+_ENVIRONMENT_READERS = {"environ", "environb", "getenv", "getenvb"}
+
+
+def _environment_reads(source: str) -> list[int]:
+    """Line numbers of every environment read in *source*.
+
+    Parsed rather than substring-matched, so a comment or docstring that
+    mentions ``os.environ`` is not a hit and ``from os import getenv`` is.
+    """
+    import ast
+
+    def reads_environment(node: ast.AST) -> bool:
+        if isinstance(node, ast.Attribute):
+            return node.attr in _ENVIRONMENT_READERS
+        if isinstance(node, ast.Name):
+            return node.id in _ENVIRONMENT_READERS
+        if isinstance(node, ast.ImportFrom) and node.module == "os":
+            return any(alias.name in _ENVIRONMENT_READERS for alias in node.names)
+        return False
+
+    hits = [node.lineno for node in ast.walk(ast.parse(source)) if reads_environment(node)]
+    return hits
+
+
 def test_publishers_do_not_read_the_environment() -> None:
-    """Structural: no shipped publisher may call os.environ itself.
+    """Structural: no shipped publisher may read the environment itself.
 
     If a publisher reads the environment directly, the set of secrets it can
     see stops being declared in configuration and stops being auditable.
+    Every module in the publishers package is scanned, plus whatever module
+    each registered publisher resolves to, so a new built-in publisher is
+    covered without editing this test.
     """
+    import importlib
     import inspect
+    import pkgutil
 
-    from profilekit.publishers import filesystem
+    import profilekit.publishers as package
+    from profilekit import registry
 
-    for module in (filesystem,):
-        source = inspect.getsource(module)
-        assert "os.environ" not in source, (
-            f"{module.__name__} must receive credentials, not read them"
-        )
-        assert "getenv" not in source, f"{module.__name__} must receive credentials, not read them"
+    modules = {package.__name__: package}
+    for info in pkgutil.iter_modules(package.__path__, prefix=f"{package.__name__}."):
+        modules[info.name] = importlib.import_module(info.name)
+    for entry in registry.publishers().values():
+        module = inspect.getmodule(entry)
+        assert module is not None, f"cannot resolve the module behind publisher {entry!r}"
+        modules[module.__name__] = module
+
+    # The two shipped publishers must be in the scan, or it is vacuous.
+    assert {"profilekit.publishers.filesystem", "profilekit.publishers.manual"} <= set(modules)
+
+    for name, module in sorted(modules.items()):
+        lines = _environment_reads(inspect.getsource(module))
+        assert not lines, f"{name} must receive credentials, not read them (lines {lines})"
 
 
 def test_secret_refuses_to_pickle() -> None:
