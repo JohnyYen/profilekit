@@ -21,6 +21,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 
+from profilekit.config import ConfigError
 from profilekit.context import ProjectContext
 from profilekit.publishers import (
     Artifact,
@@ -39,7 +40,7 @@ class ManualPublisher:
 
     def plan(self, ctx: ProjectContext, cfg: Mapping[str, object]) -> PublishPlan:
         """Collect the artifacts a human will need, from the output directory."""
-        names = _artifact_names(cfg)
+        names = _artifact_names(cfg, destination=str(cfg.get("destination", "manual")))
         artifacts: list[Artifact] = []
         missing: list[str] = []
 
@@ -79,11 +80,34 @@ class ManualPublisher:
         )
 
 
-def _artifact_names(cfg: Mapping[str, object]) -> Sequence[str]:
+def validate_artifacts(cfg: Mapping[str, object], *, destination: str) -> None:
+    """Check the shape of a manual destination's ``artifacts`` declaration.
+
+    Shape only: whether the files were generated is checked when planning. A
+    string or a list holding a non-string used to be read as "no artifacts",
+    and the destination then asked a human to copy nothing. Raises
+    :class:`ConfigError` naming the destination and the offending field.
+    """
+    if "artifacts" not in cfg:
+        return
+    declared = cfg["artifacts"]
+    if not isinstance(declared, list):
+        raise ConfigError(
+            f"destination {destination!r}: artifacts must be a list of file names, "
+            f"got {type(declared).__name__}"
+        )
+    for index, item in enumerate(declared):
+        if not isinstance(item, str):
+            raise ConfigError(
+                f"destination {destination!r}: artifacts[{index}] must be a file name, "
+                f"got {type(item).__name__}"
+            )
+
+
+def _artifact_names(cfg: Mapping[str, object], *, destination: str) -> Sequence[str]:
+    validate_artifacts(cfg, destination=destination)
     declared = cfg.get("artifacts")
-    if isinstance(declared, list) and all(isinstance(item, str) for item in declared):
-        return tuple(declared)
-    return ()
+    return tuple(declared) if isinstance(declared, list) else ()
 
 
 def publish_entry_point(

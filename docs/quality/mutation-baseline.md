@@ -133,7 +133,10 @@ Two surviving mutants pointed at real defects. They are recorded as strict
 - `tests/test_mutation_manual.py::test_a_malformed_artifact_list_is_not_silently_ignored`:
   a manual destination whose `artifacts` is a string or holds a non-string is
   treated as declaring nothing, and reports `pending-manual` with an action
-  asking a human to copy nothing.
+  asking a human to copy nothing. Fixed afterwards: a malformed list is
+  now a configuration error naming the destination and the field, and
+  `profile publish` exits 2 before any destination publishes. The test now
+  asserts that error instead of inspecting a `pending-manual` result.
 - `tests/test_mutation_cli.py::test_publish_header_stays_separate_for_short_destination_names`:
   the publish table sizes its first column from destination names only, so
   when every name is shorter than `DESTINATION` the header reads

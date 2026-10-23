@@ -78,9 +78,7 @@ def test_validate_workflow_has_no_write_permissions() -> None:
     assert "contents: write" not in text
 
 
-@pytest.mark.parametrize(
-    "workflow", sorted(WORKFLOWS.glob("*.yml")), ids=lambda path: path.name
-)
+@pytest.mark.parametrize("workflow", sorted(WORKFLOWS.glob("*.yml")), ids=lambda path: path.name)
 def test_every_workflow_declares_its_token_permissions(workflow: Path) -> None:
     """An undeclared block inherits the repository default, which may be write-all.
 

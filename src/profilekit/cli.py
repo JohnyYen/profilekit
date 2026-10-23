@@ -22,7 +22,7 @@ from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
-from profilekit import manifest, publish, registry, secrets, validate
+from profilekit import manifest, publish, registry, validate
 from profilekit.config import ConfigError
 from profilekit.context import ProjectContext, ProjectNotFoundError, discover_project
 from profilekit.publishers.filesystem import FilesystemPublisher
@@ -364,13 +364,14 @@ def cmd_publish(
             print(f"error: unknown destination '{target}' (declared: {names})", file=sys.stderr)
             return 2
 
-    # A malformed credential declaration is a broken profile.toml, not an
-    # unset variable. Refuse the whole run before anything publishes, the way
-    # every other configuration error does — reporting it per destination as
-    # `skipped` would read as a benign state with exit 0.
+    # A malformed credential declaration (or a manual destination's malformed
+    # `artifacts` list) is a broken profile.toml, not an unset variable.
+    # Refuse the whole run before anything publishes, the way every other
+    # configuration error does — reporting it per destination as `skipped` or
+    # `pending-manual` would read as a benign state with exit 0.
     try:
         for destination in declared:
-            secrets.validate_declaration(destination.config, destination=destination.name)
+            publish.validate_declaration(destination)
     except ConfigError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return exc.exit_code

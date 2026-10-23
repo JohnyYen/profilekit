@@ -165,6 +165,33 @@ def test_the_builtin_linkedin_entry_point_is_a_manual_destination(
     assert _row(capsys.readouterr().out, "profile")[1] == "pending-manual"
 
 
+@pytest.mark.parametrize(
+    ("declared", "complaint"),
+    [
+        ('"linkedin.md"', "artifacts must be a list of file names, got str"),
+        ('["linkedin.md", 3]', "artifacts[1] must be a file name, got int"),
+    ],
+)
+def test_a_malformed_manual_artifact_list_refuses_the_run_before_publishing(
+    project: Path, capsys: pytest.CaptureFixture[str], declared: str, complaint: str
+) -> None:
+    """Like a malformed credential: exit 2, and no destination publishes."""
+    (project / "profile.toml").write_text(
+        CONFIG.replace('artifacts = ["linkedin.md"]', f"artifacts = {declared}"),
+        encoding="utf-8",
+    )
+    capsys.readouterr()
+
+    rc = _publish(project, "--execute")
+    captured = capsys.readouterr()
+
+    assert rc == 2
+    assert f"error: destination 'linkedin': {complaint}" in captured.err
+    assert "by hand" not in captured.out
+    assert not (project / "app" / "data").exists(), "nothing may publish on a config error"
+    assert "Traceback" not in captured.out + captured.err
+
+
 def _register_from(monkeypatch: pytest.MonkeyPatch, name: str, impl: object, dist: str) -> None:
     """Register one publisher entry point as shipped by distribution *dist*."""
     entry_points = [_AdapterEntryPoint(name, impl, dist=dist)]
@@ -223,7 +250,9 @@ def test_the_package_may_register_a_builtin_kind_name_itself(
 
     _register_from(monkeypatch, "manual", publish_entry_point, "profilekit")
 
-    assert isinstance(publish._load_publisher(publish.Destination("d", "manual", {})), ManualPublisher)
+    assert isinstance(
+        publish._load_publisher(publish.Destination("d", "manual", {})), ManualPublisher
+    )
 
 
 def test_builtin_entry_points_load_their_native_publishers() -> None:

@@ -45,6 +45,7 @@ from profilekit.context import ProjectContext
 from profilekit.publishers import Capability, Publisher, PublishPlan, PublishResult, Status
 from profilekit.safe_io import write_file
 from profilekit.secrets import CredentialSet, MissingCredentialError, resolve
+from profilekit.secrets import validate_declaration as validate_credentials
 
 STATE_DIR = ".profilekit"
 STATE_FILENAME = "publish-state.json"
@@ -228,6 +229,25 @@ def publish_destination(
     # so results would otherwise be labelled inconsistently with the table
     # the operator is reading.
     return replace(result, destination=destination.name)
+
+
+def validate_declaration(destination: Destination) -> None:
+    """Shape-check one destination's configuration before anything publishes.
+
+    Raises :class:`~profilekit.config.ConfigError` for a malformed credential
+    declaration or, on a manual destination, a malformed ``artifacts`` list.
+    A destination whose publisher cannot be resolved is left alone here: that
+    is reported for it alone when it runs, without stopping the others.
+    """
+    from profilekit.publishers.manual import ManualPublisher, validate_artifacts
+
+    validate_credentials(destination.config, destination=destination.name)
+    try:
+        publisher = _load_publisher(destination)
+    except registry.RegistryError:
+        return
+    if isinstance(publisher, ManualPublisher):
+        validate_artifacts(destination.config, destination=destination.name)
 
 
 def _load_publisher(destination: Destination) -> Publisher:

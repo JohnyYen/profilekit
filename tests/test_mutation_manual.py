@@ -11,6 +11,7 @@ from pathlib import Path
 
 import pytest
 
+from profilekit.config import ConfigError
 from profilekit.context import ProjectContext
 from profilekit.publishers import Artifact, PublishPlan, PublishResult
 from profilekit.publishers.manual import ManualPublisher, publish_entry_point
@@ -61,21 +62,21 @@ def test_a_destination_that_declares_no_artifacts_plans_none(ctx: ProjectContext
     assert plan.changes == ()
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "defect: a malformed `artifacts` declaration (a string, or a list with a "
-        "non-string) is silently treated as no artifacts, and the destination "
-        "reports pending-manual asking a human to copy nothing"
-    ),
+@pytest.mark.parametrize(
+    ("declared", "complaint"),
+    [
+        ("linkedin.md", "artifacts must be a list of file names, got str"),
+        (["linkedin.md", 3], "artifacts[1] must be a file name, got int"),
+    ],
 )
-@pytest.mark.parametrize("declared", ["linkedin.md", ["linkedin.md", 3]])
 def test_a_malformed_artifact_list_is_not_silently_ignored(
-    ctx: ProjectContext, declared: object
+    ctx: ProjectContext, declared: object, complaint: str
 ) -> None:
-    result = publish_entry_point(ctx, {"artifacts": declared})
+    """A malformed list is a configuration error, not "copy nothing by hand"."""
+    with pytest.raises(ConfigError) as exc_info:
+        publish_entry_point(ctx, {"destination": "LinkedIn", "artifacts": declared})
 
-    assert "copy  from" not in (result.action_required or "")
+    assert str(exc_info.value) == f"destination 'LinkedIn': {complaint}"
 
 
 def test_publish_tells_the_human_exactly_what_to_copy_and_where(ctx: ProjectContext) -> None:
