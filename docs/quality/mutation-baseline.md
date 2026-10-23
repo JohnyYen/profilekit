@@ -117,7 +117,7 @@ observable behavior changes. They are listed by kind rather than tested.
 | 12 | argparse `type=Path` changed to `None` or dropped, `default=None` dropped | Every consumer wraps the value in `Path()` again; argparse's default is already `None`. |
 | 8 | `False` changed to `None` (or a `check=False` dropped) | Only ever tested for truthiness; `subprocess.run` defaults `check` to `False`. |
 | 4 | the type string inside `typing.cast` | `cast` does nothing at runtime. |
-| 3 | `max(..., default=11)` changed | Unreachable: the table is printed only when at least one destination ran. |
+| 3 | `max(..., default=11)` changed | Unreachable: the table is printed only when at least one destination ran. The `default` was later removed when the header-width defect below was fixed. |
 | 3 | `add_subparsers(dest=...)` changed or dropped | Nothing reads `args.command`. |
 | 3 | the fallback passed to `_loaded()` in `validate.main` | Unreachable: each call sits behind a check that the file passed. |
 | 2 | `_AdapterPublisher` initial `credentials` / `_cfg` | Always overwritten before use by `publish_destination` and `plan()`. |
@@ -137,4 +137,6 @@ Two surviving mutants pointed at real defects. They are recorded as strict
 - `tests/test_mutation_cli.py::test_publish_header_stays_separate_for_short_destination_names`:
   the publish table sizes its first column from destination names only, so
   when every name is shorter than `DESTINATION` the header reads
-  `DESTINATIONSTATUS` and no longer lines up with the rows.
+  `DESTINATIONSTATUS` and no longer lines up with the rows. Fixed afterwards: the
+  column is now at least as wide as its header, and the test passes without
+  the `xfail`.

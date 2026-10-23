@@ -323,7 +323,7 @@ def test_publishing_one_target_runs_only_that_destination(
     assert _main(root, "publish", "linkedin") == 0
 
     out = capsys.readouterr().out
-    assert "linkedin  pending-manual  dry run — would write: linkedin.md\n" in out
+    assert "linkedin     pending-manual  dry run — would write: linkedin.md\n" in out
     assert "site" not in out
 
 
@@ -363,24 +363,16 @@ def test_publish_rows_actions_and_dry_run_footer(
 
     rows = capsys.readouterr().out.split("\n", 1)[1]
     assert rows == (
-        "site      would-publish   dry run — would write: about.json, social.json, "
+        "site         would-publish   dry run — would write: about.json, social.json, "
         "skills.json, projects.json, manifest.json\n"
-        "                          -> re-run with --execute to publish\n"
-        "linkedin  pending-manual  dry run — would write: linkedin.md\n"
-        "                          -> re-run with --execute to publish\n"
+        "                             -> re-run with --execute to publish\n"
+        "linkedin     pending-manual  dry run — would write: linkedin.md\n"
+        "                             -> re-run with --execute to publish\n"
         "\n"
         "dry run: nothing was published. Re-run with --execute to publish.\n"
     )
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "defect: the DESTINATION column is sized from destination names only, so "
-        "when every name is shorter than the 11-character header it runs into "
-        "STATUS ('DESTINATIONSTATUS') and the header no longer lines up with the rows"
-    ),
-)
 def test_publish_header_stays_separate_for_short_destination_names(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:

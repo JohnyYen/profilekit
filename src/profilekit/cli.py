@@ -397,7 +397,9 @@ def cmd_publish(
             )
         results.append(result)
 
-    width = max((len(r.destination) for r in results), default=11)
+    # The column must fit its own header too: sized from names alone, short
+    # names let "DESTINATION" run straight into "STATUS".
+    width = max([len("DESTINATION"), *(len(r.destination) for r in results)])
     print(f"{'DESTINATION':<{width + 2}}{'STATUS':<16}DETAIL")
     for result in results:
         print(f"{result.destination:<{width + 2}}{result.status:<16}{result.detail}")
