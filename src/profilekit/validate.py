@@ -174,7 +174,9 @@ def main(ctx: ProjectContext | None = None) -> int:
             )
             for warning in highlight_warnings:
                 print(f"WARNING: {warning}", file=sys.stderr)
-        except Exception as exc:
+        # Deliberate isolation: this cross-file check is advisory, so any
+        # failure is reported as a warning and never aborts the schema result.
+        except Exception as exc:  # noqa: BLE001
             print(f"WARNING: Could not validate portfolioHighlights: {exc}", file=sys.stderr)
 
     # Icon reachability (non-fatal, skippable)

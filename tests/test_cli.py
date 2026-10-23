@@ -288,7 +288,8 @@ def test_duplicate_generator_names_fail_without_a_traceback(project, monkeypatch
     out = capsys.readouterr()
     assert rc == 1
     assert "'cv'" in out.err
-    assert "first-dist" in out.err and "second-dist" in out.err
+    assert "first-dist" in out.err
+    assert "second-dist" in out.err
     assert "Traceback" not in out.err + out.out
     assert not (project / "output" / "manifest.json").exists()
 

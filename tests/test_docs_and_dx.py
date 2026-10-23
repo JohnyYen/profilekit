@@ -116,7 +116,8 @@ def test_the_authoring_docs_state_the_boundary() -> None:
     publishers = (DOCS / "authoring-publishers.md").read_text(encoding="utf-8").lower()
 
     assert "publisher" in generators, "the generator guide must point at the boundary"
-    assert "plan" in publishers and "publish" in publishers
+    assert "plan" in publishers
+    assert "publish" in publishers
     assert "manual" in publishers, "the manual capability must be documented"
 
 
@@ -212,6 +213,7 @@ def test_the_contract_doc_distinguishes_input_from_output_schemas() -> None:
     """Validating published output against the input schemas hides dropped fields."""
     text = (DOCS / "data-contract.md").read_text(encoding="utf-8").lower()
 
-    assert "input" in text and "permissive" in text, (
+    assert "input" in text, "the doc must explain why the input schemas are the wrong ones to use"
+    assert "permissive" in text, (
         "the doc must explain why the input schemas are the wrong ones to use"
     )

@@ -133,9 +133,8 @@ def test_portfolio_readme_states_its_reference_role() -> None:
     lowered = PORTFOLIO_README.read_text(encoding="utf-8").lower()
 
     assert "reference" in lowered, "the README must say this is a reference implementation"
-    assert "not" in lowered and "distribut" in lowered, (
-        "the README must say it is not part of the distributed package"
-    )
+    assert "not" in lowered, "the README must say it is not part of the distributed package"
+    assert "distribut" in lowered, "the README must say it is not part of the distributed package"
 
 
 def test_portfolio_readme_points_at_the_data_contract() -> None:

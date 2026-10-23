@@ -87,7 +87,8 @@ def test_render_portfolio_url_renders_as_link():
     about = make_about()
     result = render_portfolio(about, [_full_project()])
     assert "https://github.com/testuser/my-project" in result
-    assert "[" in result and "](" in result  # markdown link syntax present
+    assert "[" in result
+    assert "](" in result
 
 
 def test_render_portfolio_empty_url_no_broken_link():

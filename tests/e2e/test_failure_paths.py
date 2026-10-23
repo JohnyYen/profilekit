@@ -505,7 +505,8 @@ def test_object_shaped_published_files_carry_an_integer_schema_version(
         assert isinstance(payload, dict), f"{name} is no longer an object"
         version = payload.get("schemaVersion")
         # `bool` is an `int` subclass; `true` is not a version.
-        assert type(version) is int and version >= 1, f"{name} schemaVersion: {version!r}"
+        assert type(version) is int, f"{name} schemaVersion: {version!r}"
+        assert version >= 1, f"{name} schemaVersion: {version!r}"
         assert version == manifest["schemaVersion"], (
             f"{name} declares version {version}, the manifest {manifest['schemaVersion']}"
         )
@@ -530,5 +531,6 @@ def test_the_destination_manifest_carries_a_version_entry_for_projects_json(
 
     assert isinstance(json.loads((data / "projects.json").read_text()), list)
     version = entries["projects.json"]["schemaVersion"]
-    assert type(version) is int and version >= 1, f"projects.json schemaVersion: {version!r}"
+    assert type(version) is int, f"projects.json schemaVersion: {version!r}"
+    assert version >= 1, f"projects.json schemaVersion: {version!r}"
     assert version == index["schemaVersion"] == output_version

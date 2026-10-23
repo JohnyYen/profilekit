@@ -198,4 +198,5 @@ def test_project_context_satisfies_the_publisher_contract(tmp_path: Path) -> Non
     """Publishers take a ProjectContext; the two must not drift apart."""
     ctx = discover_project(explicit=_make_project(tmp_path / "project"))
     assert isinstance(ctx, ProjectContext)
-    assert hasattr(ctx, "root") and hasattr(ctx, "data_dir")
+    assert hasattr(ctx, "root")
+    assert hasattr(ctx, "data_dir")

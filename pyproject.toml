@@ -92,14 +92,33 @@ src = ["src", "tests"]
 extend-exclude = ["apps", "cv", "openspec", "output", "data", "assets"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "SIM"]
+# BLE, S and TRY target unhandled errors and over-broad exception handling;
+# PT keeps pytest idioms consistent in tests/.
+select = ["E", "F", "I", "UP", "B", "SIM", "BLE", "S", "TRY", "PT"]
+# TRY003 asks for messages to be built inside custom exception classes. Every
+# raise here carries site-specific context (file, field, destination, path),
+# which is the point of the message; moving it into dozens of one-use classes
+# would add types without adding information.
+ignore = ["TRY003"]
 
 [tool.ruff.lint.per-file-ignores]
 # generate_all.py intentionally bootstraps sys.path before importing the
 # profilekit package, so its imports are not at the top of the file.
 "src/profilekit/generate_all.py" = ["E402"]
+# These two modules exist to probe URLs. `_check_url` rejects every scheme but
+# http(s) before building a Request, so S310's file:/custom-scheme concern is
+# handled at the one place both call sites pass through.
+"src/profilekit/icons.py" = ["S310"]
+"src/profilekit/links.py" = ["S310"]
 # Test docstrings are descriptive and allowed to exceed the line length.
-"tests/*" = ["E501"]
+#
+# In tests: S101 because pytest asserts are the assertion mechanism; S603/S607
+# because subprocess calls run fixed argument lists (git, the interpreter, the
+# built CLI) chosen by the test, never external input; S105/S108 because
+# fake tokens and literal paths are fixtures, never real secrets or temp
+# files; TRY because test doubles raise ad-hoc exceptions on purpose to drive
+# the code under test down its error paths.
+"tests/*" = ["E501", "S101", "S105", "S108", "S603", "S607", "TRY"]
 
 [tool.mypy]
 python_version = "3.11"

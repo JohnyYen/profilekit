@@ -53,8 +53,10 @@ def _git_output_is_clean(ctx: ProjectContext) -> bool | None:
         return None
 
     try:
-        result = subprocess.run(
-            [
+        # Fixed argument list; `git` is resolved from PATH like any VCS tool,
+        # and its absence is handled below as "could not look".
+        result = subprocess.run(  # noqa: S603
+            [  # noqa: S607
                 "git",
                 "-C",
                 str(ctx.root),
