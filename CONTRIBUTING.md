@@ -27,6 +27,26 @@ uv run mypy
 pre-commit install   # optional, runs the same checks before each commit
 ```
 
+## Mutation testing
+
+Coverage says which lines the tests run; mutation testing says which behavior
+they check. [mutmut](https://github.com/boxed/mutmut) is a dev dependency,
+configured in `[tool.mutmut]` in `pyproject.toml` to mutate `src/profilekit/`
+against the unit suite (`tests/e2e` is excluded as too slow per mutant).
+
+```sh
+uv run mutmut run                      # full run, a few minutes
+uv run mutmut results                  # list surviving mutants
+uv run mutmut show <mutant-name>       # see one mutant's diff
+uv run mutmut run "profilekit.publish.*"   # re-run one module's mutants
+```
+
+A survivor is a behavior no test asserts. Kill it with a test that checks an
+output, exit code, message, or file content, or record it as equivalent with a
+reason. Scores, equivalent mutants, and defects found so far are in
+[docs/quality/mutation-baseline.md](docs/quality/mutation-baseline.md).
+Working files go to `mutants/`, which is gitignored.
+
 ## Code organization
 
 - `src/profilekit/` — the installable package: generators, validation, and
