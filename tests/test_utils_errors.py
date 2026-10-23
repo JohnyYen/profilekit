@@ -76,6 +76,24 @@ def test_load_json_strict_missing_required_field_raises_data_error(tmp_path):
     assert "tagline" in err_str
 
 
+@pytest.mark.parametrize("scalar", ["just a string", 42, None, True])
+def test_load_json_strict_scalar_document_raises_data_error(tmp_path, scalar):
+    """A data file whose top level is not an object or array is a data fault.
+
+    The function's contract is ``dict | list``; returning a scalar would hand
+    callers a value they index into, and the failure would surface far from
+    the file that caused it.
+    """
+    from profilekit.utils import DataError, load_json_strict
+
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    _write_json(data_dir / "about.json", scalar)
+
+    with pytest.raises(DataError, match="about.json"):
+        load_json_strict("about.json", data_dir)
+
+
 # ---------------------------------------------------------------------------
 # (d) run(main_fn) with DataError → exits 1 (no traceback)
 # ---------------------------------------------------------------------------

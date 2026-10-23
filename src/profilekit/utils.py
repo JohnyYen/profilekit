@@ -60,7 +60,8 @@ def load_json_strict(
     """Load *filename* from *data_dir*, raising DataError for known faults.
 
     Raises:
-        DataError: if the file is missing, contains invalid JSON, or is missing
+        DataError: if the file is missing, contains invalid JSON, holds a
+            top-level value that is not an object or array, or is missing
             any of the *required_fields*.
 
     Unlike ``load_json``, this function never calls ``sys.exit`` — callers
@@ -71,6 +72,8 @@ def load_json_strict(
         raise DataError(filename, message="data file not found")
 
     data = _parse(path, filename)
+    if not isinstance(data, (dict, list)):
+        raise DataError(filename, message="expected a JSON object or array at the top level")
 
     if required_fields and isinstance(data, dict):
         for field in required_fields:
