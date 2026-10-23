@@ -48,3 +48,33 @@ def test_authors_have_name_and_email():
     for author in authors:
         assert author.get("name"), f"author entry missing name: {author}"
         assert author.get("email"), f"author entry missing email: {author}"
+
+
+def _requirement_floor(requirement: str, name: str) -> tuple[int, ...] | None:
+    """Return the `>=` floor of `name` in a PEP 508 requirement, if it is one."""
+    head, sep, version = requirement.partition(">=")
+    if head.strip() != name or not sep:
+        return None
+    return tuple(int(part) for part in version.split(",")[0].strip().split("."))
+
+
+def test_build_backend_floor_supports_spdx_license_expression():
+    """A string `license` is a PEP 639 SPDX expression, which setuptools only
+    accepts from 77. A lower floor lets an older backend reject the build."""
+    data = _load_pyproject()
+    assert isinstance(data["project"]["license"], str), "license is expected in PEP 639 form"
+    floors = [
+        floor
+        for requirement in data["build-system"]["requires"]
+        if (floor := _requirement_floor(requirement, "setuptools")) is not None
+    ]
+    assert floors, "build-system.requires must pin a setuptools floor with >="
+    assert floors[0] >= (77,), f"setuptools floor {floors[0]} predates PEP 639 support (77)"
+
+
+def test_no_license_classifier_alongside_spdx_expression():
+    """PEP 639 forbids a `License ::` classifier next to an SPDX `license`;
+    newer setuptools rejects the combination outright."""
+    project = _load_pyproject()["project"]
+    license_classifiers = [c for c in project["classifiers"] if c.startswith("License ::")]
+    assert license_classifiers == []
