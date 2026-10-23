@@ -34,9 +34,7 @@ skipped publish would be a problem.
 from __future__ import annotations
 
 import json
-import os
 import sys
-import tempfile
 from collections.abc import Mapping
 from dataclasses import dataclass, replace
 from pathlib import Path
@@ -45,6 +43,7 @@ from typing import Any
 from profilekit import manifest, registry
 from profilekit.context import ProjectContext
 from profilekit.publishers import PublishResult
+from profilekit.safe_io import write_file
 from profilekit.secrets import CredentialSet, MissingCredentialError, resolve
 
 STATE_DIR = ".profilekit"
@@ -103,10 +102,10 @@ def read_state(ctx: ProjectContext) -> dict[str, str]:
 def write_state(ctx: ProjectContext, state: Mapping[str, str]) -> Path:
     """Persist the publish ledger atomically.
 
-    The content goes to a temporary file in the ledger's own directory and
-    then replaces the ledger in one ``os.replace``, so an interrupted write
-    leaves the previous ledger intact rather than a truncated one. Same
-    directory, because a rename is only atomic within one filesystem.
+    :func:`profilekit.safe_io.write_file` replaces the ledger through a
+    temporary file in its own directory and one ``os.replace``, so an
+    interrupted write leaves the previous ledger intact rather than a
+    truncated one.
 
     Raises ``OSError`` when the ledger cannot be written; the temporary file
     is removed first.
@@ -114,18 +113,7 @@ def write_state(ctx: ProjectContext, state: Mapping[str, str]) -> Path:
     path = ledger_path(ctx)
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = json.dumps(dict(sorted(state.items())), indent=2) + "\n"
-
-    fd, tmp_name = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8") as handle:
-            handle.write(payload)
-            handle.flush()
-            os.fsync(handle.fileno())
-        os.replace(tmp_name, path)
-    except BaseException:
-        Path(tmp_name).unlink(missing_ok=True)
-        raise
-    return path
+    return write_file(path, payload, root=path.parent, overwrite=True)
 
 
 def plan_digest(plan: Any) -> str | None:

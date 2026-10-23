@@ -35,6 +35,7 @@ from profilekit.publishers import (
     PublishPlan,
     PublishResult,
 )
+from profilekit.safe_io import write_file
 from profilekit.utils import load_json
 
 DEFAULT_DESTINATION = "apps/portfolio/app/data"
@@ -234,9 +235,9 @@ class FilesystemPublisher:
             if artifact.name in plan.changes
         ]
         for path, content in targets:
-            # Bytes, not text: text mode would translate newlines on Windows
-            # and every digest in the destination manifest would be wrong.
-            path.write_bytes(content.encode("utf-8"))
+            # safe_io writes bytes, never translated text, so every digest in
+            # the destination manifest holds on Windows too.
+            write_file(path, content, root=plan.resolved_path, overwrite=True)
 
         written = ", ".join(plan.changes)
         return PublishResult(

@@ -50,6 +50,8 @@ from collections.abc import Iterable, Mapping
 from pathlib import Path
 from typing import Any
 
+from profilekit.safe_io import write_file
+
 #: The current output-contract version. One integer, bumped only by a
 #: breaking change as defined in this module's docstring.
 SCHEMA_VERSION = 1
@@ -120,12 +122,12 @@ def write(ctx: Any) -> Path:
     """Write ``manifest.json`` into the context's output directory."""
     index = build(ctx.output_dir)
     ctx.output_dir.mkdir(parents=True, exist_ok=True)
-    path = ctx.output_dir / MANIFEST_FILENAME
-    path.write_text(
+    return write_file(
+        ctx.output_dir / MANIFEST_FILENAME,
         json.dumps(index, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
+        root=ctx.output_dir,
+        overwrite=True,
     )
-    return path
 
 
 def read(output_dir: Path) -> dict[str, Any] | None:

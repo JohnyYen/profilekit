@@ -11,6 +11,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from profilekit.safe_io import write_file
+
 # ---------------------------------------------------------------------------
 # Typed error for known data faults (missing file/field, malformed JSON)
 # ---------------------------------------------------------------------------
@@ -126,11 +128,14 @@ def load_json(filename: str, data_dir: Path) -> Any:
 
 
 def write_output(content: str, output_dir: Path, filename: str) -> Path:
-    """Write content to output_dir/filename, creating parent directories as needed."""
+    """Write content to output_dir/filename, creating output_dir as needed.
+
+    Generated output is meant to be regenerated, so an existing file is
+    replaced; the write is still refused through a symlink or out of
+    *output_dir* (see :mod:`profilekit.safe_io`).
+    """
     output_dir.mkdir(parents=True, exist_ok=True)
-    path = output_dir / filename
-    path.write_text(content, encoding="utf-8")
-    return path
+    return write_file(output_dir / filename, content, root=output_dir, overwrite=True)
 
 
 def skill_name(entry: str | dict) -> str:

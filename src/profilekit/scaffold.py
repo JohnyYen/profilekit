@@ -21,6 +21,7 @@ import json
 from pathlib import Path
 
 from profilekit.context import CONFIG_FILENAME
+from profilekit.safe_io import write_file
 
 PROFILE_TOML = """\
 # profilekit project configuration.
@@ -177,14 +178,14 @@ def init_project(target: Path) -> list[Path]:
     target.mkdir(parents=True, exist_ok=True)
     written: list[Path] = []
 
-    config_path.write_text(PROFILE_TOML, encoding="utf-8")
-    written.append(config_path)
+    # overwrite=False: the checks above give the friendly message; the helper
+    # still refuses a file that appears between them and the write.
+    written.append(write_file(config_path, PROFILE_TOML, root=target, overwrite=False))
 
     data_dir.mkdir(exist_ok=True)
     for filename, payload in EXAMPLE_DATA.items():
-        path = data_dir / filename
-        path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-        written.append(path)
+        content = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+        written.append(write_file(data_dir / filename, content, root=target, overwrite=False))
 
     return written
 
