@@ -193,3 +193,38 @@ def test_no_absolute_home_paths_in_tracked_content() -> None:
         f"tracked files contain an absolute home path: {offenders}. "
         "Use a repository-relative path instead."
     )
+
+
+def _is_ignored(path: str) -> bool | None:
+    """Ask git whether *path* is ignored; None when git or the checkout is missing."""
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(REPO_ROOT), "check-ignore", "-q", "--no-index", path],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except (FileNotFoundError, OSError):
+        return None
+    if result.returncode not in (0, 1):
+        return None
+    return result.returncode == 0
+
+
+@pytest.mark.parametrize(
+    ("path", "ignored"),
+    [
+        # The portfolio keeps real source under app/lib/; a new file there
+        # must show up in `git status`, not vanish behind a Python packaging
+        # pattern meant for a virtualenv-style lib/ at the root.
+        ("apps/portfolio/app/lib/x.ts", False),
+        ("apps/portfolio/app/lib64/x.ts", False),
+        ("lib/x.py", True),
+        ("lib64/x.py", True),
+    ],
+)
+def test_lib_ignore_patterns_are_anchored_to_the_root(path: str, ignored: bool) -> None:
+    actual = _is_ignored(path)
+    if actual is None:
+        pytest.skip("git is not available or this is not a checkout")
+    assert actual is ignored, f"{path}: ignored={actual}, expected {ignored}"
