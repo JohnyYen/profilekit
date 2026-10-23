@@ -17,7 +17,7 @@ from typing import Any
 
 import pytest
 
-from profilekit import publish
+from profilekit import publish, safe_io
 from profilekit.context import ProjectContext
 from profilekit.publish import (
     Destination,
@@ -96,7 +96,11 @@ def test_ledger_write_creates_missing_parent_directories(tmp_path: Path) -> None
 def test_ledger_is_written_through_a_temporary_file_beside_it(
     ctx: ProjectContext, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """The rename is only atomic within one directory, so the temp file lives there."""
+    """The rename is only atomic within one directory, so the temp file lives there.
+
+    The first write creates the ledger exclusively; only replacing an existing
+    ledger goes through a temporary file, so the ledger is written twice.
+    """
     seen: list[Path] = []
     real_replace = os.replace
 
@@ -104,7 +108,8 @@ def test_ledger_is_written_through_a_temporary_file_beside_it(
         seen.append(Path(src))
         real_replace(src, dst)
 
-    monkeypatch.setattr(publish.os, "replace", spy)
+    write_state(ctx, {"site": "old"})
+    monkeypatch.setattr(safe_io.os, "replace", spy)
 
     path = write_state(ctx, {"site": "abc"})
 
@@ -112,6 +117,7 @@ def test_ledger_is_written_through_a_temporary_file_beside_it(
     assert temp.parent == path.parent
     assert temp.name.startswith(".publish-state.json.")
     assert temp.name.endswith(".tmp")
+    assert read_state(ctx) == {"site": "abc"}
     assert sorted(p.name for p in path.parent.iterdir()) == ["publish-state.json"]
 
 
@@ -125,12 +131,14 @@ def test_a_failed_ledger_write_reraises_the_original_error(
         Path(src).unlink()
         raise original
 
-    monkeypatch.setattr(publish.os, "replace", vanish_then_fail)
+    write_state(ctx, {"site": "old"})
+    monkeypatch.setattr(safe_io.os, "replace", vanish_then_fail)
 
-    with pytest.raises(OSError) as excinfo:
+    with pytest.raises(OSError, match="disk went away") as excinfo:
         write_state(ctx, {"site": "abc"})
 
     assert excinfo.value is original
+    assert read_state(ctx) == {"site": "old"}
 
 
 def test_ledger_values_and_keys_are_read_as_strings(ctx: ProjectContext) -> None:
