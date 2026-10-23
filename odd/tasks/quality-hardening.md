@@ -16,8 +16,12 @@ code does not have. Fix each class structurally so a new instance cannot land un
 - Push, PR and PyPI stay with the owner.
 
 ## Tasks (route: delegated, one writer per worktree; Q4 read-only)
-- [ ] Q1 Mutation testing baseline (`mutmut`), plus new tests that kill surviving mutants
-      (worktree `mutation`; new test files only, no src changes)
+- [x] Q1 Mutation testing baseline (`mutmut`), plus new tests that kill surviving mutants
+      (worktree `mutation`; new test files only, no src changes). Integrated as 12 commits ending `7eab087`
+      + `6764b05` (two ledger tests re-pinned through safe_io after Q2). Score 71.8% -> 86.8% overall,
+      68.6% -> 96.1% in targeted modules; 78 equivalent mutants documented in docs/quality/mutation-baseline.md.
+      Two strict xfails = defects for Q6: malformed manual `artifacts` silently ignored; short-name
+      publish header merges (same as F3). After integration: 645 unit + 3 xfail (97.05%), 51 e2e.
 - [x] Q2 Single safe-write helper for every file write in src, enforced by an AST architecture test
       (worktree `safe-write`). Integrated as `2dd0bb4` `a654a4d` `be7c20b`: 6 write sites / 8 raw calls migrated,
       RED ImportError -> 22 tests GREEN, architecture test proven by a reverted raw write. Known gap:
@@ -38,6 +42,7 @@ code does not have. Fix each class structurally so a new instance cannot land un
   - [ ] F5 plugin publisher named `filesystem`/`manual` silently shadowed by built-ins (publish.py)
   - [ ] F6 stale openspec/config.yaml context (old layout, hard-coded test count)
   - [ ] F7 validate.yml / portfolio.yml declare no `permissions:`
+  - [ ] F8 (Q1 xfail) manual destination with malformed `artifacts` reports pending-manual for nothing
 - [x] Q5 Docs-to-code coherence test: commands, flags, statuses and paths named in README/docs
       exist in the CLI (worktree `docs-coherence`). Integrated as `c762129` + `c8b1242` (12 tests; each check
       proven to fail on a bogus claim; fixed the undocumented `failed` status). 438 unit passed.
