@@ -94,5 +94,8 @@ writer trigger (2+ non-trivial files -> delegated writer).
 - e29f1bc..5809780 (D1-D7) reviewed: medium, 1 lens, approved, burned (`review-cbc99daea5be0228`). Boundary -> 5809780.
   Suite 388 passed, e2e 48 + 1 xfail (D8).
 
+- ee39bdc..f558ef8 (D8 review burned `review-f113004d7aaa3598` covered ..ee39bdc; D9-D11 slice: owner
+  declined review, `declined_this_candidate`). Next slice base: f558ef8.
+
 ## Next step
 T9 triage result -> fix STILL_PRESENT findings worth fixing; T10 gap map -> T11.
