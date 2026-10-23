@@ -10,19 +10,35 @@ shipped: ``generate_portfolio_data`` wrote into ``apps/portfolio/app/data/``
 from the generate path, on a hardcoded path that callers could not redirect.
 """
 
+import hashlib
+import shutil
 from pathlib import Path
+
+import pytest
 
 import profilekit.generate_cv as cv
 import profilekit.generate_github_readme as github_readme
 import profilekit.generate_linkedin as linkedin
 import profilekit.generate_portfolio as portfolio
 from profilekit import registry
+from profilekit.context import discover_project
 
 GENERATOR_MODULES = (github_readme, linkedin, portfolio, cv)
 
+FIXTURE_PROJECT = Path(__file__).resolve().parent / "fixtures" / "project"
 
-def _files_under(root: Path) -> list[Path]:
-    return sorted(p for p in root.rglob("*") if p.is_file())
+#: Registry name -> (module, the exact artifact set it writes into output_dir).
+#: The manifest is absent on purpose: the CLI writes it, not a generator.
+EXPECTED_ARTIFACTS = {
+    "github-readme": (github_readme, {"github-readme.md"}),
+    "linkedin": (linkedin, {"linkedin.md"}),
+    "portfolio": (portfolio, {"portfolio.md"}),
+    "cv": (cv, {"cv.md", "cv.yml"}),
+}
+
+
+def _file_digests(root: Path) -> dict[Path, str]:
+    return {p: hashlib.sha256(p.read_bytes()).hexdigest() for p in root.rglob("*") if p.is_file()}
 
 
 def test_every_generator_accepts_an_explicit_output_dir() -> None:
@@ -39,23 +55,42 @@ def test_every_generator_accepts_an_explicit_output_dir() -> None:
         )
 
 
-def test_generators_write_only_inside_the_given_output_dir(tmp_path: Path) -> None:
-    """Running every generator must leave no file outside the output directory.
+def test_every_built_in_generator_has_a_declared_artifact_set() -> None:
+    """A new built-in generator must state what it writes, or the test below skips it."""
+    assert set(registry.generators()) == set(EXPECTED_ARTIFACTS)
 
-    The sandbox root is wider than the output directory on purpose: any write
-    that escapes lands in ``tmp_path`` but outside ``tmp_path/output``, and the
-    assertion catches it.
+
+@pytest.mark.parametrize("name", sorted(EXPECTED_ARTIFACTS))
+def test_each_generator_writes_exactly_its_artifacts_and_nothing_else(
+    name: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """One generator, one fresh output directory, one exact file set.
+
+    Running each generator alone means a single stray or misnamed file is
+    attributed to the generator that wrote it instead of being lost in the
+    union. The project is a sandbox copy and the working directory is the
+    sandbox, so a write that escapes to the project root, its data, or a
+    cwd-relative path lands in ``tmp_path`` and is caught.
     """
+    module, expected = EXPECTED_ARTIFACTS[name]
+    project = tmp_path / "project"
+    shutil.copytree(FIXTURE_PROJECT, project)
     output_dir = tmp_path / "output"
+    monkeypatch.chdir(tmp_path)
 
-    for module in GENERATOR_MODULES:
-        module.main(output_dir=output_dir)
+    before = _file_digests(tmp_path)
+    module.main(discover_project(explicit=project), output_dir=output_dir)
+    after = _file_digests(tmp_path)
 
-    written = _files_under(tmp_path)
-    assert written, "generators produced no files — the test proves nothing"
+    written = {p.relative_to(output_dir).as_posix() for p in after if output_dir in p.parents}
+    assert written == expected, f"{name} wrote {sorted(written)}, expected {sorted(expected)}"
 
-    escaped = [p for p in written if output_dir not in p.parents]
-    assert not escaped, f"generators wrote outside the output directory: {escaped}"
+    escaped = sorted(
+        str(p.relative_to(tmp_path))
+        for p, digest in after.items()
+        if output_dir not in p.parents and before.get(p) != digest
+    )
+    assert not escaped, f"{name} wrote outside the output directory: {escaped}"
 
 
 def test_generate_path_contains_no_publishers() -> None:
