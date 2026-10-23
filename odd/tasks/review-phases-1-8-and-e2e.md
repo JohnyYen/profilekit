@@ -65,7 +65,7 @@ writer trigger (2+ non-trivial files -> delegated writer).
   - [x] D12 (`6272f22`, RED floor 61 < 77 -> GREEN; wheel builds) setuptools>=61 floor with PEP 639 `license = "MIT"` (needs >=77)
   - [x] D13 (`6935c77`, RED ImportError/exit 0 -> GREEN; exit 2 config error) malformed credential declaration treated as missing credential (skipped, exit 0)
   - [x] D14 (`2000cf1`, RED 4 -> GREEN; dry-run push now `would-publish`, linkedin -> pending-manual) `skipped` overloaded for dry-run and missing credential; linkedin adapter labelled capability push
-  - [ ] D15 unit-test gaps: pipeline return codes and .json coverage, per-generator file sets, manual in env guard,
+  - [x] D15 (`b5fce22` `9d7566a` `70c0aca` `12ca7a6` `da189e0` `700785a`; each RED shown by a reverted src mutation; 426 passed) unit-test gaps: pipeline return codes and .json coverage, per-generator file sets, manual in env guard,
         stderr asserts in contract-version tests, generators-namespace test env dependence, conftest guard ignores untracked
   - [ ] D16 docs/wording: SECURITY.md archive path and PyPI line, publish_destination docstring, idempotency claim,
         projects.json version claim, "authoritative index", cmd_list docstring, `_manifest_is_valid` name,
