@@ -62,9 +62,9 @@ writer trigger (2+ non-trivial files -> delegated writer).
   - [x] D9 (`ffa211a`, RED 3 -> GREEN) duplicate entry-point names silently shadow each other
   - [x] D10 (`8d6dff8`, RED 3 -> GREEN; e2e plugin contract: `list` no longer fails on a broken plugin) eager plugin loading: one broken entry point breaks every generate/list
   - [x] D11 (`edd9157`, RED -> GREEN; hidden files skipped, unknown names still indexed for plugins; dead digest branch removed) manifest indexes stray files (dotfiles, unknown names); unreachable digest-mismatch branch in check
-  - [ ] D12 setuptools>=61 floor with PEP 639 `license = "MIT"` (needs >=77)
-  - [ ] D13 malformed credential declaration treated as missing credential (skipped, exit 0)
-  - [ ] D14 `skipped` overloaded for dry-run and missing credential; linkedin adapter labelled capability push
+  - [x] D12 (`6272f22`, RED floor 61 < 77 -> GREEN; wheel builds) setuptools>=61 floor with PEP 639 `license = "MIT"` (needs >=77)
+  - [x] D13 (`6935c77`, RED ImportError/exit 0 -> GREEN; exit 2 config error) malformed credential declaration treated as missing credential (skipped, exit 0)
+  - [x] D14 (`2000cf1`, RED 4 -> GREEN; dry-run push now `would-publish`, linkedin -> pending-manual) `skipped` overloaded for dry-run and missing credential; linkedin adapter labelled capability push
   - [ ] D15 unit-test gaps: pipeline return codes and .json coverage, per-generator file sets, manual in env guard,
         stderr asserts in contract-version tests, generators-namespace test env dependence, conftest guard ignores untracked
   - [ ] D16 docs/wording: SECURITY.md archive path and PyPI line, publish_destination docstring, idempotency claim,
@@ -96,6 +96,9 @@ writer trigger (2+ non-trivial files -> delegated writer).
 
 - ee39bdc..f558ef8 (D8 review burned `review-f113004d7aaa3598` covered ..ee39bdc; D9-D11 slice: owner
   declined review, `declined_this_candidate`). Next slice base: f558ef8.
+
+- 2026-10-23: owner turned review OFF for this clone (`gentle-ai review mode disable --scope clone`).
+  No further slice reviews; delivery follows ordinary repository policy (disabled/unmanaged).
 
 ## Next step
 T9 triage result -> fix STILL_PRESENT findings worth fixing; T10 gap map -> T11.
