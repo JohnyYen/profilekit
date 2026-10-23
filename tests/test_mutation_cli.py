@@ -592,8 +592,9 @@ def test_data_dir_flag_selects_the_data_to_validate(tmp_path: Path) -> None:
 
 HELP = {
     (): [
-        "usage: profile [-h] [--offline] [--project DIR] [--data-dir DIR] [--output-dir DIR]",
-        "Turn structured profile data into generated artifacts.",
+        "usage: profile [-h] [--offline] [--project DIR] [--data-dir DIR] [--output-dir DIR] "
+        "<command> ... Turn structured profile data into generated artifacts. "
+        "positional arguments: <command> generate",
         "generate Run one generator or all of them.",
         "validate Validate the data directory against the schemas.",
         "check Validate, regenerate, and verify nothing is stale.",
