@@ -21,6 +21,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
 import yaml
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -29,6 +30,7 @@ WORKFLOWS = REPO_ROOT / ".github" / "workflows"
 VALIDATE = WORKFLOWS / "validate.yml"
 PUBLISH = WORKFLOWS / "publish.yml"
 RELEASE = WORKFLOWS / "release.yml"
+PORTFOLIO = WORKFLOWS / "portfolio.yml"
 
 
 def _text(path: Path) -> str:
@@ -74,6 +76,31 @@ def test_validate_workflow_has_no_write_permissions() -> None:
     """Default read-only: a validation run has nothing to write."""
     text = _text(VALIDATE)
     assert "contents: write" not in text
+
+
+@pytest.mark.parametrize(
+    "workflow", sorted(WORKFLOWS.glob("*.yml")), ids=lambda path: path.name
+)
+def test_every_workflow_declares_its_token_permissions(workflow: Path) -> None:
+    """An undeclared block inherits the repository default, which may be write-all.
+
+    Declaring it at the top level makes the least privilege visible in review
+    and independent of a setting nobody sees in the diff.
+    """
+    permissions = _yaml(workflow).get("permissions")
+
+    assert isinstance(permissions, dict), f"{workflow.name} declares no top-level permissions"
+    assert permissions.get("contents") == "read", f"{workflow.name}: {permissions}"
+
+
+@pytest.mark.parametrize("workflow", [VALIDATE, PORTFOLIO], ids=lambda path: path.name)
+def test_read_only_workflows_grant_nothing_beyond_reading_contents(workflow: Path) -> None:
+    """Validation and the portfolio build only check out and read code."""
+    config = _yaml(workflow)
+
+    assert config["permissions"] == {"contents": "read"}
+    for name, job in config["jobs"].items():
+        assert "permissions" not in job, f"{workflow.name}: job {name!r} widens permissions"
 
 
 # ---------------------------------------------------------------------------

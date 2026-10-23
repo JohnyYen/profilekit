@@ -12,6 +12,11 @@ on:
       - "apps/portfolio/**"
       - ".github/workflows/portfolio.yml"
 
+# The build checks out, publishes into the workspace and compares; it never
+# pushes or deploys, so the token gets nothing beyond reading contents.
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest

@@ -22,6 +22,11 @@ on:
       - "uv.lock"
       - ".github/workflows/validate.yml"
 
+# A correctness gate only checks out and reads the repository; it has
+# nothing to write, so the token gets nothing beyond reading contents.
+permissions:
+  contents: read
+
 jobs:
   validate:
     runs-on: ubuntu-latest
