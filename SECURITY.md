@@ -5,7 +5,9 @@ This policy covers the **`profilekit`** package (import package
 
 ## Supported Versions
 
-This project is pre-1.0. Only the latest released version on PyPI receives
+This project is pre-release: it has not been published to PyPI yet, so
+install it from source. Until the first release, security fixes land on the
+`main` branch only. After that, only the latest released version receives
 security fixes.
 
 ## Reporting a Vulnerability
@@ -31,5 +33,5 @@ This project is **not** a secret store and does not integrate with any vault
 backend. Credentials passed to publishers are resolved per-invocation from
 environment variables declared in `profile.toml` and are never persisted by
 this tool. See `design.md` (decision D1) in
-`openspec/changes/2026-09-09-open-source-release/` for the full threat model
+`openspec/changes/archive/2026-10-11-open-source-release/` for the full threat model
 behind the publication layer.
