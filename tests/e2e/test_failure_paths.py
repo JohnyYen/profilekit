@@ -229,10 +229,9 @@ def test_check_fails_on_a_committed_manifest_with_a_tampered_digest(
 ) -> None:
     """A committed manifest that lies about its artifacts is caught.
 
-    `check` regenerates before it inspects the manifest, so the digest
-    comparison inside `_manifest_is_valid` never sees a tampered file — the
-    regenerated manifest replaces it. What catches a tampered *committed*
-    manifest is the freshness gate, which is what this asserts.
+    `check` regenerates the manifest before it inspects it, so a tampered
+    committed manifest is never read — the regenerated one replaces it. What
+    catches it is the freshness gate, which is what this asserts.
     """
     path = committed_project / "output" / "manifest.json"
     index = json.loads(path.read_text(encoding="utf-8"))

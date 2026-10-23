@@ -91,7 +91,14 @@ def publish_entry_point(
     cfg: Mapping[str, object] | None = None,
     credentials: Mapping[str, object] | None = None,
 ) -> PublishResult:
-    """Registry entry point: plan, then report the pending action."""
+    """Registry entry point: plan, then report the pending action.
+
+    Registered as the ``linkedin`` publisher. profilekit itself never calls
+    it: ``publish._load_publisher`` maps this entry point to
+    :class:`ManualPublisher` so the destination keeps its ``manual``
+    capability. It stays callable for code outside the package that loads the
+    entry point directly.
+    """
     publisher = ManualPublisher()
     return publisher.publish(ctx, publisher.plan(ctx, cfg or {}))
 
