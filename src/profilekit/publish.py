@@ -218,7 +218,7 @@ def publish_destination(
         changed = ", ".join(plan.changes) or "nothing"
         return PublishResult(
             destination=destination.name,
-            status="pending-manual" if plan.capability == "manual" else "skipped",
+            status="pending-manual" if plan.capability == "manual" else "would-publish",
             detail=f"dry run — would write: {changed}",
             action_required="re-run with --execute to publish",
         )
@@ -248,12 +248,28 @@ def _load_publisher(destination: Destination) -> Any:
     # broken plugin cannot fail this destination.
     if destination.kind in registry.names(registry.PUBLISHER_GROUP):
         adapter = registry.component(registry.PUBLISHER_GROUP, destination.kind)
+        # The package registers its own publishers as entry points too. Those
+        # resolve to their native classes: the generic wrapper would label a
+        # manual destination `push` and report a write only a human can make.
+        native = _native_publishers().get(adapter)
+        if native is not None:
+            return native()
         return _AdapterPublisher(adapter, destination.kind)
 
     raise registry.RegistryError(
         f"destination {destination.name!r} declares unknown kind {destination.kind!r}; "
         f"built-in kinds are: {', '.join(sorted(builtin))}"
     )
+
+
+def _native_publishers() -> dict[Any, Any]:
+    """Map the package's own publisher entry points to their classes."""
+    from profilekit.publishers import filesystem, manual
+
+    return {
+        filesystem.publish_entry_point: filesystem.FilesystemPublisher,
+        manual.publish_entry_point: manual.ManualPublisher,
+    }
 
 
 class _AdapterPublisher:

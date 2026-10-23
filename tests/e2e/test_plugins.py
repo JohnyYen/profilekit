@@ -192,6 +192,7 @@ def test_a_plugin_publisher_is_reported_in_a_dry_run(plugin_project: Path, plugi
     assert result.returncode == 0, result.stdout + result.stderr
     row = next(line for line in result.stdout.splitlines() if line.startswith("remote"))
     assert "<adapter-managed>" in row
+    assert row.split()[1] == "would-publish"
     assert not (plugin_project / "pushed-here").exists(), "a dry run must not call the adapter"
 
 

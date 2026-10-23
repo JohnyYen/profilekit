@@ -48,6 +48,11 @@ capability: Capability = "manual"  # no write path exists
 A `manual` publisher returns `pending-manual` with a non-null
 `action_required`, and **may never return `published`**.
 
+In a dry run the core reports a `push` destination as `would-publish` and a
+`manual` one as `pending-manual`, without calling `publish()`. `skipped` means
+only that the destination cannot publish on this machine — a declared
+credential is absent — so a dry run and a missing secret never share a label.
+
 This is not a formality. A publish layer that reports success for work it did
 not perform is worse than one that cannot publish at all: the operator stops
 checking, the destination silently goes stale, and nobody finds out until

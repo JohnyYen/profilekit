@@ -40,6 +40,8 @@ without performing any write or network call. An explicit flag (e.g.
 - WHEN `profile publish` runs without an explicit live flag
 - THEN no external write SHALL occur
 - AND the report SHALL state what would have changed
+- AND a `push` destination SHALL be marked `would-publish`, never `skipped`,
+  which is reserved for a destination missing its credential
 
 #### Scenario: Explicit live flag performs the write
 

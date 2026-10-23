@@ -108,6 +108,76 @@ def test_dry_run_says_it_published_nothing(project: Path, capsys: pytest.Capture
     assert "nothing was published" in capsys.readouterr().out
 
 
+def _row(out: str, destination: str) -> list[str]:
+    """Split the table row of *destination* into its columns."""
+    line = next(line for line in out.splitlines() if line.startswith(destination + " "))
+    return line.split()
+
+
+def test_dry_run_of_a_push_destination_reports_would_publish(
+    project: Path, capsys: pytest.CaptureFixture
+) -> None:
+    """A dry run must not share `skipped` with a missing credential.
+
+    The two mean opposite things — "this will publish" and "this cannot
+    publish here" — and a reader of the table should not need the detail text
+    to tell them apart.
+    """
+    assert _publish(project) == 0
+    row = _row(capsys.readouterr().out, "site")
+    assert row[1] == "would-publish"
+    assert "skipped" not in row
+
+
+def test_dry_run_of_an_adapter_reports_would_publish(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+) -> None:
+    calls: list[int] = []
+
+    def adapter(ctx, cfg=None, credentials=None):
+        calls.append(1)
+
+    shutil.copytree(FIXTURE_PROJECT, tmp_path / "p")
+    (tmp_path / "p" / "profile.toml").write_text(
+        '[project]\nconfig_version = 1\n\n[publishers.acme]\nkind = "acme-cdn"\n',
+        encoding="utf-8",
+    )
+    _register_adapter(monkeypatch, "acme-cdn", adapter)
+
+    assert cli.main(["--project", str(tmp_path / "p"), "publish"]) == 0
+    assert _row(capsys.readouterr().out, "acme")[1] == "would-publish"
+    assert calls == [], "a dry run must not call the adapter"
+
+
+def test_the_builtin_linkedin_entry_point_is_a_manual_destination(
+    project: Path, capsys: pytest.CaptureFixture
+) -> None:
+    """`kind = "linkedin"` resolves the built-in entry point, which wraps the
+    manual publisher. Labelling it `push` reported a would-be write for a
+    destination that only a human can update."""
+    (project / "profile.toml").write_text(
+        '[project]\nconfig_version = 1\n\n[publishers.profile]\nkind = "linkedin"\n'
+        'artifacts = ["linkedin.md"]\n',
+        encoding="utf-8",
+    )
+
+    assert _publish(project) == 0
+    assert _row(capsys.readouterr().out, "profile")[1] == "pending-manual"
+
+
+def test_builtin_entry_points_load_their_native_publishers() -> None:
+    from profilekit.publishers.filesystem import FilesystemPublisher
+    from profilekit.publishers.manual import ManualPublisher
+
+    linkedin = publish._load_publisher(publish.Destination("a", "linkedin", {}))
+    portfolio = publish._load_publisher(publish.Destination("b", "portfolio-data", {}))
+
+    assert isinstance(linkedin, ManualPublisher)
+    assert linkedin.capability == "manual"
+    assert isinstance(portfolio, FilesystemPublisher)
+    assert portfolio.capability == "push"
+
+
 # ---------------------------------------------------------------------------
 # A manual destination never claims success
 # ---------------------------------------------------------------------------

@@ -270,6 +270,8 @@ def test_publish_is_a_dry_run_by_default(project_with_destinations: Path, profil
 
     assert result.returncode == 0
     assert "nothing was published" in result.stdout
+    site_row = next(line for line in result.stdout.splitlines() if line.startswith("site "))
+    assert site_row.split()[1] == "would-publish"
     assert not (project_with_destinations / "site").exists()
 
 

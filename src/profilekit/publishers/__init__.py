@@ -35,7 +35,10 @@ from typing import Literal, Protocol
 from profilekit.context import ProjectContext
 
 Capability = Literal["push", "manual"]
-Status = Literal["published", "unchanged", "pending-manual", "skipped", "failed"]
+#: ``would-publish`` is a dry run of a push destination: it would write on
+#: ``--execute``. ``skipped`` is reserved for a destination that cannot publish
+#: on this machine (a missing credential), so the two never share a label.
+Status = Literal["published", "unchanged", "would-publish", "pending-manual", "skipped", "failed"]
 
 # Credentials are injected by the core, never read from os.environ by a
 # publisher. The filesystem publisher needs none; the mapping stays empty.
