@@ -97,7 +97,7 @@ class Secret:
     def __bool__(self) -> bool:
         return bool(self._value)
 
-    def __reduce__(self) -> tuple:  # type: ignore[type-arg]
+    def __reduce__(self) -> tuple[object, ...]:
         """Refuse to serialise.
 
         Pickle reads `__slots__` directly, so the default behaviour writes the

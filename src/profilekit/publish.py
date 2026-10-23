@@ -42,7 +42,7 @@ from typing import Any
 
 from profilekit import manifest, registry
 from profilekit.context import ProjectContext
-from profilekit.publishers import Capability, Publisher, PublishPlan, PublishResult
+from profilekit.publishers import Capability, Publisher, PublishPlan, PublishResult, Status
 from profilekit.safe_io import write_file
 from profilekit.secrets import CredentialSet, MissingCredentialError, resolve
 
@@ -160,10 +160,10 @@ def publish_destination(
     try:
         credentials = resolve(destination.config, destination=destination.name)
     except MissingCredentialError as exc:
-        status = "failed" if require_credentials else "skipped"
+        status: Status = "failed" if require_credentials else "skipped"
         return PublishResult(
             destination=destination.name,
-            status=status,  # type: ignore[arg-type]
+            status=status,
             detail=str(exc),
             action_required=(
                 "set the declared environment variable, or drop --require-credentials"
