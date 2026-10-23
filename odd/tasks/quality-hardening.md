@@ -18,8 +18,10 @@ code does not have. Fix each class structurally so a new instance cannot land un
 ## Tasks (route: delegated, one writer per worktree; Q4 read-only)
 - [ ] Q1 Mutation testing baseline (`mutmut`), plus new tests that kill surviving mutants
       (worktree `mutation`; new test files only, no src changes)
-- [ ] Q2 Single safe-write helper for every file write in src, enforced by an AST architecture test
-      (worktree `safe-write`)
+- [x] Q2 Single safe-write helper for every file write in src, enforced by an AST architecture test
+      (worktree `safe-write`). Integrated as `2dd0bb4` `a654a4d` `be7c20b`: 6 write sites / 8 raw calls migrated,
+      RED ImportError -> 22 tests GREEN, architecture test proven by a reverted raw write. Known gap:
+      `Path.replace` is indistinguishable from `str.replace` in the AST scan (documented). 496 unit passed.
 - [ ] Q3 mypy `strict` + ruff `BLE`, `S`, `TRY` rule sets, code brought into compliance
       (worktree `strict-lint`)
 - [x] Q4 Independent read-only review of the unreviewed surface: fixes D9-D16 (ee39bdc..4a489dc) and
