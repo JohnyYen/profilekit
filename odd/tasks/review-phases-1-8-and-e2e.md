@@ -47,7 +47,7 @@ writer trigger (2+ non-trivial files -> delegated writer).
 - [x] T6 Review phase 6 slice — granted, 4 lenses, approved, burned (`review-95387c58f5f5fa29`); 11 warnings
 - [x] T7 Review phase 7 slice — granted, 4 lenses, approved, burned (`review-f7c41bfff487cdc8`); 13 warnings
 - [x] T8 Review phase 8 slice — granted, 4 lenses, approved, burned (`review-9ffee9f2d4ffff5d`); 13 warnings
-- [ ] T9 Fix every confirmed defect, in order, one commit each (owner decision 2026-10-20: all of them).
+- [x] T9 Fix every confirmed defect, in order, one commit each (owner decision 2026-10-20: all of them).
       Triage: 33 still present, 14 fixed, 5 obsolete, 3 disputed; plus 3 e2e strict xfails.
   - [x] D1 (`0228449`, RED 7 failing -> GREEN) filesystem publisher accepts the project root, data/ or output/ as destination (overwrites canonical data)
   - [x] D2 (`d2de5da`, RED 3 failing -> GREEN) per-file symlink escape in the filesystem publisher (`write_text` follows symlinks)
@@ -67,7 +67,7 @@ writer trigger (2+ non-trivial files -> delegated writer).
   - [x] D14 (`2000cf1`, RED 4 -> GREEN; dry-run push now `would-publish`, linkedin -> pending-manual) `skipped` overloaded for dry-run and missing credential; linkedin adapter labelled capability push
   - [x] D15 (`b5fce22` `9d7566a` `70c0aca` `12ca7a6` `da189e0` `700785a`; each RED shown by a reverted src mutation; 426 passed) unit-test gaps: pipeline return codes and .json coverage, per-generator file sets, manual in env guard,
         stderr asserts in contract-version tests, generators-namespace test env dependence, conftest guard ignores untracked
-  - [ ] D16 docs/wording: SECURITY.md archive path and PyPI line, publish_destination docstring, idempotency claim,
+  - [x] D16 (`54012b3` `c97ff0b` `4329338` `f0d80c7`; cmd_list docstring already fixed by D10) docs/wording: SECURITY.md archive path and PyPI line, publish_destination docstring, idempotency claim,
         projects.json version claim, "authoritative index", cmd_list docstring, `_manifest_is_valid` name,
         dead `portfolio-data` publisher entry point
 - [x] T10 Phase 12: map e2e gaps against `tests/e2e/test_adopter_journey.py` — delegated explorer; 13 gaps
@@ -75,7 +75,8 @@ writer trigger (2+ non-trivial files -> delegated writer).
       (validate traceback on malformed skills/projects/social JSON; generate omits the malformed file name;
       manifest has no projects.json version entry). RED not applicable: behavior pre-existed.
       Parent spot check: `pytest tests/e2e --no-cov` 46 passed, 3 xfailed. RDD assess 4d80fa3..HEAD: high, due.
-- [ ] T12 Close: full suite, ruff, mypy, pre-commit; remove review worktrees
+- [x] T12 Close: 426 unit passed (94.56%), 51 e2e passed, ruff/format/mypy clean, pre-commit 13 passed
+      + 1 skipped (no files); review worktrees removed
 
 ## Acceptance criteria
 - Every slice 1-8 reaches a terminal review outcome (approved, declined, or a recorded stop reason).
@@ -101,4 +102,6 @@ writer trigger (2+ non-trivial files -> delegated writer).
   No further slice reviews; delivery follows ordinary repository policy (disabled/unmanaged).
 
 ## Next step
-T9 triage result -> fix STILL_PRESENT findings worth fixing; T10 gap map -> T11.
+Feature complete. Open, owner-owned: push and PR; PyPI release; README `pip install profilekit` is only
+true after the first release; `data/social.json` cvUrl 404 (pre-existing). Phase 1 (`e702db5`) stays
+natively unreviewable; D9-D16 were not reviewed (owner declined D9-D11, then turned review off).
