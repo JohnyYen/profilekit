@@ -1,5 +1,6 @@
 """Shared pytest fixtures for the profilekit test suite."""
 
+import hashlib
 import subprocess
 import warnings
 from pathlib import Path
@@ -41,41 +42,72 @@ def make_projects(names: list[str] | None = None) -> list[dict]:
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
-def _tracked_tree_state() -> str | None:
-    """Return git's view of the tracked working tree.
+def _working_tree_state() -> dict[str, tuple[str, str | None]] | None:
+    """Return every changed or untracked path, with a digest of its content.
 
-    Returns ``None`` — not an empty string — when git cannot answer. A clean
+    Maps each path ``git status`` reports — tracked changes and untracked
+    files alike — to its status code and the SHA-256 of its bytes (``None``
+    for a deleted path). The digest is what makes a rewrite visible when the
+    status code does not change: a test that edits an already-modified file
+    leaves it " M" either way.
+
+    Returns ``None`` — not an empty mapping — when git cannot answer. A clean
     tree and an unavailable git both produce empty output, so collapsing them
     would let the guard pass vacuously in exactly the environment where it
     cannot see anything.
     """
     try:
         result = subprocess.run(
-            ["git", "-C", str(REPO_ROOT), "status", "--porcelain", "--untracked-files=no"],
+            [
+                "git",
+                "-C",
+                str(REPO_ROOT),
+                "status",
+                "--porcelain=v1",
+                "-z",
+                "--untracked-files=all",
+            ],
             capture_output=True,
-            text=True,
             check=False,
         )
     except (FileNotFoundError, OSError):
         return None
-    return result.stdout if result.returncode == 0 else None
+    if result.returncode != 0:
+        return None
+
+    state: dict[str, tuple[str, str | None]] = {}
+    records = iter(result.stdout.decode("utf-8", errors="surrogateescape").split("\0"))
+    for record in records:
+        if not record:
+            continue
+        code, path = record[:2], record[3:]
+        if "R" in code or "C" in code:
+            next(records, None)  # the rename/copy source follows as its own record
+        target = REPO_ROOT / path
+        digest = hashlib.sha256(target.read_bytes()).hexdigest() if target.is_file() else None
+        state[path] = (code, digest)
+    return state
 
 
 @pytest.fixture(scope="session", autouse=True)
 def _repository_is_not_modified_by_the_suite():
-    """Fail the session if running the tests changed a tracked file.
+    """Fail the session if running the tests changed or created a file.
 
     Tests that write into the repository make every ``git status`` after a run
     ambiguous: real work and test residue become indistinguishable, and
     generated-artifact drift gets laundered into "I ran the tests". Several
     suites here used to do exactly that.
 
+    Untracked files count, and so does a content change to a path whose
+    status code stays the same. Ignored files are out of scope: they never
+    ship and never reach a commit.
+
     Warns instead of failing outside a git checkout, so an installed-package
     consumer can still run the tests.
     """
-    before = _tracked_tree_state()
+    before = _working_tree_state()
     yield
-    after = _tracked_tree_state()
+    after = _working_tree_state()
 
     if before is None or after is None:
         warnings.warn(
@@ -85,11 +117,13 @@ def _repository_is_not_modified_by_the_suite():
         )
         return
 
-    if before != after:
-        added = sorted(set(after.splitlines()) - set(before.splitlines()))
+    changed = sorted(
+        path for path in before.keys() | after.keys() if before.get(path) != after.get(path)
+    )
+    if changed:
         raise AssertionError(
-            "the test suite modified tracked files; tests must write only to "
-            "tmp_path:\n  " + "\n  ".join(added)
+            "the test suite modified the repository; tests must write only to "
+            "tmp_path:\n  " + "\n  ".join(changed)
         )
 
 
