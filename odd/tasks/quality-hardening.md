@@ -9,7 +9,7 @@ code does not have. Fix each class structurally so a new instance cannot land un
 
 ## Constraints
 - Owner decision 2026-10-23: one agent per solution, in parallel, without collisions.
-- Each writer works in its own worktree and branch from base `4a489dc`
+- Each writer works in its own worktree and branch from base `054bb9e`
   (`../profile-data-worktrees/<name>`, branch `quality/<name>`). The parent integrates the branches
   into `feat/open-source-release` in a fixed order and resolves conflicts.
 - Review mode (RDD) is OFF for this clone; Q4 is an independent read-only review, not RDD.
@@ -22,8 +22,16 @@ code does not have. Fix each class structurally so a new instance cannot land un
       (worktree `safe-write`)
 - [ ] Q3 mypy `strict` + ruff `BLE`, `S`, `TRY` rule sets, code brought into compliance
       (worktree `strict-lint`)
-- [ ] Q4 Independent read-only review of the unreviewed surface: fixes D9-D16 (ee39bdc..4a489dc) and
-      phase 1 (`e702db5`, insertions only); findings only
+- [x] Q4 Independent read-only review of the unreviewed surface: fixes D9-D16 (ee39bdc..4a489dc) and
+      phase 1 (`e702db5`, insertions only); findings only. Result: 0 CRITICAL, 2 WARNING, 5 SUGGESTION,
+      no regression from a fix. To fix in Q6:
+  - [ ] F1 WARNING non-table `[publishers]` entry silently dropped -> publish exits 0 (context.py, config.py)
+  - [ ] F2 WARNING unanchored `lib/` in .gitignore hides new files under apps/portfolio/app/lib/
+  - [ ] F3 publish table header runs together when destination names are short (cli.py)
+  - [ ] F4 manifest.build follows symlinks in output/ (manifest.py), unlike the publisher
+  - [ ] F5 plugin publisher named `filesystem`/`manual` silently shadowed by built-ins (publish.py)
+  - [ ] F6 stale openspec/config.yaml context (old layout, hard-coded test count)
+  - [ ] F7 validate.yml / portfolio.yml declare no `permissions:`
 - [ ] Q5 Docs-to-code coherence test: commands, flags, statuses and paths named in README/docs
       exist in the CLI (worktree `docs-coherence`)
 - [ ] Q6 Integrate in order Q1 -> Q5 -> Q2 -> Q3, then fix confirmed Q4 findings; full checks;
