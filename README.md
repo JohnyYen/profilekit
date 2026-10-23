@@ -138,6 +138,50 @@ deliberately not part of the distributed package. The package does not install
 either. Treat them as the reference implementation they are: useful to read,
 not something you inherit.
 
+## Release checklist (maintainer)
+
+The code is complete; the distribution is not. Until these steps are done,
+`pip install profilekit` does not work for anyone. Do them in order — the
+PyPI step is irreversible.
+
+1. **Merge the work.** Push `feat/open-source-release`, open a pull request to
+   `main`, and merge it once CI (`.github/workflows/validate.yml`) is green.
+2. **Set up trusted publishing** (no API token is stored anywhere). On both
+   [PyPI](https://pypi.org/manage/account/publishing/) and
+   [TestPyPI](https://test.pypi.org/manage/account/publishing/), add a pending
+   publisher for project `profilekit` with owner `JohnyYen`, repository
+   `profile-data`, workflow `release.yml`, and environment `pypi` (on PyPI) or
+   `testpypi` (on TestPyPI).
+3. **Create the GitHub environments.** In the repository settings, under
+   Environments, create `testpypi` and `pypi`. Give `pypi` a required
+   reviewer (yourself), so the irreversible upload waits for your approval.
+4. **Check the version.** `pyproject.toml` declares the version that will be
+   claimed on PyPI. The release workflow refuses a tag that does not match it.
+5. **Tag the release** from an up-to-date `main`:
+
+   ```sh
+   git tag v0.1.0
+   git push origin v0.1.0
+   ```
+
+   `.github/workflows/release.yml` then runs the quality gates, builds,
+   smoke-tests the wheel outside any checkout, uploads to TestPyPI, and waits
+   for your approval before uploading to PyPI.
+6. **Verify as a stranger would**, in a fresh virtual environment outside this
+   repository:
+
+   ```sh
+   pip install profilekit
+   profile init
+   profile validate
+   profile generate
+   ```
+
+7. **Fix the broken CV link.** The `cvUrl` in `data/social.json` returns
+   HTTP 404. Either publish the `cv-latest` release asset in the CV repository
+   or point `cvUrl` at a file that exists, then run `profile validate` (it
+   checks links) and `profile check` before committing.
+
 ## License
 
 MIT. See [LICENSE](LICENSE).
