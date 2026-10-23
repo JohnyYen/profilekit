@@ -1,22 +1,26 @@
 schema: spec-driven
 
 context: |
-  Tech stack: Python-based personal profile/CV/portfolio generator, packaged
-  via `pyproject.toml`. Structured data lives in `data/*.json` and is
-  validated against `schemas/*.schema.json` (JSON Schema draft-07). Generator
-  scripts in `generators/` (generate_github_readme.py, generate_linkedin.py,
-  generate_cv.py) consume the data and emit platform-specific output;
-  `generators/validate.py` validates the data against the schemas.
-  Architecture: Monorepo — this is a data-driven pipeline with single source
-  of truth in `data/`, schema-enforced contracts in `schemas/`, and pure
-  transform generators in `generators/`. Outputs feed a GitHub profile
-  README, LinkedIn copy, a RenderCV CV, and the in-repo Next.js portfolio at
-  `apps/portfolio/`, which consumes generated artifacts as an in-monorepo data
-  consumer (not an external project).
+  Tech stack: Python package `profilekit` (src layout, `src/profilekit/`),
+  packaged via `pyproject.toml` and exposed as the `profile` CLI
+  (`profilekit.cli:main`). An adopting project declares its layout in
+  `profile.toml`; its canonical data lives in `data/*.json` and is validated
+  against the JSON Schemas (draft-07) shipped in `src/profilekit/schemas/`.
+  Architecture: data-driven pipeline with a single source of truth in
+  `data/`. Generators (`src/profilekit/generate_*.py`) are pure transforms
+  that write only into `output/`, which carries a `manifest.json` contract.
+  Publishers (`src/profilekit/publishers/`, run by `publish.py`) copy
+  artifacts to destinations declared under `[publishers.*]`; publishing is a
+  dry run unless `--execute` is given. Both kinds are discovered through the
+  `profilekit.generators` and `profilekit.publishers` entry-point groups
+  (`registry.py`), and every file write in `src/` goes through `safe_io.py`.
+  The in-repo Next.js portfolio at `apps/portfolio/` is a reference consumer
+  of the published data (an in-monorepo consumer, not an external project).
   Testing: Strict TDD is ACTIVE for this project. RED-GREEN-REFACTOR is required
-  for every behavioral change. A pytest suite exists under `tests/` (152 tests,
-  80% coverage gate) with `testpaths`/`pythonpath` configured in
-  `pyproject.toml`; run it via `uv run pytest -q`.
+  for every behavioral change. The pytest suite lives under `tests/` (unit) and
+  `tests/e2e/` (end to end), with an 80% coverage gate configured in
+  `pyproject.toml`; run it via `uv run pytest -q`. mypy runs in strict mode
+  and ruff includes the BLE, S, TRY and PT rule sets.
   Style: Additive, backward-compatible changes preferred. New data fields are
   optional and never added to schema `required`. Generators use
   use-if-present-else-fallback semantics so existing data keeps rendering
@@ -42,7 +46,7 @@ rules:
     - Under strict TDD, write the failing test task before the implementation task.
   apply:
     guidelines:
-      - Follow existing code patterns in generators/ and data/.
+      - Follow existing code patterns in src/profilekit/ and data/.
       - Keep all new data fields optional and backward-compatible.
       - Preserve existing generator output when new fields are absent.
     tdd: true
