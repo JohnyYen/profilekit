@@ -111,7 +111,7 @@ publisher can see.
 
 A missing credential is `skipped` and exit 0 by default — an unset variable is
 a configuration state, not a crash — and `--require-credentials` escalates it
-for CI.
+to `failed` (exit 1) for CI.
 
 A malformed declaration is different: a `credential` that is not a table, or an
 entry whose value is not a non-empty variable name, is a configuration error.
@@ -131,7 +131,7 @@ Return `unchanged` rather than re-writing.
 ## Failing
 
 Raise. The core wraps every destination in its own handler, records the
-failure, and continues to the next one — destinations are independent, and
+failure as `failed`, and continues to the next one — destinations are independent, and
 aborting the run would turn one platform's outage into a total failure. The
 exit code is non-zero if anything failed, so CI still notices.
 
