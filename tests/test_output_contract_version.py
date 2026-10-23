@@ -262,7 +262,9 @@ def test_identical_schemas_are_compatible() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_check_fails_when_the_manifest_is_missing(project: Path, monkeypatch) -> None:
+def test_check_fails_when_the_manifest_is_missing(
+    project: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+) -> None:
     """The manifest is the contract; a run that produced none must not pass.
 
     Generation is held constant here on purpose: `check` regenerates before it
@@ -277,10 +279,15 @@ def test_check_fails_when_the_manifest_is_missing(project: Path, monkeypatch) ->
     monkeypatch.setattr(cli, "_git_output_is_clean", lambda ctx: True)
     monkeypatch.setattr(cli, "cmd_generate", lambda target, ctx: 0)
 
-    assert cli.main(["--project", str(project), "check"]) != 0
+    assert cli.main(["--project", str(project), "check"]) == 1
+    captured = capsys.readouterr()
+    assert "error: output/manifest.json is missing — run `profile generate`" in captured.err
+    assert "check passed" not in captured.out
 
 
-def test_check_fails_when_the_manifest_is_malformed(project: Path, monkeypatch) -> None:
+def test_check_fails_when_the_manifest_is_malformed(
+    project: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+) -> None:
     from profilekit import cli
 
     ctx = _generate_all(project)
@@ -290,7 +297,10 @@ def test_check_fails_when_the_manifest_is_malformed(project: Path, monkeypatch) 
     monkeypatch.setattr(cli, "_git_output_is_clean", lambda ctx: True)
     monkeypatch.setattr(cli, "cmd_generate", lambda target, ctx: 0)
 
-    assert cli.main(["--project", str(project), "check"]) != 0
+    assert cli.main(["--project", str(project), "check"]) == 1
+    captured = capsys.readouterr()
+    assert "error: manifest.json: <root>: 'schemaVersion' is a required property" in captured.err
+    assert "check passed" not in captured.out
 
 
 # ---------------------------------------------------------------------------
@@ -338,7 +348,7 @@ def test_published_artifacts_validate_against_their_schemas(project: Path) -> No
 
 
 def test_check_fails_when_a_published_artifact_breaks_its_schema(
-    project: Path, monkeypatch: pytest.MonkeyPatch
+    project: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
 ) -> None:
     """Isolate the schema gate from the destination-drift gate.
 
@@ -371,7 +381,10 @@ def test_check_fails_when_a_published_artifact_breaks_its_schema(
     broken.write_text('{"schemaVersion": 1}\n', encoding="utf-8")
 
     rc = cli.main(["--project", str(project), "check"])
-    assert rc != 0, "the schema gate did not fire"
+    assert rc == 1, "the schema gate did not fire"
+    captured = capsys.readouterr()
+    assert "error: published about.json: <root>: 'username' is a required property" in captured.err
+    assert "check passed" not in captured.out
 
 
 def test_the_schema_gate_is_the_only_thing_failing_in_that_test(
@@ -397,6 +410,9 @@ def test_the_schema_gate_is_the_only_thing_failing_in_that_test(
     )
 
     assert cli.main(["--project", str(project), "check"]) == 0
+    captured = capsys.readouterr()
+    assert "check passed: data valid, output/ up to date, destinations current" in captured.out
+    assert "error:" not in captured.err
 
 
 def test_the_schema_gate_names_the_offending_field(
@@ -422,14 +438,15 @@ def test_the_schema_gate_names_the_offending_field(
     )
 
     (project / "app" / "data" / "about.json").write_text('{"schemaVersion": 1}\n', encoding="utf-8")
-    cli.main(["--project", str(project), "check"])
+    assert cli.main(["--project", str(project), "check"]) == 1
 
     err = capsys.readouterr().err
-    assert "about.json" in err
+    for field in ("username", "tagline", "description"):
+        assert f"error: published about.json: <root>: '{field}' is a required property" in err
 
 
 def test_published_schemas_resolve_even_with_a_project_schemas_override(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
 ) -> None:
     """A project may point `[paths] schemas` at its own directory.
 
@@ -466,6 +483,9 @@ def test_published_schemas_resolve_even_with_a_project_schemas_override(
     monkeypatch.setattr(cli, "cmd_generate", lambda target, ctx: 0)
 
     assert cli.main(["--project", str(target), "check"]) == 0
+    captured = capsys.readouterr()
+    assert "check passed: data valid, output/ up to date, destinations current" in captured.out
+    assert "error:" not in captured.err
 
 
 # ---------------------------------------------------------------------------
@@ -538,9 +558,9 @@ def test_check_fails_when_a_destination_digest_does_not_match_its_file(
     about["username"] = "someone-else"
     (data / "about.json").write_text(json.dumps(about) + "\n", encoding="utf-8")
 
-    assert cli.main(["--project", str(project), "check"]) != 0
+    assert cli.main(["--project", str(project), "check"]) == 1
     err = capsys.readouterr().err
-    assert "manifest.json" in err and "about.json" in err and "digest" in err
+    assert "error: published manifest.json digest for about.json does not match its content" in err
 
 
 def test_check_fails_when_a_destination_manifest_lists_a_missing_file(
@@ -552,8 +572,9 @@ def test_check_fails_when_a_destination_manifest_lists_a_missing_file(
     _isolate_published_gate(monkeypatch)
     (data / "skills.json").unlink()
 
-    assert cli.main(["--project", str(project), "check"]) != 0
-    assert "skills.json" in capsys.readouterr().err
+    assert cli.main(["--project", str(project), "check"]) == 1
+    err = capsys.readouterr().err
+    assert "error: published manifest.json lists missing file skills.json" in err
 
 
 def test_check_fails_when_the_destination_manifest_breaks_its_schema(
@@ -565,6 +586,6 @@ def test_check_fails_when_the_destination_manifest_breaks_its_schema(
     _isolate_published_gate(monkeypatch)
     (data / "manifest.json").write_text('{"files": []}\n', encoding="utf-8")
 
-    assert cli.main(["--project", str(project), "check"]) != 0
+    assert cli.main(["--project", str(project), "check"]) == 1
     err = capsys.readouterr().err
-    assert "published manifest.json" in err and "schemaVersion" in err
+    assert "error: published manifest.json: <root>: 'schemaVersion' is a required property" in err
