@@ -27,6 +27,11 @@ Currently responsible for developing new features using Python and JavaScript fo
 - Led a team as team leader during Avangenio's internal hackathon, building a custom Frappe-based application that acts as a fully customizable assistant, allowing end users to dynamically create the tools they need.
 - Leading the integration with Facel, a Cuban electronic invoicing API, as a key milestone for the application.
 
+### Ikizen — Founder
+**2025-07 – present**
+
+Founded Ikizen, a digital growth agency focused on web development and brand identity design, helping businesses build an elegant, professional digital presence backed by clean code.
+
 ## Education
 
 ### Technological University of Havana "José Antonio Echeverría" (CUJAE)

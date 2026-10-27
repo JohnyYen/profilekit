@@ -5,36 +5,36 @@
       "name": "cv.md",
       "generator": "cv",
       "schemaVersion": 1,
-      "sha256": "6dbb686c7b184df08e07aa9d113d548b3d02456ca1ddcc9ab334369c3bc8b3cd",
-      "bytes": 2431
+      "sha256": "0bd2b8e28df907f4a20cb403ee7914e89ee9b14aeb07ee96b4633e9976c1f087",
+      "bytes": 2663
     },
     {
       "name": "cv.yml",
       "generator": "cv",
       "schemaVersion": 1,
-      "sha256": "57c0c6f4eff27f49bf0808485bcf1b98cdf1ea4ae2ebafa60b06d03c0fa0dd55",
-      "bytes": 8228
+      "sha256": "eb2f897301cb897e20ab4bec9e087eb09be0666901543ee38b74f89d8d6be99e",
+      "bytes": 7626
     },
     {
       "name": "github-readme.md",
       "generator": "github-readme",
       "schemaVersion": 1,
-      "sha256": "084455d1291fa0a0b2363670d5a7bafb8efdc38b809e3b53519d40aa944caa5f",
-      "bytes": 4015
+      "sha256": "576d9176038d75f13aa59dd6014dd402cee99efb5ff397b5efea242e912b3415",
+      "bytes": 4245
     },
     {
       "name": "linkedin.md",
       "generator": "linkedin",
       "schemaVersion": 1,
-      "sha256": "c397ee5c5838f5bfd27ac724ea74aee9977f0f28f5786adfc78b35ada89eda35",
-      "bytes": 2788
+      "sha256": "d6e50db877a83208ab0e776cc62ed4a189aeddbd3dc9dc2a8e4a11c997e309d2",
+      "bytes": 3032
     },
     {
       "name": "portfolio.md",
       "generator": "portfolio",
       "schemaVersion": 1,
-      "sha256": "89c89144b7b9f29b612f7751626196d0c100b2ee7549471f2289dfb62c3bdb1b",
-      "bytes": 3701
+      "sha256": "6a93d6fba84cd9421fdd2cd2d693144841282c92730da27b64a24e473dceaca0",
+      "bytes": 2919
     }
   ]
 }

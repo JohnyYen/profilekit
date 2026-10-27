@@ -10,8 +10,8 @@
     {
       "name": "projects.json",
       "schemaVersion": 1,
-      "sha256": "9c560048aa3741c9e09e0dad0579a38cf40f3157ec83c878cb5d063d6b450422",
-      "bytes": 2005
+      "sha256": "5b692bb69bf2836cd5fe2ed8ace4f048be3dbe3647cd526128c334e04bd478c9",
+      "bytes": 1522
     },
     {
       "name": "skills.json",
@@ -22,8 +22,8 @@
     {
       "name": "social.json",
       "schemaVersion": 1,
-      "sha256": "3839baf05ae9116d6becd169659f1ef7baab5f6badbd37827779d7e11fdbc0c6",
-      "bytes": 278
+      "sha256": "2495f7b98aff3f70f01f0b3922cead5679f34625f91ea2a062f9f26661e60a88",
+      "bytes": 302
     }
   ]
 }

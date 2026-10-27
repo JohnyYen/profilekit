@@ -9,7 +9,7 @@ cv:
     - network: GitHub
       username: https://github.com/JohnyYen
     - network: LinkedIn
-      username: https://linkedin.com/in/johnyyen
+      username: https://www.linkedin.com/in/johny-antonio-pedraza-romero
   custom_connections:
   sections:
     education:
@@ -47,6 +47,14 @@ cv:
           - "Designed and implemented custom functionalities in ERPNext, enhancing system adaptability to business workflows."
           - "Led a team as team leader during Avangenio's internal hackathon, building a custom Frappe-based application that acts as a fully customizable assistant, allowing end users to dynamically create the tools they need."
           - "Leading the integration with Facel, a Cuban electronic invoicing API, as a key milestone for the application."
+      - company: Ikizen
+        position: Founder
+        date:
+        start_date: 2025-07
+        end_date: present
+        location: La Habana, CU
+        summary: Founded Ikizen, a digital growth agency focused on web development and brand identity design, helping businesses build an elegant, professional digital presence backed by clean code.
+        highlights:
     projects:
       - name: "NestJS Boilerplate"
         date:
@@ -99,17 +107,6 @@ cv:
           - "Extensible core with Builder pattern for adding custom wrappers at repo, service, or controller level"
           - "Built-in customizable admin panel"
           - "Designed for adaptability across any backend domain"
-      - name: "Educational Game-Based Learning Platform (Thesis)"
-        date:
-        start_date: 2026-01
-        end_date: 2026-07
-        location:
-        summary: "A game-based educational platform designed to integrate with multiple video game types for programming learning. Features analytics dashboards to track student performance, course management, and teacher controls for customizing learning paths. Built with an adaptive architecture that enables seamless integration of diverse game genres while collecting and analyzing learning analytics in real time."
-        highlights:
-          - "Multi-game integration architecture supporting diverse video game genres for programming education"
-          - "Analytics dashboards for real-time student performance tracking and learning insights"
-          - "Course management system with teacher-controlled adaptive learning paths"
-          - "Scalable architecture designed for extensibility to new game types and analytics modules"
       - name: "hello-world-project"
         date:
         start_date: 

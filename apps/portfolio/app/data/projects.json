@@ -21,13 +21,7 @@
     "name": "FastAPI Generic Scaffold",
     "description": "A fully generic FastAPI scaffold architected with Screaming Architecture and Clean Architecture, featuring an automated scaffolding script that generates complete, production-ready modules — repository, service, and API layers — out of the box. The generic core is extensible through a Builder pattern, allowing custom wrappers at any layer, making it adaptable to virtually any backend domain. Includes a customizable built-in admin panel.",
     "tech": "Python",
-    "url": ""
-  },
-  {
-    "name": "Educational Game-Based Learning Platform (Thesis)",
-    "description": "A game-based educational platform designed to integrate with multiple video game types for programming learning. Features analytics dashboards to track student performance, course management, and teacher controls for customizing learning paths. Built with an adaptive architecture that enables seamless integration of diverse game genres while collecting and analyzing learning analytics in real time.",
-    "tech": "TypeScript",
-    "url": ""
+    "url": "https://github.com/JohnyYen/extreme-fastapi-boilerplate"
   },
   {
     "name": "hello-world-project",

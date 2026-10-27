@@ -51,7 +51,7 @@
     "name": "FastAPI Generic Scaffold",
     "description": "A fully generic FastAPI scaffold architected with Screaming Architecture and Clean Architecture, featuring an automated scaffolding script that generates complete, production-ready modules — repository, service, and API layers — out of the box. The generic core is extensible through a Builder pattern, allowing custom wrappers at any layer, making it adaptable to virtually any backend domain. Includes a customizable built-in admin panel.",
     "tech": "Python",
-    "url": "",
+    "url": "https://github.com/JohnyYen/extreme-fastapi-boilerplate",
     "start_date": "2026-07",
     "end_date": "",
     "highlights": [
@@ -60,20 +60,6 @@
       "Extensible core with Builder pattern for adding custom wrappers at repo, service, or controller level",
       "Built-in customizable admin panel",
       "Designed for adaptability across any backend domain"
-    ]
-  },
-  {
-    "name": "Educational Game-Based Learning Platform (Thesis)",
-    "description": "A game-based educational platform designed to integrate with multiple video game types for programming learning. Features analytics dashboards to track student performance, course management, and teacher controls for customizing learning paths. Built with an adaptive architecture that enables seamless integration of diverse game genres while collecting and analyzing learning analytics in real time.",
-    "tech": "TypeScript",
-    "url": "",
-    "start_date": "2026-01",
-    "end_date": "2026-07",
-    "highlights": [
-      "Multi-game integration architecture supporting diverse video game genres for programming education",
-      "Analytics dashboards for real-time student performance tracking and learning insights",
-      "Course management system with teacher-controlled adaptive learning paths",
-      "Scalable architecture designed for extensibility to new game types and analytics modules"
     ]
   },
   {

@@ -81,6 +81,10 @@ Completed backend development training in .NET and FastAPI, focusing on a genera
 2025-05 – present
 Currently responsible for developing new features using Python and JavaScript for custom ERPNext applications.
 
+**Founder** at **Ikizen**
+2025-07 – present
+Founded Ikizen, a digital growth agency focused on web development and brand identity design, helping businesses build an elegant, professional digital presence backed by clean code.
+
 ### Currently learning
 
 Currently diving deep into system design and exploring how AI/ML can enhance developer productivity. Open to architecture discussions and collaboration!

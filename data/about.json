@@ -30,14 +30,13 @@
     "Ignix Core",
     "FastAPI Generic Scaffold",
     "NestJS Boilerplate",
-    "FastAPI Template",
-    "Educational Game-Based Learning Platform (Thesis)"
+    "FastAPI Template"
   ],
   "whatIBuildVariants": {
     "github": "Type-safe backend templates, clean-architecture scaffolds, and developer tooling.",
     "linkedin": "Scalable APIs and reusable backend architectures that help teams ship faster.",
     "cv": "Production-ready backend systems applying Clean Architecture, DDD, and SOLID principles.",
-    "portfolio": "Backend frameworks, API scaffolds, and an educational platform for programming learning."
+    "portfolio": "Backend frameworks, API scaffolds, and reusable developer templates."
   },
   "githubQuote": "Learning never stops — systems evolve, and so do we."
 }

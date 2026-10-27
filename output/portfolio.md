@@ -4,7 +4,7 @@ Currently focused on building robust APIs and exploring software architecture pa
 
 ## What I Build
 
-- Backend frameworks, API scaffolds, and an educational platform for programming learning.
+- Backend frameworks, API scaffolds, and reusable developer templates.
 
 ## Ignix Core
 
@@ -25,6 +25,8 @@ TypeScript package for building type-safe, extensible services with Result patte
 A fully generic FastAPI scaffold architected with Screaming Architecture and Clean Architecture, featuring an automated scaffolding script that generates complete, production-ready modules — repository, service, and API layers — out of the box. The generic core is extensible through a Builder pattern, allowing custom wrappers at any layer, making it adaptable to virtually any backend domain. Includes a customizable built-in admin panel.
 
 **Tech:** Python
+
+[View Project](https://github.com/JohnyYen/extreme-fastapi-boilerplate)
 
 - Architected with Screaming Architecture and Clean Architecture for domain-driven module organization
 - Automated scaffolding script generates ready-to-use modules with full repository, service, and API layers
@@ -62,14 +64,3 @@ Base template for creating fast, scalable APIs with FastAPI
 - Testing configuration with pytest
 - Docker and Docker Compose ready for deployment
 - Automatic documentation with Swagger UI and ReDoc
-
-## Educational Game-Based Learning Platform (Thesis)
-
-A game-based educational platform designed to integrate with multiple video game types for programming learning. Features analytics dashboards to track student performance, course management, and teacher controls for customizing learning paths. Built with an adaptive architecture that enables seamless integration of diverse game genres while collecting and analyzing learning analytics in real time.
-
-**Tech:** TypeScript
-
-- Multi-game integration architecture supporting diverse video game genres for programming education
-- Analytics dashboards for real-time student performance tracking and learning insights
-- Course management system with teacher-controlled adaptive learning paths
-- Scalable architecture designed for extensibility to new game types and analytics modules
