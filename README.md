@@ -118,8 +118,8 @@ See [`docs/authoring-generators.md`](docs/authoring-generators.md) and
 ## Development
 
 ```sh
-git clone https://github.com/JohnyYen/profile-data
-cd profile-data
+git clone https://github.com/JohnyYen/profilekit
+cd profilekit
 uv sync --extra dev      # or: pip install -e '.[dev]'
 
 pytest -q                # tests, with an 80% coverage gate
@@ -144,13 +144,13 @@ The code is complete; the distribution is not. Until these steps are done,
 `pip install profilekit` does not work for anyone. Do them in order — the
 PyPI step is irreversible.
 
-1. **Merge the work.** Push `feat/open-source-release`, open a pull request to
-   `main`, and merge it once CI (`.github/workflows/validate.yml`) is green.
+1. **Merge the work.** Done: `feat/open-source-release` is merged into `main`
+   and CI is green.
 2. **Set up trusted publishing** (no API token is stored anywhere). On both
    [PyPI](https://pypi.org/manage/account/publishing/) and
    [TestPyPI](https://test.pypi.org/manage/account/publishing/), add a pending
    publisher for project `profilekit` with owner `JohnyYen`, repository
-   `profile-data`, workflow `release.yml`, and environment `pypi` (on PyPI) or
+   `profilekit`, workflow `release.yml`, and environment `pypi` (on PyPI) or
    `testpypi` (on TestPyPI).
 3. **Create the GitHub environments.** In the repository settings, under
    Environments, create `testpypi` and `pypi`. Give `pypi` a required

@@ -45,10 +45,10 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/JohnyYen/profile-data"
-Repository = "https://github.com/JohnyYen/profile-data"
-Issues = "https://github.com/JohnyYen/profile-data/issues"
-Changelog = "https://github.com/JohnyYen/profile-data/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/JohnyYen/profilekit"
+Repository = "https://github.com/JohnyYen/profilekit"
+Issues = "https://github.com/JohnyYen/profilekit/issues"
+Changelog = "https://github.com/JohnyYen/profilekit/blob/main/CHANGELOG.md"
 
 [project.scripts]
 profile = "profilekit.cli:main"
