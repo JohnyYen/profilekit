@@ -93,7 +93,7 @@ also overwritten silently, because nothing compared the destination with what wa
   refuses. G3 CLI tests now opt in with `on_conflict = "overwrite"` because their seeded README
   is hand-written.
 - G4 commit `7a2940e`.
-- G5 (see the docs commit). Passive docs: structural checks only (no meaningful RED). README
+- G5 `6793ba4`. Passive docs: structural checks only (no meaningful RED). README
   publishing section documents `git-repo` (config, dry run, credentials, conflict guard);
   `docs/authoring-publishers.md` documents `Artifact.data` and the opt-in guard; `profile.toml`
   holds the three owner repositories commented out. `tests/test_docs_coherence.py` accepts
