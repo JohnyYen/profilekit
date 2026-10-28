@@ -683,3 +683,68 @@ def test_overwrite_does_not_promise_a_change_git_normalises_away(
     row = _row_of(capsys.readouterr().out, "profile")
     assert "unchanged" in row
     assert "would" not in row
+
+
+# ---------------------------------------------------------------------------
+# G7: credentials never travel in `repo`
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "repo",
+    [
+        "https://user:hunter2@example.com/a/b.git",
+        "https://ghp_faketoken@example.com/a/b.git",
+        "http://user@example.com/a/b.git",
+    ],
+)
+def test_a_repo_url_with_credentials_is_refused(ctx: ProjectContext, repo: str) -> None:
+    with pytest.raises(GitRepoConfigError, match="credential helper") as caught:
+        GitRepoPublisher().plan(ctx, {"repo": repo, "files": {"README.md": "README.md"}})
+    assert "hunter2" not in str(caught.value)
+    assert "ghp_faketoken" not in str(caught.value)
+
+
+@pytest.mark.parametrize(
+    "repo",
+    [
+        "git@github.com:owner/name.git",
+        "ssh://git@example.com/owner/name.git",
+        "https://example.com/owner/name.git",
+    ],
+)
+def test_ssh_and_plain_https_urls_are_accepted(repo: str) -> None:
+    from profilekit.publishers.git_repo import check_repo
+
+    assert check_repo(repo) == repo
+
+
+@pytest.mark.parametrize(
+    ("text", "secret"),
+    [
+        ("fatal: unable to access 'https://user:hunter2@example.com/a.git/'", "hunter2"),
+        ("cannot clone https://ghp_faketoken@example.com/a.git", "ghp_faketoken"),
+        ("ssh://git:hunter2@example.com/a.git", "hunter2"),
+    ],
+)
+def test_redact_removes_userinfo_from_details(text: str, secret: str) -> None:
+    from profilekit.publishers.git_repo import redact
+
+    redacted = redact(text)
+    assert secret not in redacted
+    assert "example.com" in redacted
+
+
+def test_git_errors_are_redacted(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Whatever git prints on failure is redacted before it reaches a detail."""
+    from profilekit.publishers import git_repo
+
+    def fake_run(command: list[str], **_: object) -> subprocess.CompletedProcess[bytes]:
+        stderr = b"fatal: unable to access 'https://user:hunter2@example.com/a.git/'"
+        return subprocess.CompletedProcess(command, 128, b"", stderr)
+
+    monkeypatch.setattr(git_repo.subprocess, "run", fake_run)
+    with pytest.raises(GitCommandError) as caught:
+        git_repo.run_git("ls-remote", "origin")
+    assert "hunter2" not in str(caught.value)
+    assert "example.com" in str(caught.value)

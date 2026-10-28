@@ -55,7 +55,7 @@ also overwritten silently, because nothing compared the destination with what wa
 - [x] G6 Normalisation-aware comparison: compare and record the blob git commits (`.gitattributes`
       eol/filters), so the guard never false-conflicts and a dry run never promises a change git
       normalises away. Test-first. Commit.
-- [ ] G7 Credentials in `repo`: reject http(s) userinfo at config parse; redact userinfo in
+- [x] G7 Credentials in `repo`: reject http(s) userinfo at config parse; redact userinfo in
       every detail. Test-first. Commit.
 - [ ] G8 Owner layouts in the commented `profile.toml`; document that an empty remote or a
       missing branch is unsupported. Commit.
@@ -116,6 +116,11 @@ also overwritten silently, because nothing compared the destination with what wa
   Fix: `committed_form()` runs `git hash-object -w --path <dest> --stdin` in the temporary clone
   and compares that blob with the remote blob; `PublishPlan.published_digests` carries the
   committed digest so the core ledger records it instead of the source bytes.
+- G7 (verifier finding). RED: 10 failed (`check_repo`/`redact` missing; credentialed http(s)
+  URLs accepted; git stderr passed through unredacted). GREEN: 66 passed. `check_repo` refuses
+  http(s) userinfo with a config error pointing to a credential helper / `gh auth login`;
+  scp-style and `ssh://git@` URLs still accepted. `redact()` scrubs userinfo in git stderr, clone
+  errors and every result detail. The git-error test fakes `subprocess.run` (no network).
 
 ## Next step
 Owner: review the commented destinations in `profile.toml` (paths per repository layout), decide

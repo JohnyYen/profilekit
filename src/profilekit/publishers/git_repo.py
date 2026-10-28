@@ -109,6 +109,46 @@ def resolve_repo(repo: str) -> str:
     return repo
 
 
+# `scheme://userinfo@` in a URL. Userinfo ends at the first `@` before the
+# host; `/`, whitespace and quotes cannot be part of it.
+_USERINFO = re.compile(r"(?P<scheme>[A-Za-z][A-Za-z0-9+.-]*://)(?P<userinfo>[^/@\s'\"]+)@")
+
+
+def redact(text: str) -> str:
+    """Remove credentials from every URL in *text*.
+
+    A password is always replaced. An http(s) user name is replaced too —
+    a bare ``token@`` is how a personal access token is usually embedded. An
+    SSH user such as ``git@`` is a login name, not a secret, and is kept.
+    """
+
+    def scrub(match: re.Match[str]) -> str:
+        scheme, userinfo = match["scheme"], match["userinfo"]
+        user, has_password, _ = userinfo.partition(":")
+        if scheme.lower() in ("http://", "https://"):
+            return f"{scheme}***@"
+        return f"{scheme}{user}:***@" if has_password else match.group(0)
+
+    return _USERINFO.sub(scrub, text)
+
+
+def check_repo(repo: str) -> str:
+    """Resolve *repo* and refuse an http(s) URL that carries credentials.
+
+    A token in ``profile.toml`` would be committed with the project and echoed
+    in every error. scp-style (``git@host:owner/name.git``) and ``ssh://``
+    addresses name an SSH login, not a secret, and are accepted.
+    """
+    resolved = resolve_repo(repo)
+    match = _USERINFO.match(resolved)
+    if match and match["scheme"].lower() in ("http://", "https://"):
+        raise GitRepoConfigError(
+            f"'repo' must not embed credentials: {redact(resolved)}; remove them and "
+            "authenticate with a git credential helper or `gh auth login` instead"
+        )
+    return resolved
+
+
 def _text(cfg: Mapping[str, object], key: str, default: str | None) -> str:
     value = cfg.get(key, default)
     if not isinstance(value, str) or not value.strip():
@@ -120,7 +160,7 @@ def _text(cfg: Mapping[str, object], key: str, default: str | None) -> str:
 
 
 def _parse_config(cfg: Mapping[str, object]) -> _Config:
-    repo = resolve_repo(_text(cfg, "repo", None))
+    repo = check_repo(_text(cfg, "repo", None))
     branch = _text(cfg, "branch", DEFAULT_BRANCH)
     message = cfg.get("message", DEFAULT_MESSAGE)
     if not isinstance(message, str) or not message.strip():
@@ -234,7 +274,7 @@ def run_git(*args: str, cwd: Path | None = None, stdin: bytes | None = None) -> 
         command, cwd=cwd, input=stdin, capture_output=True, check=False
     )
     if result.returncode != 0:
-        detail = result.stderr.decode("utf-8", errors="replace").strip()
+        detail = redact(result.stderr.decode("utf-8", errors="replace").strip())
         raise GitCommandError(f"git {args[0]} failed: {detail or f'exit {result.returncode}'}")
     return result.stdout
 
@@ -255,7 +295,7 @@ def clone(repo: str, branch: str, directory: Path) -> str:
             str(directory),
         )
     except GitCommandError as exc:
-        raise GitCommandError(f"cannot clone branch {branch!r} of {repo}: {exc}") from exc
+        raise GitCommandError(f"cannot clone branch {branch!r} of {redact(repo)}: {exc}") from exc
     return run_git("rev-parse", "HEAD", cwd=directory).decode().strip()
 
 
@@ -369,7 +409,7 @@ class GitRepoPublisher:
         }
         published = {name: hashlib.sha256(data).hexdigest() for name, data in committed.items()}
         return GitRepoPlan(
-            destination=config.repo,
+            destination=redact(config.repo),
             capability=self.capability,
             resolved_path=ctx.root,
             artifacts=tuple(artifacts),
@@ -405,26 +445,28 @@ class GitRepoPublisher:
             return PublishResult(
                 destination=plan.destination,
                 status="unchanged",
-                detail=f"{plan.repo} ({plan.branch}) already matches the artifacts",
+                detail=f"{redact(plan.repo)} ({plan.branch}) already matches the artifacts",
             )
 
         try:
             commit = self._commit_and_push(plan)
         except (GitCommandError, GitRepoConfigError, OSError) as exc:
-            return PublishResult(destination=plan.destination, status="failed", detail=str(exc))
+            return PublishResult(
+                destination=plan.destination, status="failed", detail=redact(str(exc))
+            )
 
         if commit is None:
             return PublishResult(
                 destination=plan.destination,
                 status="unchanged",
-                detail=f"{plan.repo} ({plan.branch}) already matches the artifacts",
+                detail=f"{redact(plan.repo)} ({plan.branch}) already matches the artifacts",
             )
         written = ", ".join(plan.changes)
         return PublishResult(
             destination=plan.destination,
             status="published",
             detail=(
-                f"pushed {commit[:12]} to {plan.repo} ({plan.branch}) with "
+                f"pushed {commit[:12]} to {redact(plan.repo)} ({plan.branch}) with "
                 f"{len(plan.changes)} file(s): {written}"
             ),
         )
@@ -437,7 +479,7 @@ class GitRepoPublisher:
             head = clone(plan.repo, plan.branch, clone_dir)
             if plan.remote_digest is not None and head != plan.remote_digest:
                 raise GitCommandError(
-                    f"{plan.repo} ({plan.branch}) moved since the plan "
+                    f"{redact(plan.repo)} ({plan.branch}) moved since the plan "
                     f"({plan.remote_digest[:12]} -> {head[:12]}); re-run to plan again"
                 )
 
@@ -496,6 +538,8 @@ __all__ = [
     "GitRepoPlan",
     "GitRepoPublisher",
     "publish_entry_point",
+    "check_repo",
+    "redact",
     "resolve_repo",
     "resolve_source",
 ]
