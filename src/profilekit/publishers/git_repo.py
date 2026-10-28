@@ -125,10 +125,16 @@ def _parse_config(cfg: Mapping[str, object]) -> _Config:
     message = cfg.get("message", DEFAULT_MESSAGE)
     if not isinstance(message, str) or not message.strip():
         raise GitRepoConfigError(f"'message' must be a non-empty string, got {message!r}")
-    on_conflict = cfg.get("on_conflict", "refuse")
-    if on_conflict != "refuse" and on_conflict != "overwrite":
+    raw_on_conflict = cfg.get("on_conflict", "refuse")
+    on_conflict: OnConflict
+    if raw_on_conflict == "refuse":
+        on_conflict = "refuse"
+    elif raw_on_conflict == "overwrite":
+        on_conflict = "overwrite"
+    else:
         raise GitRepoConfigError(
-            f"'on_conflict' must be one of {', '.join(ON_CONFLICT_CHOICES)}, got {on_conflict!r}"
+            f"'on_conflict' must be one of {', '.join(ON_CONFLICT_CHOICES)}, "
+            f"got {raw_on_conflict!r}"
         )
 
     files = cfg.get("files")

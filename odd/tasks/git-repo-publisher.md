@@ -100,6 +100,8 @@ also overwritten silently, because nothing compared the destination with what wa
   `git-repo` as a shipped kind in TOML examples. Final checks: pytest 771 passed (97.30%),
   mypy strict clean, ruff check/format clean, `profilekit --offline check` passed,
   `profilekit publish` dry run shows only `portfolio-data` and `linkedin`.
+- Follow-up: `pre-commit run --all-files` found that the pinned mypy hook does not narrow
+  `on_conflict` through `!=`; fixed with explicit narrowing (`fix(publish)` commit). All hooks pass.
 
 ## Next step
 Owner: review the commented destinations in `profile.toml` (paths per repository layout), decide
