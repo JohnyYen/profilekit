@@ -188,12 +188,20 @@ def manual_edits(name: str, plan: PublishPlan, state: Mapping[str, str]) -> list
 def _record_files(
     name: str, plan: PublishPlan, state: dict[str, str], names: Sequence[str]
 ) -> None:
-    """Record each named artifact's digest as what the destination now holds."""
+    """Record each named artifact's digest as what the destination now holds.
+
+    That is the digest of what the destination stores, which is not always
+    the bytes profilekit wrote: see ``PublishPlan.published_digests``.
+    """
     if plan.destination_digests is None:
         return
+    published = plan.published_digests or {}
     for artifact in plan.artifacts:
         if artifact.name in names:
-            state[ledger_key(name, artifact.name)] = hashlib.sha256(artifact.encoded()).hexdigest()
+            stored = published.get(artifact.name)
+            if stored is None:
+                stored = hashlib.sha256(artifact.encoded()).hexdigest()
+            state[ledger_key(name, artifact.name)] = stored
 
 
 def publish_destination(

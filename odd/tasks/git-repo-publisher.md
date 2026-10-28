@@ -52,6 +52,13 @@ also overwritten silently, because nothing compared the destination with what wa
 - [x] G4 Manual-edit guard using the publish ledger + `on_conflict`. Test-first. Commit.
 - [x] G5 Docs: `docs/authoring-publishers.md`, README publishing section, commented `profile.toml`
       example for the three owner repos. Commit.
+- [x] G6 Normalisation-aware comparison: compare and record the blob git commits (`.gitattributes`
+      eol/filters), so the guard never false-conflicts and a dry run never promises a change git
+      normalises away. Test-first. Commit.
+- [ ] G7 Credentials in `repo`: reject http(s) userinfo at config parse; redact userinfo in
+      every detail. Test-first. Commit.
+- [ ] G8 Owner layouts in the commented `profile.toml`; document that an empty remote or a
+      missing branch is unsupported. Commit.
 
 ## Acceptance criteria
 - Dry run against a bare-repo fixture lists exactly the files that would change and writes nothing.
@@ -102,6 +109,13 @@ also overwritten silently, because nothing compared the destination with what wa
   `profilekit publish` dry run shows only `portfolio-data` and `linkedin`.
 - Follow-up: `pre-commit run --all-files` found that the pinned mypy hook does not narrow
   `on_conflict` through `!=`; fixed with explicit narrowing (`fix(publish)` commit). All hooks pass.
+
+- G6 (verifier finding). RED: 3 failed against a remote with `* text=auto eol=lf` and a CRLF
+  source — plan reported `README.md` changed, the second `--execute` failed with a false
+  `conflict`, and the overwrite dry run said `would-publish`. GREEN: 56 passed; suite 774 passed.
+  Fix: `committed_form()` runs `git hash-object -w --path <dest> --stdin` in the temporary clone
+  and compares that blob with the remote blob; `PublishPlan.published_digests` carries the
+  committed digest so the core ledger records it instead of the source bytes.
 
 ## Next step
 Owner: review the commented destinations in `profile.toml` (paths per repository layout), decide

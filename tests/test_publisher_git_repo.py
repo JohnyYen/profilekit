@@ -614,3 +614,72 @@ def test_the_ledger_records_each_file_only_on_execute(ctx: ProjectContext, remot
     for destination, source in (("README.md", "README.md"), ("same.txt", "same.txt")):
         expected = hashlib.sha256((ctx.output_dir / source).read_bytes()).hexdigest()
         assert ledger[publish.ledger_key("profile", destination)] == expected
+
+
+# ---------------------------------------------------------------------------
+# G6: content git normalises on `git add` (line endings, filters)
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def lf_remote(tmp_path: Path) -> Path:
+    """A remote that normalises line endings to LF, already holding the LF form."""
+    return make_remote(
+        tmp_path,
+        {".gitattributes": b"* text=auto eol=lf\n", "README.md": b"# generated\n"},
+    )
+
+
+def _crlf_project(ctx: ProjectContext, remote: Path, settings: str = "") -> Path:
+    (ctx.output_dir / "README.md").write_bytes(b"# generated\r\n")
+    (ctx.root / "profile.toml").write_text(
+        f"""\
+[project]
+config_version = 1
+
+[publishers.profile]
+kind = "git-repo"
+repo = "{remote.as_uri()}"
+{settings}
+[publishers.profile.files]
+"README.md" = "README.md"
+""",
+        encoding="utf-8",
+    )
+    return ctx.root
+
+
+def test_content_git_normalises_to_what_the_remote_holds_is_unchanged(
+    ctx: ProjectContext, lf_remote: Path
+) -> None:
+    _crlf_project(ctx, lf_remote)
+    plan = GitRepoPublisher().plan(ctx, _cfg(lf_remote, files={"README.md": "README.md"}))
+    assert list(plan.changes) == []
+
+
+def test_a_normalised_publish_does_not_conflict_on_the_next_run(
+    ctx: ProjectContext, lf_remote: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = _crlf_project(ctx, lf_remote, settings='on_conflict = "overwrite"')
+    (ctx.output_dir / "README.md").write_bytes(b"# v2\r\n")
+    assert _run(root, "--execute") == 0
+    assert remote_file(lf_remote, "README.md") == b"# v2\n"
+
+    _crlf_project(ctx, lf_remote)  # default: refuse
+    (ctx.output_dir / "README.md").write_bytes(b"# v3\r\n")
+    capsys.readouterr()
+
+    assert _run(root, "--execute") == 0, capsys.readouterr().out
+    assert remote_file(lf_remote, "README.md") == b"# v3\n"
+
+
+def test_overwrite_does_not_promise_a_change_git_normalises_away(
+    ctx: ProjectContext, lf_remote: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = _crlf_project(ctx, lf_remote, settings='on_conflict = "overwrite"')
+
+    assert _run(root) == 0
+
+    row = _row_of(capsys.readouterr().out, "profile")
+    assert "unchanged" in row
+    assert "would" not in row

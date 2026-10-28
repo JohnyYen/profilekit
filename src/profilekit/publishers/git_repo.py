@@ -215,7 +215,7 @@ def _git_executable() -> str:
     return found
 
 
-def run_git(*args: str, cwd: Path | None = None) -> bytes:
+def run_git(*args: str, cwd: Path | None = None, stdin: bytes | None = None) -> bytes:
     """Run ``git`` with *args* and return its stdout; raise on failure.
 
     The argument list goes straight to the executable: no shell, so nothing in
@@ -231,7 +231,7 @@ def run_git(*args: str, cwd: Path | None = None) -> bytes:
     # S603: an argument list, no shell; the values come from profile.toml and
     # are validated above, and git itself is resolved through PATH explicitly.
     result = subprocess.run(  # noqa: S603
-        command, cwd=cwd, capture_output=True, check=False
+        command, cwd=cwd, input=stdin, capture_output=True, check=False
     )
     if result.returncode != 0:
         detail = result.stderr.decode("utf-8", errors="replace").strip()
@@ -276,6 +276,30 @@ def read_tracked(clone_dir: Path, path: str) -> bytes | None:
             f"destination path {path!r} is a {'symlink' if mode == '120000' else kind} "
             "in the repository, not a file"
         )
+    return run_git("cat-file", "blob", object_id, cwd=clone_dir)
+
+
+def committed_form(clone_dir: Path, artifact: Artifact) -> bytes:
+    """Return *artifact* as git would commit it at its path in *clone_dir*.
+
+    ``git hash-object --path`` applies the repository's attributes — line
+    ending conversion, clean filters — exactly as ``git add`` does. The object
+    is written into the temporary clone only, so it can be read back; nothing
+    leaves it.
+    """
+    object_id = (
+        run_git(
+            "hash-object",
+            "-w",
+            "--path",
+            artifact.name,
+            "--stdin",
+            cwd=clone_dir,
+            stdin=artifact.encoded(),
+        )
+        .decode()
+        .strip()
+    )
     return run_git("cat-file", "blob", object_id, cwd=clone_dir)
 
 
@@ -329,14 +353,21 @@ class GitRepoPublisher:
             clone_dir = Path(scratch) / "repo"
             head = clone(config.repo, config.branch, clone_dir)
             current = {a.name: read_tracked(clone_dir, a.name) for a in artifacts}
+            # Compared in the form git will commit, not the bytes on disk: a
+            # destination's `.gitattributes` (`eol=lf`, an LFS filter) rewrites
+            # content on `git add`, and a change git normalises away is no
+            # change at all.
+            committed = {a.name: committed_form(clone_dir, a) for a in artifacts}
 
-        changes = [a.name for a in artifacts if current[a.name] != a.encoded()]
+        changes = [a.name for a in artifacts if current[a.name] != committed[a.name]]
         # Handed to the core's manual-edit guard, which owns the ledger of
-        # what this machine last published to each file.
+        # what this machine last published to each file. Both sides are
+        # digests of committed blobs, so they compare like with like.
         digests = {
             name: None if data is None else hashlib.sha256(data).hexdigest()
             for name, data in current.items()
         }
+        published = {name: hashlib.sha256(data).hexdigest() for name, data in committed.items()}
         return GitRepoPlan(
             destination=config.repo,
             capability=self.capability,
@@ -345,6 +376,7 @@ class GitRepoPublisher:
             changes=tuple(changes),
             remote_digest=head,
             destination_digests=digests,
+            published_digests=published,
             on_conflict=config.on_conflict,
             repo=config.repo,
             branch=config.branch,

@@ -90,6 +90,12 @@ class PublishPlan:
     #: publisher that can read its destination sets it to opt in to the core's
     #: manual-edit guard; ``None`` leaves the guard off.
     destination_digests: Mapping[str, str | None] | None = None
+    #: What each artifact becomes at the destination once published, as a
+    #: SHA-256, when the destination transforms content on write (git's
+    #: line-ending normalisation, a clean filter). The core records these in
+    #: the ledger so a later comparison with ``destination_digests`` is like
+    #: with like. ``None``, or a missing name, means the artifact's own bytes.
+    published_digests: Mapping[str, str] | None = None
     #: What the guard does with a destination file edited outside profilekit
     #: since it was last published: ``refuse`` the publish, or ``overwrite``.
     on_conflict: OnConflict = "refuse"
