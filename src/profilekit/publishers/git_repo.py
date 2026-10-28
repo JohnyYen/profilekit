@@ -45,10 +45,17 @@ from profilekit.publishers import (
     Capability,
     ProjectContext,
     PublishPlan,
+    PublishResult,
 )
+from profilekit.safe_io import write_file
 
 DEFAULT_BRANCH = "main"
 DEFAULT_MESSAGE = "chore: update generated profile artifacts"
+
+# Used only when git cannot determine the user's own identity: the user's
+# configured name and email always win.
+FALLBACK_NAME = "profilekit"
+FALLBACK_EMAIL = "profilekit@localhost"
 ON_CONFLICT_CHOICES = ("refuse", "overwrite")
 
 # `owner/name` is GitHub shorthand. Anything else — a URL, an scp-style
@@ -258,6 +265,33 @@ def read_tracked(clone_dir: Path, path: str) -> bytes | None:
     return run_git("cat-file", "blob", object_id, cwd=clone_dir)
 
 
+def commit_identity(clone_dir: Path) -> list[str]:
+    """Return ``-c`` options for a fallback identity, or none when git has one.
+
+    The user's own identity — from their git config or ``GIT_*`` variables —
+    is what a commit in their repository should carry. Only when git cannot
+    determine one does the commit fall back to a neutral profilekit identity
+    rather than failing the publish.
+    """
+    try:
+        run_git("var", "GIT_AUTHOR_IDENT", cwd=clone_dir)
+        run_git("var", "GIT_COMMITTER_IDENT", cwd=clone_dir)
+    except GitCommandError:
+        return ["-c", f"user.name={FALLBACK_NAME}", "-c", f"user.email={FALLBACK_EMAIL}"]
+    return []
+
+
+def _checked_target(clone_dir: Path, name: str) -> Path:
+    """Return where *name* goes in the clone, refusing a symlinked directory on the way."""
+    target = clone_dir / name
+    for ancestor in reversed(target.relative_to(clone_dir).parents):
+        if (clone_dir / ancestor).is_symlink():
+            raise GitRepoConfigError(
+                f"destination path {name!r} goes through a symlink in the repository: {ancestor}"
+            )
+    return target
+
+
 class GitRepoPublisher:
     """Commits generated artifacts into a git repository and pushes them."""
 
@@ -296,10 +330,95 @@ class GitRepoPublisher:
             on_conflict=config.on_conflict,
         )
 
+    def publish(self, ctx: ProjectContext, plan: PublishPlan) -> PublishResult:
+        """Commit the planned changes in a fresh clone and push them.
+
+        The clone is made again rather than kept from ``plan()``: a dry run
+        never reaches here, and a clone held open between the two would leak
+        a temporary directory on every dry run. If the branch moved since the
+        plan, nothing is written: the plan no longer describes the remote.
+
+        Every failure — clone, commit, push, a refused path — comes back as
+        this destination's ``failed`` with git's own message. A push that did
+        not happen is never reported as ``published``.
+        """
+        if not isinstance(plan, GitRepoPlan):
+            return PublishResult(
+                destination=plan.destination,
+                status="failed",
+                detail="not a git-repo plan; plan() must come from GitRepoPublisher",
+            )
+        if not plan.changes:
+            return PublishResult(
+                destination=plan.destination,
+                status="unchanged",
+                detail=f"{plan.repo} ({plan.branch}) already matches the artifacts",
+            )
+
+        try:
+            commit = self._commit_and_push(plan)
+        except (GitCommandError, GitRepoConfigError, OSError) as exc:
+            return PublishResult(destination=plan.destination, status="failed", detail=str(exc))
+
+        if commit is None:
+            return PublishResult(
+                destination=plan.destination,
+                status="unchanged",
+                detail=f"{plan.repo} ({plan.branch}) already matches the artifacts",
+            )
+        written = ", ".join(plan.changes)
+        return PublishResult(
+            destination=plan.destination,
+            status="published",
+            detail=(
+                f"pushed {commit[:12]} to {plan.repo} ({plan.branch}) with "
+                f"{len(plan.changes)} file(s): {written}"
+            ),
+        )
+
+    @staticmethod
+    def _commit_and_push(plan: GitRepoPlan) -> str | None:
+        """Write, commit and push; return the new commit, or ``None`` if nothing differed."""
+        with tempfile.TemporaryDirectory(prefix="profilekit-git-") as scratch:
+            clone_dir = Path(scratch) / "repo"
+            head = clone(plan.repo, plan.branch, clone_dir)
+            if plan.remote_digest is not None and head != plan.remote_digest:
+                raise GitCommandError(
+                    f"{plan.repo} ({plan.branch}) moved since the plan "
+                    f"({plan.remote_digest[:12]} -> {head[:12]}); re-run to plan again"
+                )
+
+            changed = [a for a in plan.artifacts if a.name in plan.changes]
+            # Every target is checked before the first write, so a refused
+            # path cannot leave a half-written clone behind to commit.
+            targets = [(_checked_target(clone_dir, a.name), a) for a in changed]
+            for target, artifact in targets:
+                target.parent.mkdir(parents=True, exist_ok=True)
+                write_file(target, artifact.encoded(), root=clone_dir, overwrite=True)
+
+            names = [a.name for a in changed]
+            run_git("--literal-pathspecs", "add", "--", *names, cwd=clone_dir)
+            staged = run_git("diff", "--cached", "--name-only", cwd=clone_dir)
+            if not staged.strip():
+                # No empty commits: the content already matched.
+                return None
+            run_git(
+                *commit_identity(clone_dir),
+                "commit",
+                "--quiet",
+                "--message",
+                plan.message,
+                cwd=clone_dir,
+            )
+            run_git("push", "--quiet", "origin", f"HEAD:refs/heads/{plan.branch}", cwd=clone_dir)
+            return run_git("rev-parse", "HEAD", cwd=clone_dir).decode().strip()
+
 
 __all__ = [
     "DEFAULT_BRANCH",
     "DEFAULT_MESSAGE",
+    "FALLBACK_EMAIL",
+    "FALLBACK_NAME",
     "GitCommandError",
     "GitRepoConfigError",
     "GitRepoPlan",

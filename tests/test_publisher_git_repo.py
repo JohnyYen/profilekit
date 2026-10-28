@@ -231,3 +231,170 @@ def test_a_source_symlinked_out_of_the_project_is_refused(
 
     with pytest.raises(GitRepoConfigError, match="link.md"):
         GitRepoPublisher().plan(ctx, _cfg(remote, files={"README.md": "link.md"}))
+
+
+# ---------------------------------------------------------------------------
+# G2: publish
+# ---------------------------------------------------------------------------
+
+
+def _changed_paths(bare: Path, old: str, new: str) -> list[str]:
+    out = _git("--git-dir", str(bare), "diff", "--name-only", old, new)
+    return sorted(out.splitlines())
+
+
+def test_publish_pushes_one_commit_with_only_the_changed_files(
+    ctx: ProjectContext, remote: Path
+) -> None:
+    before = remote_head(remote)
+    publisher = GitRepoPublisher()
+    plan = publisher.plan(ctx, _cfg(remote, message="chore: refresh profile"))
+
+    result = publisher.publish(ctx, plan)
+
+    assert result.status == "published", result.detail
+    after = remote_head(remote)
+    assert _git("--git-dir", str(remote), "rev-parse", f"{after}^") == before
+    assert _changed_paths(remote, before, after) == ["README.md", "docs/cv.md"]
+    assert remote_file(remote, "README.md") == b"# generated\n"
+    assert remote_file(remote, "docs/cv.md") == b"# cv\n"
+    assert "README.md" in result.detail
+    assert "docs/cv.md" in result.detail
+    log = _git("--git-dir", str(remote), "log", "-1", "--format=%s|%an|%ae", after)
+    assert log == "chore: refresh profile|Test Author|author@example.com"
+
+
+def test_a_second_run_is_unchanged_and_pushes_nothing(ctx: ProjectContext, remote: Path) -> None:
+    publisher = GitRepoPublisher()
+    publisher.publish(ctx, publisher.plan(ctx, _cfg(remote)))
+    head = remote_head(remote)
+
+    plan = publisher.plan(ctx, _cfg(remote))
+    result = publisher.publish(ctx, plan)
+
+    assert list(plan.changes) == []
+    assert result.status == "unchanged"
+    assert remote_head(remote) == head
+
+
+def test_publish_carries_binary_files_byte_for_byte(ctx: ProjectContext, remote: Path) -> None:
+    publisher = GitRepoPublisher()
+    cfg = _cfg(remote, files={"assets/pic.gif": "assets/pic.gif"})
+    result = publisher.publish(ctx, publisher.plan(ctx, cfg))
+
+    assert result.status == "published", result.detail
+    assert remote_file(remote, "assets/pic.gif") == GIF_BYTES
+
+
+def test_a_rejected_push_is_failed_not_published(ctx: ProjectContext, remote: Path) -> None:
+    hook = remote / "hooks" / "pre-receive"
+    hook.write_text("#!/bin/sh\necho 'denied by the test remote' >&2\nexit 1\n", encoding="utf-8")
+    hook.chmod(0o755)
+    head = remote_head(remote)
+    publisher = GitRepoPublisher()
+
+    result = publisher.publish(ctx, publisher.plan(ctx, _cfg(remote)))
+
+    assert result.status == "failed"
+    assert "denied by the test remote" in result.detail
+    assert remote_head(remote) == head
+
+
+def test_a_branch_that_moved_since_the_plan_is_not_overwritten(
+    ctx: ProjectContext, remote: Path, tmp_path: Path
+) -> None:
+    publisher = GitRepoPublisher()
+    plan = publisher.plan(ctx, _cfg(remote))
+
+    other = tmp_path / "other"
+    _git("clone", str(remote), str(other))
+    (other / "README.md").write_text("# edited meanwhile\n", encoding="utf-8")
+    _git("commit", "--all", "--message", "meanwhile", cwd=other)
+    _git("push", "origin", "HEAD:refs/heads/main", cwd=other)
+    moved = remote_head(remote)
+
+    result = publisher.publish(ctx, plan)
+
+    assert result.status == "failed"
+    assert "moved" in result.detail
+    assert remote_head(remote) == moved
+
+
+def test_an_unreachable_remote_at_publish_time_is_failed(ctx: ProjectContext, remote: Path) -> None:
+    import shutil
+
+    publisher = GitRepoPublisher()
+    plan = publisher.plan(ctx, _cfg(remote))
+    shutil.rmtree(remote)
+
+    result = publisher.publish(ctx, plan)
+
+    assert result.status == "failed"
+    assert "clone" in result.detail
+
+
+def test_nothing_to_change_publishes_nothing(ctx: ProjectContext, remote: Path) -> None:
+    publisher = GitRepoPublisher()
+    plan = publisher.plan(ctx, _cfg(remote, files={"same.txt": "same.txt"}))
+    head = remote_head(remote)
+
+    assert publisher.publish(ctx, plan).status == "unchanged"
+    assert remote_head(remote) == head
+
+
+def test_without_a_configured_identity_a_fallback_commits(
+    ctx: ProjectContext, remote: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    for role in ("AUTHOR", "COMMITTER"):
+        monkeypatch.delenv(f"GIT_{role}_NAME")
+        monkeypatch.delenv(f"GIT_{role}_EMAIL")
+    # Make sure git cannot guess one from the account either.
+    monkeypatch.setenv("EMAIL", "")
+    publisher = GitRepoPublisher()
+
+    result = publisher.publish(ctx, publisher.plan(ctx, _cfg(remote)))
+
+    assert result.status == "published", result.detail
+    author = _git("--git-dir", str(remote), "log", "-1", "--format=%an", "main")
+    assert author == "profilekit"
+
+
+def test_publish_refuses_a_plan_it_did_not_make(ctx: ProjectContext) -> None:
+    from profilekit.publishers import PublishPlan
+
+    plan = PublishPlan(destination="x", capability="push", resolved_path=ctx.root, changes=("a",))
+    result = GitRepoPublisher().publish(ctx, plan)
+    assert result.status == "failed"
+
+
+def _remote_with_symlink(tmp_path: Path, link: str, target: str) -> Path:
+    bare = make_remote(tmp_path, {"README.md": b"# hand-written\n"})
+    work = tmp_path / "linker"
+    _git("clone", str(bare), str(work))
+    (work / link).symlink_to(target)
+    _git("add", "--all", cwd=work)
+    _git("commit", "--message", "add a link", cwd=work)
+    _git("push", "origin", "HEAD:refs/heads/main", cwd=work)
+    return bare
+
+
+def test_a_destination_file_that_is_a_symlink_is_refused(
+    ctx: ProjectContext, tmp_path: Path
+) -> None:
+    bare = _remote_with_symlink(tmp_path, "cv.md", "README.md")
+    with pytest.raises(GitRepoConfigError, match="symlink"):
+        GitRepoPublisher().plan(ctx, _cfg(bare, files={"cv.md": "cv.md"}))
+
+
+def test_a_destination_under_a_symlinked_directory_is_not_written(
+    ctx: ProjectContext, tmp_path: Path
+) -> None:
+    bare = _remote_with_symlink(tmp_path, "docs", "..")
+    head = remote_head(bare)
+    publisher = GitRepoPublisher()
+
+    result = publisher.publish(ctx, publisher.plan(ctx, _cfg(bare, files={"docs/cv.md": "cv.md"})))
+
+    assert result.status == "failed"
+    assert "symlink" in result.detail
+    assert remote_head(bare) == head
