@@ -33,6 +33,7 @@ skipped publish would be a problem.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import sys
 from collections.abc import Callable, Mapping
@@ -136,7 +137,9 @@ def plan_digest(plan: Any) -> str | None:
     parts = []
     for artifact in sorted(plan.artifacts, key=lambda a: a.name):
         parts.append(artifact.name)
-        parts.append(manifest.digest_text(artifact.content))
+        # Bytes, not text: for a text artifact this is the same digest as
+        # `manifest.digest_text(content)`, and a binary one is covered too.
+        parts.append(hashlib.sha256(artifact.encoded()).hexdigest())
     return manifest.digest_text("\n".join(parts))
 
 

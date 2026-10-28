@@ -47,10 +47,22 @@ CredentialSet = Mapping[str, str]
 
 @dataclass(frozen=True)
 class Artifact:
-    """One unit of content bound for a destination."""
+    """One unit of content bound for a destination.
+
+    ``content`` is text. A publisher that carries a file which is not text —
+    an image in another repository — sets ``data`` to its raw bytes instead and
+    leaves ``content`` empty. :meth:`encoded` is what gets written and digested
+    either way, and for text it is exactly ``content`` as UTF-8, so digests of
+    text artifacts do not depend on which field held them.
+    """
 
     name: str
     content: str
+    data: bytes | None = None
+
+    def encoded(self) -> bytes:
+        """Return the bytes this artifact stands for."""
+        return self.data if self.data is not None else self.content.encode("utf-8")
 
 
 @dataclass(frozen=True)
