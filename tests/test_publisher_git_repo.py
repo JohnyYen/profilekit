@@ -405,7 +405,7 @@ def test_a_destination_under_a_symlinked_directory_is_not_written(
 # ---------------------------------------------------------------------------
 
 
-def _cli_project(ctx: ProjectContext, remote: Path, extra: str = "") -> Path:
+def _cli_project(ctx: ProjectContext, remote: Path, extra: str = "", settings: str = "") -> Path:
     (ctx.root / "profile.toml").write_text(
         f"""\
 [project]
@@ -414,7 +414,7 @@ config_version = 1
 [publishers.profile]
 kind = "git-repo"
 repo = "{remote.as_uri()}"
-
+{settings}
 [publishers.profile.files]
 "README.md" = "README.md"
 "same.txt" = "same.txt"
@@ -451,7 +451,7 @@ def test_the_entry_point_plans_and_publishes(ctx: ProjectContext, remote: Path) 
 def test_dry_run_lists_the_changed_files_and_writes_nothing(
     ctx: ProjectContext, remote: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    root = _cli_project(ctx, remote)
+    root = _cli_project(ctx, remote, settings='on_conflict = "overwrite"')
     head = remote_head(remote)
 
     assert _run(root) == 0
@@ -467,7 +467,9 @@ def test_dry_run_lists_the_changed_files_and_writes_nothing(
 def test_execute_publishes_once_then_reports_unchanged(
     ctx: ProjectContext, remote: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    root = _cli_project(ctx, remote)
+    # The seeded README.md was never published by profilekit: replacing it
+    # is an explicit choice (see the manual-edit guard below).
+    root = _cli_project(ctx, remote, settings='on_conflict = "overwrite"')
     head = remote_head(remote)
 
     assert _run(root, "--execute") == 0
@@ -487,6 +489,7 @@ def test_a_misconfigured_git_repo_fails_alone(
     root = _cli_project(
         ctx,
         remote,
+        settings='on_conflict = "overwrite"',
         extra='\n[publishers.broken]\nkind = "git-repo"\nrepo = "owner/name"\n',
     )
 
@@ -497,3 +500,117 @@ def test_a_misconfigured_git_repo_fails_alone(
     assert "failed" in broken
     assert "files" in broken
     assert "would-publish" in next(line for line in out.splitlines() if line.startswith("profile"))
+
+
+# ---------------------------------------------------------------------------
+# G4: manual-edit guard
+# ---------------------------------------------------------------------------
+
+
+def _row_of(out: str, name: str) -> str:
+    return next(line for line in out.splitlines() if line.startswith(name + " "))
+
+
+def _hand_edit(remote: Path, tmp_path: Path, path: str, content: str) -> None:
+    work = tmp_path / "hand-edit"
+    _git("clone", str(remote), str(work))
+    (work / path).write_text(content, encoding="utf-8")
+    _git("commit", "--all", "--message", "edit by hand", cwd=work)
+    _git("push", "origin", "HEAD:refs/heads/main", cwd=work)
+
+
+def test_a_file_never_published_by_profilekit_is_not_overwritten(
+    ctx: ProjectContext, remote: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = _cli_project(ctx, remote)
+    head = remote_head(remote)
+
+    assert _run(root) == 1
+    dry = _row_of(capsys.readouterr().out, "profile")
+    assert "failed" in dry
+    assert "README.md" in dry
+
+    assert _run(root, "--execute") == 1
+    out = capsys.readouterr().out
+    row = _row_of(out, "profile")
+    assert "failed" in row
+    assert "README.md" in row
+    # A file that does not exist yet has nothing to lose.
+    assert "docs/cv.md" not in row
+    assert 'on_conflict = "overwrite"' in out
+    assert remote_head(remote) == head
+
+
+def test_on_conflict_overwrite_replaces_the_edited_file(
+    ctx: ProjectContext, remote: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = _cli_project(ctx, remote, settings='on_conflict = "overwrite"')
+
+    assert _run(root, "--execute") == 0
+
+    row = _row_of(capsys.readouterr().out, "profile")
+    assert "published" in row
+    assert "overwrote" in row
+    assert remote_file(remote, "README.md") == b"# generated\n"
+
+
+def test_a_hand_edit_after_a_publish_blocks_the_next_one(
+    ctx: ProjectContext, remote: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = _cli_project(ctx, remote, settings='on_conflict = "overwrite"')
+    assert _run(root, "--execute") == 0
+    _cli_project(ctx, remote)  # back to the default: refuse
+    _hand_edit(remote, tmp_path, "README.md", "# generated\n\nA hand-written section.\n")
+    (ctx.output_dir / "README.md").write_text("# regenerated\n", encoding="utf-8")
+    edited = remote_head(remote)
+    capsys.readouterr()
+
+    assert _run(root, "--execute") == 1
+
+    row = _row_of(capsys.readouterr().out, "profile")
+    assert "failed" in row
+    assert "README.md" in row
+    assert remote_head(remote) == edited
+    assert b"hand-written section" in remote_file(remote, "README.md")
+
+
+def test_new_content_over_an_untouched_publish_is_not_a_conflict(
+    ctx: ProjectContext, remote: Path
+) -> None:
+    root = _cli_project(ctx, remote, settings='on_conflict = "overwrite"')
+    assert _run(root, "--execute") == 0
+    _cli_project(ctx, remote)
+    for name in ("README.md", "same.txt", "cv.md"):
+        (ctx.output_dir / name).write_text(f"# {name} v2\n", encoding="utf-8")
+
+    assert _run(root, "--execute") == 0
+
+    assert remote_file(remote, "same.txt") == b"# same.txt v2\n"
+    assert remote_file(remote, "docs/cv.md") == b"# cv.md v2\n"
+
+
+def test_a_hand_edit_matching_the_new_content_is_not_a_conflict(
+    ctx: ProjectContext, remote: Path, tmp_path: Path
+) -> None:
+    _hand_edit(remote, tmp_path, "README.md", "# generated\n")
+    root = _cli_project(ctx, remote)
+
+    assert _run(root, "--execute") == 0
+    assert remote_file(remote, "docs/cv.md") == b"# cv\n"
+
+
+def test_the_ledger_records_each_file_only_on_execute(ctx: ProjectContext, remote: Path) -> None:
+    import hashlib
+    import json
+
+    from profilekit import publish
+
+    root = _cli_project(ctx, remote, settings='on_conflict = "overwrite"')
+    assert _run(root) == 0
+    assert not publish.ledger_path(ctx).exists()
+
+    assert _run(root, "--execute") == 0
+    ledger = json.loads(publish.ledger_path(ctx).read_text(encoding="utf-8"))
+    for destination, source in (("README.md", "README.md"), ("same.txt", "same.txt")):
+        expected = hashlib.sha256((ctx.output_dir / source).read_bytes()).hexdigest()
+        assert ledger[publish.ledger_key("profile", destination)] == expected

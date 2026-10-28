@@ -28,10 +28,18 @@ token.
 ``plan()`` clones the branch shallowly into a temporary directory, compares
 each mapped file with what the branch holds, and removes the clone. It writes
 nothing to the project or the remote.
+
+A destination file that changed since profilekit last published it — a
+hand-written section in a profile README — is not overwritten silently. The
+plan reports what each file holds now, and the core's manual-edit guard
+(``publish.manual_edits``) compares it with the publish ledger: an edited
+file blocks the publish unless ``on_conflict = "overwrite"``. A file that
+exists but was never published by profilekit counts as edited.
 """
 
 from __future__ import annotations
 
+import hashlib
 import re
 import shutil
 import subprocess
@@ -43,6 +51,7 @@ from pathlib import Path, PurePosixPath
 from profilekit.publishers import (
     Artifact,
     Capability,
+    OnConflict,
     ProjectContext,
     PublishPlan,
     PublishResult,
@@ -82,7 +91,6 @@ class GitRepoPlan(PublishPlan):
     repo: str = ""
     branch: str = DEFAULT_BRANCH
     message: str = DEFAULT_MESSAGE
-    on_conflict: str = "refuse"
 
 
 @dataclass(frozen=True)
@@ -90,7 +98,7 @@ class _Config:
     repo: str
     branch: str
     message: str
-    on_conflict: str
+    on_conflict: OnConflict
     files: tuple[tuple[str, str], ...]
 
 
@@ -118,7 +126,7 @@ def _parse_config(cfg: Mapping[str, object]) -> _Config:
     if not isinstance(message, str) or not message.strip():
         raise GitRepoConfigError(f"'message' must be a non-empty string, got {message!r}")
     on_conflict = cfg.get("on_conflict", "refuse")
-    if on_conflict not in ON_CONFLICT_CHOICES:
+    if on_conflict != "refuse" and on_conflict != "overwrite":
         raise GitRepoConfigError(
             f"'on_conflict' must be one of {', '.join(ON_CONFLICT_CHOICES)}, got {on_conflict!r}"
         )
@@ -140,7 +148,7 @@ def _parse_config(cfg: Mapping[str, object]) -> _Config:
         repo=repo,
         branch=branch,
         message=message,
-        on_conflict=str(on_conflict),
+        on_conflict=on_conflict,
         files=tuple(pairs),
     )
 
@@ -317,6 +325,12 @@ class GitRepoPublisher:
             current = {a.name: read_tracked(clone_dir, a.name) for a in artifacts}
 
         changes = [a.name for a in artifacts if current[a.name] != a.encoded()]
+        # Handed to the core's manual-edit guard, which owns the ledger of
+        # what this machine last published to each file.
+        digests = {
+            name: None if data is None else hashlib.sha256(data).hexdigest()
+            for name, data in current.items()
+        }
         return GitRepoPlan(
             destination=config.repo,
             capability=self.capability,
@@ -324,10 +338,11 @@ class GitRepoPublisher:
             artifacts=tuple(artifacts),
             changes=tuple(changes),
             remote_digest=head,
+            destination_digests=digests,
+            on_conflict=config.on_conflict,
             repo=config.repo,
             branch=config.branch,
             message=config.message,
-            on_conflict=config.on_conflict,
         )
 
     def publish(self, ctx: ProjectContext, plan: PublishPlan) -> PublishResult:

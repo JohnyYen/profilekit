@@ -49,7 +49,7 @@ also overwritten silently, because nothing compared the destination with what wa
       `unchanged` when nothing differs; push/clone errors become `failed` with detail. Test-first. Commit.
 - [x] G3 Wiring: entry point `git-repo` in `pyproject.toml`, kind mapping in `publish._load_publisher`
       (native capability + staleness), dry-run output lists changed files. Test-first. Commit.
-- [ ] G4 Manual-edit guard using the publish ledger + `on_conflict`. Test-first. Commit.
+- [x] G4 Manual-edit guard using the publish ledger + `on_conflict`. Test-first. Commit.
 - [ ] G5 Docs: `docs/authoring-publishers.md`, README publishing section, commented `profile.toml`
       example for the three owner repos. Commit.
 
@@ -81,6 +81,17 @@ also overwritten silently, because nothing compared the destination with what wa
   `unknown kind`). GREEN: 47 passed; full suite 765 passed. Entry point `git-repo` in
   `pyproject.toml`, mapped to `GitRepoPublisher` in `publish._native_publishers`; dry run row
   reads `would-publish  dry run — would write: README.md, docs/cv.md`.
+- G3 commit `d09bdb5`.
+- G4 (see commit below). RED: 4 failed (no conflict detection, no `publish.ledger_key`).
+  GREEN: 53 passed; full suite 771 passed, coverage 97.30%; mypy, ruff green. Design: the guard
+  lives in the core (`publish.manual_edits`), which owns the ledger. `PublishPlan` gained
+  `destination_digests` (opt-in, per-file SHA-256 of what the destination holds, `None` = absent)
+  and `on_conflict`; per-file ledger entries use `"<destination>::<path>"`. A verified-equal file
+  is recorded as a baseline; changed files are recorded after `published`. Decisions: a file that
+  exists but was never published by profilekit counts as edited (the hand-written README case);
+  a conflict is `failed` on the dry run too, so the table never promises a write `--execute`
+  refuses. G3 CLI tests now opt in with `on_conflict = "overwrite"` because their seeded README
+  is hand-written.
 
 ## Next step
-G4.
+G5.

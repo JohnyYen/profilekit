@@ -38,6 +38,8 @@ Capability = Literal["push", "manual"]
 #: ``would-publish`` is a dry run of a push destination: it would write on
 #: ``--execute``. ``skipped`` is reserved for a destination that cannot publish
 #: on this machine (a missing credential), so the two never share a label.
+#: What publishing does with a destination file edited outside profilekit.
+OnConflict = Literal["refuse", "overwrite"]
 Status = Literal["published", "unchanged", "would-publish", "pending-manual", "skipped", "failed"]
 
 # Credentials are injected by the core, never read from os.environ by a
@@ -72,6 +74,9 @@ class PublishPlan:
     ``changes`` lists the artifact names whose destination content differs from
     what would be written. An empty ``changes`` means the destination is already
     current and ``publish()`` has nothing to do.
+
+    ``remote_digest`` identifies the destination state the plan was computed
+    against, when the publisher has one (a commit, for a git repository).
     """
 
     destination: str
@@ -80,6 +85,14 @@ class PublishPlan:
     artifacts: Sequence[Artifact] = field(default_factory=tuple)
     changes: Sequence[str] = field(default_factory=tuple)
     remote_digest: str | None = None
+    #: What the destination holds now, per artifact name: the SHA-256 of its
+    #: bytes, or ``None`` when the artifact does not exist there yet. A
+    #: publisher that can read its destination sets it to opt in to the core's
+    #: manual-edit guard; ``None`` leaves the guard off.
+    destination_digests: Mapping[str, str | None] | None = None
+    #: What the guard does with a destination file edited outside profilekit
+    #: since it was last published: ``refuse`` the publish, or ``overwrite``.
+    on_conflict: OnConflict = "refuse"
 
 
 @dataclass(frozen=True)
@@ -124,6 +137,7 @@ __all__ = [
     "Artifact",
     "Capability",
     "CredentialSet",
+    "OnConflict",
     "PublishPlan",
     "PublishResult",
     "Publisher",
