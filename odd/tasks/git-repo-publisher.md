@@ -50,7 +50,7 @@ also overwritten silently, because nothing compared the destination with what wa
 - [x] G3 Wiring: entry point `git-repo` in `pyproject.toml`, kind mapping in `publish._load_publisher`
       (native capability + staleness), dry-run output lists changed files. Test-first. Commit.
 - [x] G4 Manual-edit guard using the publish ledger + `on_conflict`. Test-first. Commit.
-- [ ] G5 Docs: `docs/authoring-publishers.md`, README publishing section, commented `profile.toml`
+- [x] G5 Docs: `docs/authoring-publishers.md`, README publishing section, commented `profile.toml`
       example for the three owner repos. Commit.
 
 ## Acceptance criteria
@@ -92,6 +92,15 @@ also overwritten silently, because nothing compared the destination with what wa
   a conflict is `failed` on the dry run too, so the table never promises a write `--execute`
   refuses. G3 CLI tests now opt in with `on_conflict = "overwrite"` because their seeded README
   is hand-written.
+- G4 commit `7a2940e`.
+- G5 (see the docs commit). Passive docs: structural checks only (no meaningful RED). README
+  publishing section documents `git-repo` (config, dry run, credentials, conflict guard);
+  `docs/authoring-publishers.md` documents `Artifact.data` and the opt-in guard; `profile.toml`
+  holds the three owner repositories commented out. `tests/test_docs_coherence.py` accepts
+  `git-repo` as a shipped kind in TOML examples. Final checks: pytest 771 passed (97.30%),
+  mypy strict clean, ruff check/format clean, `profilekit --offline check` passed,
+  `profilekit publish` dry run shows only `portfolio-data` and `linkedin`.
 
 ## Next step
-G5.
+Owner: review the commented destinations in `profile.toml` (paths per repository layout), decide
+the chain strategy before opening a PR (forecast exceeded ~400 lines), then push/PR.

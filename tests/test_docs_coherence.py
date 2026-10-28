@@ -261,7 +261,9 @@ def test_documented_repository_paths_exist() -> None:
 
 # --- configuration examples -------------------------------------------------
 
-BUILTIN_KINDS = {"filesystem", "manual"}
+# `git-repo` is registered by the package's own entry point rather than built
+# in, but it ships with the package, so a doc may use it like a built-in kind.
+BUILTIN_KINDS = {"filesystem", "manual", "git-repo"}
 ENTRY_POINT_GROUPS = {registry.GENERATOR_GROUP, registry.PUBLISHER_GROUP}
 #: `[paths]` keys the context resolves; derived from its source so a renamed
 #: key cannot leave the docs behind.
