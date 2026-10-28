@@ -115,7 +115,10 @@ exactly the files that would change; `--execute` makes one commit with only
 those files and pushes it. Nothing changed means no commit. A rejected push is
 reported as `failed`, never as `published`. `git` must be installed, and it
 authenticates with whatever you already use — a credential helper, `gh auth
-login`, an SSH key. profilekit never reads or stores a token.
+login`, an SSH key. profilekit never reads or stores a token, and refuses an
+http(s) `repo` URL with credentials embedded in it. An empty remote or a
+missing branch is not supported yet: the clone fails and the destination
+reports `failed`.
 
 A file in the destination that changed since profilekit last published it —
 a section you wrote by hand — is not overwritten silently: the destination

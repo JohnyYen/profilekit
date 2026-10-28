@@ -57,7 +57,7 @@ also overwritten silently, because nothing compared the destination with what wa
       normalises away. Test-first. Commit.
 - [x] G7 Credentials in `repo`: reject http(s) userinfo at config parse; redact userinfo in
       every detail. Test-first. Commit.
-- [ ] G8 Owner layouts in the commented `profile.toml`; document that an empty remote or a
+- [x] G8 Owner layouts in the commented `profile.toml`; document that an empty remote or a
       missing branch is unsupported. Commit.
 
 ## Acceptance criteria
@@ -121,6 +121,16 @@ also overwritten silently, because nothing compared the destination with what wa
   http(s) userinfo with a config error pointing to a credential helper / `gh auth login`;
   scp-style and `ssh://git@` URLs still accepted. `redact()` scrubs userinfo in git stderr, clone
   errors and every result detail. The git-error test fakes `subprocess.run` (no network).
+- G6 commit `6d3245b`; G7 commit `6032e57`.
+- G8 (docs/config; no meaningful RED). Commented `profile.toml` now maps
+  `JohnyYen/JohnyYen` README.md <- github-readme.md + assets/pixel-mario.gif,
+  `JohnyYen/my-cv` Johny_A._Pedraza_Romero_CV.yaml <- cv.yml, and
+  `JohnyYen/my-portfolio-terminal` app/data/{social,projects,manifest}.json <- the
+  portfolio-data JSON. Checked by planning each block against a local bare repo (scratch script,
+  no real remote): all sources resolve. README and `profile.toml` state that an empty remote or
+  missing branch is unsupported. Final checks: pytest 784 passed (97.28%), mypy, ruff check and
+  format clean, `profilekit --offline check` passed, dry run shows only portfolio-data and
+  linkedin, pre-commit all hooks pass.
 
 ## Next step
 Owner: review the commented destinations in `profile.toml` (paths per repository layout), decide
