@@ -398,3 +398,102 @@ def test_a_destination_under_a_symlinked_directory_is_not_written(
     assert result.status == "failed"
     assert "symlink" in result.detail
     assert remote_head(bare) == head
+
+
+# ---------------------------------------------------------------------------
+# G3: wiring into `profile publish`
+# ---------------------------------------------------------------------------
+
+
+def _cli_project(ctx: ProjectContext, remote: Path, extra: str = "") -> Path:
+    (ctx.root / "profile.toml").write_text(
+        f"""\
+[project]
+config_version = 1
+
+[publishers.profile]
+kind = "git-repo"
+repo = "{remote.as_uri()}"
+
+[publishers.profile.files]
+"README.md" = "README.md"
+"same.txt" = "same.txt"
+"docs/cv.md" = "cv.md"
+{extra}""",
+        encoding="utf-8",
+    )
+    return ctx.root
+
+
+def _run(root: Path, *argv: str) -> int:
+    from profilekit import cli
+
+    return cli.main(["--project", str(root), "publish", *argv])
+
+
+def test_git_repo_is_a_registered_publisher_kind() -> None:
+    from profilekit import publish, registry
+
+    assert "git-repo" in registry.names(registry.PUBLISHER_GROUP)
+    loaded = publish._load_publisher(publish.Destination("x", "git-repo", {}))
+    assert isinstance(loaded, GitRepoPublisher)
+    assert loaded.capability == "push"
+    assert loaded.reads_destination is True
+
+
+def test_the_entry_point_plans_and_publishes(ctx: ProjectContext, remote: Path) -> None:
+    from profilekit.publishers.git_repo import publish_entry_point
+
+    result = publish_entry_point(ctx, _cfg(remote))
+    assert result.status == "published", result.detail
+
+
+def test_dry_run_lists_the_changed_files_and_writes_nothing(
+    ctx: ProjectContext, remote: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = _cli_project(ctx, remote)
+    head = remote_head(remote)
+
+    assert _run(root) == 0
+
+    row = next(line for line in capsys.readouterr().out.splitlines() if line.startswith("profile"))
+    assert "would-publish" in row
+    assert "README.md, docs/cv.md" in row
+    assert "same.txt" not in row
+    assert remote_head(remote) == head
+    assert not (root / ".profilekit").exists()
+
+
+def test_execute_publishes_once_then_reports_unchanged(
+    ctx: ProjectContext, remote: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = _cli_project(ctx, remote)
+    head = remote_head(remote)
+
+    assert _run(root, "--execute") == 0
+    first = remote_head(remote)
+    assert _git("--git-dir", str(remote), "rev-list", "--count", f"{head}..{first}") == "1"
+
+    assert _run(root, "--execute") == 0
+    assert remote_head(remote) == first
+    out = capsys.readouterr().out
+    assert "published" in out
+    assert "unchanged" in out
+
+
+def test_a_misconfigured_git_repo_fails_alone(
+    ctx: ProjectContext, remote: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = _cli_project(
+        ctx,
+        remote,
+        extra='\n[publishers.broken]\nkind = "git-repo"\nrepo = "owner/name"\n',
+    )
+
+    assert _run(root) == 1
+
+    out = capsys.readouterr().out
+    broken = next(line for line in out.splitlines() if line.startswith("broken"))
+    assert "failed" in broken
+    assert "files" in broken
+    assert "would-publish" in next(line for line in out.splitlines() if line.startswith("profile"))

@@ -68,12 +68,14 @@ cv = "profilekit.generate_cv:main"
 # names, so they show up in `registry.publishers()` and can be used directly as
 # a destination `kind` (`kind = "portfolio-data"` behaves like
 # `kind = "filesystem"`, `kind = "linkedin"` like `kind = "manual"`).
-# `publish._load_publisher` resolves these two entries to their native
+# `git-repo` is the kind itself: it has no destination-flavoured alias.
+# `publish._load_publisher` resolves these entries to their native
 # classes, so the `publish_entry_point` callables only run when something
 # outside profilekit loads the entry point and calls it.
 [project.entry-points."profilekit.publishers"]
 portfolio-data = "profilekit.publishers.filesystem:publish_entry_point"
 linkedin = "profilekit.publishers.manual:publish_entry_point"
+git-repo = "profilekit.publishers.git_repo:publish_entry_point"
 
 # src-layout: the import package lives under src/profilekit, decoupled from
 # the distribution name. `pip install .` / `pip install -e .` makes the

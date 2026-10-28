@@ -313,11 +313,12 @@ def _refuse_a_shadowed_plugin(destination: Destination) -> None:
 
 def _native_publishers() -> dict[Callable[..., Any], Callable[[], Publisher]]:
     """Map the package's own publisher entry points to their classes."""
-    from profilekit.publishers import filesystem, manual
+    from profilekit.publishers import filesystem, git_repo, manual
 
     return {
         filesystem.publish_entry_point: filesystem.FilesystemPublisher,
         manual.publish_entry_point: manual.ManualPublisher,
+        git_repo.publish_entry_point: git_repo.GitRepoPublisher,
     }
 
 

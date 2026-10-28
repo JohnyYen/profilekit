@@ -414,6 +414,25 @@ class GitRepoPublisher:
             return run_git("rev-parse", "HEAD", cwd=clone_dir).decode().strip()
 
 
+def publish_entry_point(
+    ctx: ProjectContext,
+    cfg: Mapping[str, object] | None = None,
+    credentials: Mapping[str, object] | None = None,
+) -> PublishResult:
+    """Registry entry point: plan and publish in one call.
+
+    Registered as the ``git-repo`` publisher. profilekit itself never calls
+    it: ``publish._load_publisher`` maps this entry point to
+    :class:`GitRepoPublisher`, so a destination keeps its two phases — a dry
+    run plans and never pushes — and reads its own destination for staleness.
+    It stays callable for code outside the package that loads the entry point
+    directly. *credentials* is accepted for the uniform signature and unused:
+    git authenticates with the user's own helpers.
+    """
+    publisher = GitRepoPublisher()
+    return publisher.publish(ctx, publisher.plan(ctx, cfg or {}))
+
+
 __all__ = [
     "DEFAULT_BRANCH",
     "DEFAULT_MESSAGE",
@@ -423,6 +442,7 @@ __all__ = [
     "GitRepoConfigError",
     "GitRepoPlan",
     "GitRepoPublisher",
+    "publish_entry_point",
     "resolve_repo",
     "resolve_source",
 ]

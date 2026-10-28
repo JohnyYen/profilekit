@@ -47,7 +47,7 @@ also overwritten silently, because nothing compared the destination with what wa
       against a local bare repo fixture. Commit.
 - [x] G2 Publish: write changed files in the clone, commit with `message`, push to `branch`;
       `unchanged` when nothing differs; push/clone errors become `failed` with detail. Test-first. Commit.
-- [ ] G3 Wiring: entry point `git-repo` in `pyproject.toml`, kind mapping in `publish._load_publisher`
+- [x] G3 Wiring: entry point `git-repo` in `pyproject.toml`, kind mapping in `publish._load_publisher`
       (native capability + staleness), dry-run output lists changed files. Test-first. Commit.
 - [ ] G4 Manual-edit guard using the publish ledger + `on_conflict`. Test-first. Commit.
 - [ ] G5 Docs: `docs/authoring-publishers.md`, README publishing section, commented `profile.toml`
@@ -76,6 +76,11 @@ also overwritten silently, because nothing compared the destination with what wa
   HEAD), writes via `safe_io.write_file`, no empty commits, push errors -> `failed` with git's
   stderr. Identity: user's own when `git var GIT_AUTHOR_IDENT`/`GIT_COMMITTER_IDENT` resolve,
   else fallback `profilekit <profilekit@localhost>`.
+- G2 commit `73c524c`.
+- G3 (see commit below). RED: 5 failed (`git-repo` not registered; CLI rows `failed` with
+  `unknown kind`). GREEN: 47 passed; full suite 765 passed. Entry point `git-repo` in
+  `pyproject.toml`, mapped to `GitRepoPublisher` in `publish._native_publishers`; dry run row
+  reads `would-publish  dry run — would write: README.md, docs/cv.md`.
 
 ## Next step
-G3.
+G4.
