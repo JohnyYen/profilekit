@@ -17,6 +17,12 @@ written. Republishing identical content wastes a
 round trip at best, and at worst makes a destination's history look busy when
 nothing happened.
 
+**Manual edits are not overwritten silently.** A publisher that reads its
+destination may report what each file holds now. A file that holds neither
+the new content nor what the ledger says this machine last published there
+was edited by someone else, and the destination fails with a conflict unless
+it sets ``on_conflict = "overwrite"`` (see :func:`manual_edits`).
+
 **Failure isolation.** Each destination runs inside its own ``try/except``.
 One broken destination must not prevent the others from publishing: they are
 independent, and aborting the run would turn one platform's outage into a
@@ -33,9 +39,10 @@ skipped publish would be a problem.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import sys
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
@@ -136,8 +143,65 @@ def plan_digest(plan: Any) -> str | None:
     parts = []
     for artifact in sorted(plan.artifacts, key=lambda a: a.name):
         parts.append(artifact.name)
-        parts.append(manifest.digest_text(artifact.content))
+        # Bytes, not text: for a text artifact this is the same digest as
+        # `manifest.digest_text(content)`, and a binary one is covered too.
+        parts.append(hashlib.sha256(artifact.encoded()).hexdigest())
     return manifest.digest_text("\n".join(parts))
+
+
+def ledger_key(destination: str, artifact: str) -> str:
+    """Return the ledger key holding what *destination* last got for *artifact*.
+
+    Per-file entries share the ledger with the per-destination digests, which
+    are keyed by the bare destination name; ``::`` cannot appear in a bare
+    TOML key, so the two never collide.
+    """
+    return f"{destination}::{artifact}"
+
+
+def manual_edits(name: str, plan: PublishPlan, state: Mapping[str, str]) -> list[str]:
+    """Return the changed artifacts whose destination file was edited elsewhere.
+
+    The manual-edit guard. Only a plan that reports ``destination_digests``
+    takes part; for any other this is always empty.
+
+    A file is edited when the destination holds something that is neither the
+    new content (then it is not in ``changes``) nor what the ledger says this
+    machine last published there. A file profilekit never published counts as
+    edited when it exists: there is no record to say it is safe to replace,
+    and replacing a hand-written file silently is exactly what this prevents.
+    A file that does not exist yet has nothing to lose.
+    """
+    current = plan.destination_digests
+    if current is None:
+        return []
+    edited = []
+    for artifact in plan.artifacts:
+        if artifact.name not in plan.changes:
+            continue
+        held = current.get(artifact.name)
+        if held is not None and held != state.get(ledger_key(name, artifact.name)):
+            edited.append(artifact.name)
+    return edited
+
+
+def _record_files(
+    name: str, plan: PublishPlan, state: dict[str, str], names: Sequence[str]
+) -> None:
+    """Record each named artifact's digest as what the destination now holds.
+
+    That is the digest of what the destination stores, which is not always
+    the bytes profilekit wrote: see ``PublishPlan.published_digests``.
+    """
+    if plan.destination_digests is None:
+        return
+    published = plan.published_digests or {}
+    for artifact in plan.artifacts:
+        if artifact.name in names:
+            stored = published.get(artifact.name)
+            if stored is None:
+                stored = hashlib.sha256(artifact.encoded()).hexdigest()
+            state[ledger_key(name, artifact.name)] = stored
 
 
 def publish_destination(
@@ -183,6 +247,16 @@ def publish_destination(
     publisher.credentials = credentials  # type: ignore[attr-defined]
     plan = replace(publisher.plan(ctx, destination.config), destination=destination.name)
     digest = plan_digest(plan)
+    edited = manual_edits(destination.name, plan, state)
+    # A file that already holds exactly the new content is a verified
+    # baseline, whether profilekit wrote it or not. The ledger is only
+    # persisted on --execute, so a dry run records nothing.
+    _record_files(
+        destination.name,
+        plan,
+        state,
+        [a.name for a in plan.artifacts if a.name not in plan.changes],
+    )
 
     # Which staleness signal is authoritative depends on whether the
     # publisher can see its destination.
@@ -211,18 +285,43 @@ def publish_destination(
             detail="destination already matches the current artifacts",
         )
 
+    if edited and plan.on_conflict == "refuse":
+        # Reported on a dry run too: `would-publish` would promise a write
+        # that --execute is going to refuse.
+        return PublishResult(
+            destination=destination.name,
+            status="failed",
+            detail=(
+                "conflict: changed outside profilekit since it last published them: "
+                f"{', '.join(edited)}; nothing was written"
+            ),
+            action_required=(
+                "carry the edits into the source and regenerate, or set "
+                'on_conflict = "overwrite" to replace them'
+            ),
+        )
+    # With on_conflict = "overwrite" the edits are replaced, and said so.
+    overwritten = f"edits made outside profilekit: {', '.join(edited)}" if edited else ""
+
     if not execute:
         changed = ", ".join(plan.changes) or "nothing"
         return PublishResult(
             destination=destination.name,
             status="pending-manual" if plan.capability == "manual" else "would-publish",
-            detail=f"dry run — would write: {changed}",
+            detail=(
+                f"dry run — would write: {changed}"
+                + (f"; would overwrite {overwritten}" if overwritten else "")
+            ),
             action_required="re-run with --execute to publish",
         )
 
     result = publisher.publish(ctx, plan)
     if result.status == "published" and digest is not None:
         state[destination.name] = digest
+    if result.status == "published":
+        _record_files(destination.name, plan, state, plan.changes)
+        if overwritten:
+            result = replace(result, detail=f"{result.detail}; overwrote {overwritten}")
 
     # The declared name is authoritative. A publisher derives its plan's
     # destination from configuration, which may be a path or absent entirely,
@@ -310,11 +409,12 @@ def _refuse_a_shadowed_plugin(destination: Destination) -> None:
 
 def _native_publishers() -> dict[Callable[..., Any], Callable[[], Publisher]]:
     """Map the package's own publisher entry points to their classes."""
-    from profilekit.publishers import filesystem, manual
+    from profilekit.publishers import filesystem, git_repo, manual
 
     return {
         filesystem.publish_entry_point: filesystem.FilesystemPublisher,
         manual.publish_entry_point: manual.ManualPublisher,
+        git_repo.publish_entry_point: git_repo.GitRepoPublisher,
     }
 
 
@@ -393,7 +493,9 @@ __all__ = [
     "STATE_FILENAME",
     "Destination",
     "destinations",
+    "ledger_key",
     "ledger_path",
+    "manual_edits",
     "plan_digest",
     "publish_destination",
     "read_state",

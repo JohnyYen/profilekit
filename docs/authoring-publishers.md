@@ -128,6 +128,38 @@ destination's history look busy when nothing happened.
 
 Return `unchanged` rather than re-writing.
 
+An artifact that is not text — an image bound for a repository — carries its
+raw bytes in `Artifact.data` and leaves `content` empty. `Artifact.encoded()`
+returns the bytes either way, and it is what the core digests.
+
+## Protecting hand edits
+
+A destination someone else also edits — a profile README with a hand-written
+section — must not be overwritten silently. If your publisher can read its
+destination, opt in to the core's manual-edit guard by reporting what each
+artifact's destination holds now:
+
+```python
+return PublishPlan(
+    ...,
+    destination_digests={"README.md": sha256_of_current_bytes, "new.md": None},
+    on_conflict=cfg_on_conflict,  # "refuse" (default) or "overwrite"
+)
+```
+
+`None` means the file does not exist yet. The core compares each changed
+artifact's digest with the per-file entry it recorded in the publish ledger
+the last time it published there. A file holding something else was edited
+outside profilekit — and so is one that exists but was never published by it.
+With `on_conflict = "refuse"` the destination fails with a conflict naming the
+files, on the dry run too; with `"overwrite"` it publishes and says what it
+replaced. Leave `destination_digests` as `None` and the guard stays off.
+
+The built-in `git-repo` publisher (`src/profilekit/publishers/git_repo.py`) is the
+reference: it reads the remote branch from a shallow clone, reports per-file
+digests, and drives `git` through argument lists — never a shell — with the
+user's own credential helpers.
+
 ## Failing
 
 Raise. The core wraps every destination in its own handler, records the
@@ -155,7 +187,8 @@ The registry hands every component a uniform callable, so the two-phase
 protocol stays internal to your implementation.
 
 Do not name your entry point `filesystem` or `manual`: those kinds are
-built in. A destination declaring a kind that is both built in and
+built in. Avoid `git-repo`, `portfolio-data` and `linkedin` too: the package
+registers those itself. A destination declaring a kind that is both built in and
 registered by another distribution fails with an error naming both, rather
 than silently using one of them.
 

@@ -38,3 +38,38 @@ destination = "apps/portfolio/app/data"
 # publish it did not perform.
 kind = "manual"
 artifacts = ["linkedin.md"]
+
+# The repositories that serve the generated artifacts. Commented out until the
+# owner reviews the destination paths and runs the first publish: a first
+# publish into a repository edited by hand fails with a conflict by design,
+# and `on_conflict = "overwrite"` is a deliberate, one-time choice. Sources
+# resolve against output/ first, then the project root (the portfolio JSON is
+# the `portfolio-data` destination above). An empty remote or a missing branch
+# is not supported yet: the clone fails and the destination reports `failed`.
+#
+# [publishers.profile-readme]
+# kind = "git-repo"
+# repo = "JohnyYen/JohnyYen"
+# message = "chore: refresh profile README"
+#
+# [publishers.profile-readme.files]
+# "README.md" = "github-readme.md"
+# "assets/pixel-mario.gif" = "assets/pixel-mario.gif"
+#
+# [publishers.cv-repo]
+# kind = "git-repo"
+# repo = "JohnyYen/my-cv"
+# message = "chore: refresh CV sources"
+#
+# [publishers.cv-repo.files]
+# "Johny_A._Pedraza_Romero_CV.yaml" = "cv.yml"
+#
+# [publishers.portfolio-repo]
+# kind = "git-repo"
+# repo = "JohnyYen/my-portfolio-terminal"
+# message = "chore: refresh portfolio data"
+#
+# [publishers.portfolio-repo.files]
+# "app/data/social.json" = "apps/portfolio/app/data/social.json"
+# "app/data/projects.json" = "apps/portfolio/app/data/projects.json"
+# "app/data/manifest.json" = "apps/portfolio/app/data/manifest.json"

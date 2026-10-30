@@ -8,6 +8,15 @@ reaches its first tagged release.
 
 ## [Unreleased]
 
+### Added
+
+- `git-repo` publisher kind: `profile publish --execute` commits and pushes
+  generated artifacts (text or binary) into another git repository, such as a
+  GitHub profile README, a CV repository or a portfolio. It plans against a
+  shallow clone, never makes an empty commit, refuses to overwrite files edited
+  outside profilekit unless `on_conflict = "overwrite"`, and rejects
+  credentials embedded in an http(s) `repo` URL.
+
 ### Changed
 
 - Renamed the distributed package from the non-redistributable `generators`

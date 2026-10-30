@@ -81,7 +81,8 @@ profile publish --execute    # actually publish
 **Dry run is the default.** Publishing is outward-facing and not reliably
 reversible, so writing is something you opt into.
 
-Two destination kinds ship with the package and need no credentials:
+Three destination kinds ship with the package, and none asks you for a
+token:
 
 - **`filesystem`** writes into a directory inside your project — point it at
   whatever frontend reads the JSON.
@@ -91,9 +92,44 @@ Two destination kinds ship with the package and need no credentials:
   left to do. It never reports success for something it did not do, because a
   tool that claims a publish it did not perform is how a profile goes stale
   without anyone noticing.
+- **`git-repo`** commits generated files into another git repository and
+  pushes them — a GitHub profile README, a CV repository, a portfolio site.
 
-Credentialed destinations install separately as plugins. The core declares no
-network dependency at all.
+```toml
+[publishers.profile-readme]
+kind = "git-repo"
+repo = "your-name/your-name"     # GitHub owner/name, or any git URL or path
+branch = "main"                  # default
+message = "chore: refresh profile README"
+on_conflict = "refuse"           # default; "overwrite" replaces hand edits
+
+[publishers.profile-readme.files]
+# destination path in the repository = source path
+"README.md" = "github-readme.md"
+"assets/hero.gif" = "assets/hero.gif"
+```
+
+A source resolves against the output directory first, then the project root.
+The dry run clones the branch shallowly into a temporary directory and lists
+exactly the files that would change; `--execute` makes one commit with only
+those files and pushes it. Nothing changed means no commit. A rejected push is
+reported as `failed`, never as `published`. `git` must be installed, and it
+authenticates with whatever you already use — a credential helper, `gh auth
+login`, an SSH key. profilekit never reads or stores a token, and refuses an
+http(s) `repo` URL with credentials embedded in it. An empty remote or a
+missing branch is not supported yet: the clone fails and the destination
+reports `failed`.
+
+A file in the destination that changed since profilekit last published it —
+a section you wrote by hand — is not overwritten silently: the destination
+fails with a conflict naming the file. So does a file that exists but that
+profilekit never published, which is the case on a first publish to a
+repository you have been editing by hand. Carry the edits into your source, or
+set `on_conflict = "overwrite"` once to replace them. What was last published
+is recorded per file in the local ledger, `.profilekit/publish-state.json`.
+
+Destinations that need an API token install separately as plugins. The core
+declares no network dependency at all.
 
 ## Consuming the output
 
